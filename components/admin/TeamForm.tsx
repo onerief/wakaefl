@@ -1,0 +1,184 @@
+
+import React, { useState } from 'react';
+import type { Team } from '../../types';
+import { Card } from '../shared/Card';
+import { Button } from '../shared/Button';
+import { X, Copy, Check, UserCircle, Instagram, MessageCircle, Globe } from 'lucide-react';
+import { TeamLogo } from '../shared/TeamLogo';
+import { Spinner } from '../shared/Spinner';
+
+interface TeamFormProps {
+  team: Team | null;
+  onSave: (
+    details: { 
+      name: string; 
+      manager?: string; 
+      socialMediaUrl?: string; 
+      whatsappNumber?: string; 
+      logoUrl: string;
+    }
+  ) => void;
+  onClose: () => void;
+  isSaving: boolean;
+}
+
+export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSaving }) => {
+  const [name, setName] = useState(team?.name ?? '');
+  const [manager, setManager] = useState(team?.manager ?? '');
+  const [socialMediaUrl, setSocialMediaUrl] = useState(team?.socialMediaUrl ?? '');
+  const [whatsappNumber, setWhatsappNumber] = useState(team?.whatsappNumber ?? '');
+  const [logoUrl, setLogoUrl] = useState(team?.logoUrl ?? '');
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyId = () => {
+    if (team?.id) {
+        navigator.clipboard.writeText(team.id);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim()) {
+      onSave(
+        { 
+          name: name.trim(), 
+          manager: manager.trim(),
+          socialMediaUrl: socialMediaUrl.trim(),
+          whatsappNumber: whatsappNumber.trim(),
+          logoUrl: logoUrl.trim()
+        }
+      );
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm p-4 overflow-y-auto">
+      <Card className="w-full max-w-lg relative my-auto !p-0 overflow-hidden !rounded-[2rem]">
+        <div className="bg-brand-secondary/50 p-6 border-b border-white/5 flex justify-between items-center">
+            <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">
+                {team ? 'Edit Profil Tim' : 'Tambah Tim Baru'}
+            </h2>
+            <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 text-brand-light hover:text-white flex items-center justify-center transition-all" aria-label="Close form" disabled={isSaving}>
+              <X size={20} />
+            </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {/* Logo Section */}
+            <div className="flex flex-col sm:flex-row items-center gap-6 bg-black/20 p-4 rounded-2xl border border-white/5">
+                <TeamLogo logoUrl={logoUrl} teamName={name || "New Team"} className="w-24 h-24 flex-shrink-0" />
+                <div className="flex-grow w-full space-y-3">
+                  <div>
+                    <label htmlFor="logo-url" className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5">Filename Logo</label>
+                    <div className="relative">
+                        <Globe size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-vibrant" />
+                        <input
+                            id="logo-url"
+                            type="text"
+                            value={logoUrl}
+                            onChange={(e) => setLogoUrl(e.target.value)}
+                            className="w-full p-2.5 pl-9 bg-brand-primary border border-brand-accent rounded-xl text-brand-text text-sm focus:ring-2 focus:ring-brand-vibrant outline-none"
+                            placeholder="e.g., man-united.png"
+                        />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-brand-light/60">
+                    Gunakan nama file logo yang ada di folder <code className="bg-brand-accent/50 px-1 py-0.5 rounded">public/logo/</code>
+                  </p>
+                </div>
+            </div>
+
+            {/* Basic Info */}
+            <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label htmlFor="team-name" className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5">Nama Tim</label>
+                  <input
+                    id="team-name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full p-3 bg-brand-primary border border-brand-accent rounded-xl text-brand-text font-bold focus:ring-2 focus:ring-brand-vibrant outline-none"
+                    placeholder="Masukkan Nama Tim..."
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="team-manager" className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5">Nama Manager</label>
+                  <div className="relative">
+                      <UserCircle size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-vibrant" />
+                      <input
+                        id="team-manager"
+                        type="text"
+                        value={manager}
+                        onChange={(e) => setManager(e.target.value)}
+                        className="w-full p-3 pl-10 bg-brand-primary border border-brand-accent rounded-xl text-brand-text text-sm focus:ring-2 focus:ring-brand-vibrant outline-none"
+                        placeholder="Nama Manager Tim"
+                      />
+                  </div>
+                </div>
+            </div>
+
+            {/* Contact & Social */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="team-whatsapp" className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5">No. WhatsApp</label>
+                  <div className="relative">
+                      <MessageCircle size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500" />
+                      <input
+                        id="team-whatsapp"
+                        type="text"
+                        value={whatsappNumber}
+                        onChange={(e) => setWhatsappNumber(e.target.value)}
+                        className="w-full p-3 pl-10 bg-brand-primary border border-brand-accent rounded-xl text-brand-text text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                        placeholder="628..."
+                      />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="team-social" className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5">Link Instagram</label>
+                  <div className="relative">
+                      <Instagram size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-pink-500" />
+                      <input
+                        id="team-social"
+                        type="text"
+                        value={socialMediaUrl}
+                        onChange={(e) => setSocialMediaUrl(e.target.value)}
+                        className="w-full p-3 pl-10 bg-brand-primary border border-brand-accent rounded-xl text-brand-text text-sm focus:ring-2 focus:ring-pink-500 outline-none"
+                        placeholder="instagram.com/..."
+                      />
+                  </div>
+                </div>
+            </div>
+            
+            {team && (
+              <div className="pt-2 border-t border-white/5">
+                <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5 opacity-50">ID Tim (Read Only)</label>
+                <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={team.id}
+                      readOnly
+                      className="w-full p-2 bg-black/30 border border-white/5 rounded-lg text-brand-light font-mono text-xs opacity-60 cursor-not-allowed"
+                    />
+                    <Button type="button" variant="secondary" onClick={handleCopyId} className="!p-2" title="Salin ID">
+                        {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+                    </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
+                <Button type="button" variant="secondary" onClick={onClose} disabled={isSaving} className="!rounded-xl px-6">Batal</Button>
+                <Button type="submit" disabled={isSaving} className="!rounded-xl px-8 min-w-[140px]">
+                  {isSaving ? <Spinner /> : (team ? 'Simpan Perubahan' : 'Tambah Tim')}
+                </Button>
+            </div>
+        </form>
+      </Card>
+    </div>
+  );
+};
