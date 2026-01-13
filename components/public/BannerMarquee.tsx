@@ -9,13 +9,13 @@ export const BannerMarquee: React.FC<BannerMarqueeProps> = ({ banners }) => {
     if (!banners || banners.length === 0) return null;
 
     // We need enough items to cover the screen width twice for a seamless loop
-    // If only one banner, we repeat it multiple times
+    // If only one banner, we repeat it multiple times to ensure the marquee effect works
     const displayBanners = banners.length < 5 
         ? [...banners, ...banners, ...banners, ...banners] 
         : [...banners, ...banners];
 
     return (
-        <div className="relative w-full bg-black/40 border-y border-white/5 py-4 overflow-hidden backdrop-blur-md mb-8 group">
+        <div className="relative w-full bg-black/40 border-y border-white/5 py-4 overflow-hidden backdrop-blur-md mb-8 group rounded-xl">
             <style>{`
                 @keyframes banner-scroll {
                     0% { transform: translateX(0); }

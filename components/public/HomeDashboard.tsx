@@ -3,14 +3,16 @@ import React from 'react';
 import { Trophy, ListOrdered, ChevronRight, Gamepad2, Users, Star, Crown, Globe } from 'lucide-react';
 import { Card } from '../shared/Card';
 import { TournamentMode } from '../../types';
+import { BannerMarquee } from './BannerMarquee';
 
 interface HomeDashboardProps {
   onSelectMode: (mode: TournamentMode | 'hall_of_fame') => void;
   teamCount: number;
   partnerCount: number;
+  banners?: string[];
 }
 
-export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, teamCount, partnerCount }) => {
+export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, teamCount, partnerCount, banners }) => {
   return (
     <div className="space-y-12 py-8 animate-in fade-in duration-700">
       {/* Hero Section */}
@@ -44,6 +46,14 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, team
           </div>
         </div>
       </div>
+
+      {/* Banner Marquee Section (Added below Hero) */}
+      {banners && banners.length > 0 && (
+          <div className="py-4">
+              <h3 className="text-sm font-black text-brand-light uppercase tracking-widest mb-4 ml-2">Official Sponsors & Events</h3>
+              <BannerMarquee banners={banners} />
+          </div>
+      )}
 
       {/* Mode Selection Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

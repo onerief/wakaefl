@@ -166,7 +166,8 @@ function AppContent() {
                 <HomeDashboard 
                   onSelectMode={handleSelectMode} 
                   teamCount={globalStats.teamCount} 
-                  partnerCount={globalStats.partnerCount} 
+                  partnerCount={globalStats.partnerCount}
+                  banners={tournament.banners} 
                 />
               )}
               
