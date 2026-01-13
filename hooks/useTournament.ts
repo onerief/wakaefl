@@ -26,6 +26,7 @@ Group Stage:
   isDoubleRoundRobin: true,
   status: 'active',
   history: [],
+  isRegistrationOpen: true, // Default open for new setup
 });
 
 type Action =
@@ -59,7 +60,8 @@ type Action =
   | { type: 'REQUEST_TEAM_CLAIM'; payload: { teamId: string; userEmail: string } }
   | { type: 'RESOLVE_TEAM_CLAIM'; payload: { teamId: string; approved: boolean } }
   | { type: 'FINALIZE_SEASON'; payload: SeasonHistory }
-  | { type: 'SET_STATUS'; payload: 'active' | 'completed' };
+  | { type: 'SET_STATUS'; payload: 'active' | 'completed' }
+  | { type: 'SET_REGISTRATION_STATUS'; payload: boolean };
 
 const calculateStandings = (teams: Team[], matches: Match[]): Standing[] => {
   const standings: { [key: string]: Standing } = teams.reduce((acc, team) => {
@@ -256,6 +258,8 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
         };
     case 'SET_STATUS':
         return { ...state, status: action.payload };
+    case 'SET_REGISTRATION_STATUS':
+        return { ...state, isRegistrationOpen: action.payload };
     default:
       return state;
   }
@@ -273,7 +277,9 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
 
     getTournamentData(activeMode).then(data => {
       if (data) {
-        dispatch({ type: 'SET_STATE', payload: data });
+        // Ensure legacy data gets the flag if missing
+        const safeData = { ...data, isRegistrationOpen: data.isRegistrationOpen ?? true };
+        dispatch({ type: 'SET_STATE', payload: safeData });
       } else {
         // Default state
       }
@@ -553,7 +559,8 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
               mode: 'two_leagues',
               isDoubleRoundRobin: true,
               status: 'active',
-              history: []
+              history: [],
+              isRegistrationOpen: true
           };
 
           dispatch({ type: 'IMPORT_LEGACY_JSON', payload: importedState });
@@ -606,6 +613,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           dispatch({ type: 'ADD_KNOCKOUT_MATCH', payload: { round, match } });
       },
       requestTeamClaim: (teamId: string, userEmail: string) => dispatch({ type: 'REQUEST_TEAM_CLAIM', payload: { teamId, userEmail } }),
-      resolveTeamClaim: (teamId: string, approved: boolean) => dispatch({ type: 'RESOLVE_TEAM_CLAIM', payload: { teamId, approved } })
+      resolveTeamClaim: (teamId: string, approved: boolean) => dispatch({ type: 'RESOLVE_TEAM_CLAIM', payload: { teamId, approved } }),
+      setRegistrationStatus: (isOpen: boolean) => dispatch({ type: 'SET_REGISTRATION_STATUS', payload: isOpen })
   };
 };

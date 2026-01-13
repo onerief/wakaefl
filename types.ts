@@ -120,6 +120,7 @@ export interface TournamentState {
   isDoubleRoundRobin: boolean;
   status: TournamentStatus;
   history: SeasonHistory[];
+  isRegistrationOpen: boolean; // New: Controls visibility of registration button
 }
 
 export type View = 'home' | 'league' | 'wakacl' | 'two_leagues' | 'admin' | 'hall_of_fame';

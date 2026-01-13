@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Team, Group, Match, KnockoutStageRounds, TournamentState } from '../../types';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search, Bell } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { GenerateGroupsConfirmationModal } from './GenerateGroupsConfirmationModal';
 import { useToast } from '../shared/Toast';
@@ -12,6 +12,7 @@ import { ConfirmationModal } from './ConfirmationModal';
 import { MoveTeamModal } from './MoveTeamModal';
 import { ManualGroupManager } from './ManualGroupManager';
 import { TeamLogo } from '../shared/TeamLogo';
+import { subscribeToRegistrations, deleteRegistration } from '../../services/firebaseService';
 
 interface TeamManagerProps {
   teams: Team[];
@@ -55,7 +56,9 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const [numGroups, setNumGroups] = useState(4);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [importedData, setImportedData] = useState<TournamentState | null>(null);
-  const [searchTerm, setSearchTerm] = useState(''); // NEW SEARCH STATE
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const [newRegistrations, setNewRegistrations] = useState<any[]>([]);
   
   const [showLegacyImportConfirm, setShowLegacyImportConfirm] = useState(false);
   const [legacyImportData, setLegacyImportData] = useState<any>(null);
@@ -65,6 +68,14 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const legacyFileInputRef = React.useRef<HTMLInputElement>(null);
   
+  // Fetch pending registrations
+  useEffect(() => {
+      const unsubscribe = subscribeToRegistrations((regs) => {
+          setNewRegistrations(regs);
+      });
+      return () => unsubscribe();
+  }, []);
+
   const isTeamInUse = (teamId: string) => {
     return groups.some(g => g.teams.some(t => t.id === teamId));
   }
@@ -138,6 +149,29 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
     } finally {
         setIsSavingTeam(false);
     }
+  };
+
+  const handleApproveRegistration = async (reg: any) => {
+      const newTeamId = `t${Date.now()}`;
+      // Add team to main database
+      addTeam(
+          newTeamId,
+          reg.name,
+          reg.logoUrl,
+          reg.manager,
+          reg.socialMediaUrl,
+          reg.whatsappNumber,
+          reg.ownerEmail // Link to the user who registered
+      );
+      
+      // Delete registration request
+      await deleteRegistration(reg.id);
+      addToast(`Approved ${reg.name}!`, 'success');
+  };
+
+  const handleRejectRegistration = async (regId: string) => {
+      await deleteRegistration(regId);
+      addToast('Registration rejected.', 'info');
   };
 
   const handleToggleSeed = (team: Team) => {
@@ -319,6 +353,39 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
 
   return (
     <Card>
+      {/* NEW REGISTRATIONS SECTION */}
+      {newRegistrations.length > 0 && (
+          <div className="mb-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl animate-in slide-in-from-top-4">
+              <h4 className="text-sm font-black text-blue-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Bell size={16} className="animate-bounce" />
+                  New Team Applications ({newRegistrations.length})
+              </h4>
+              <div className="space-y-3">
+                  {newRegistrations.map(reg => (
+                      <div key={reg.id} className="flex flex-col sm:flex-row justify-between items-center bg-black/30 p-3 rounded-lg border border-blue-500/20">
+                          <div className="flex items-center gap-3 mb-2 sm:mb-0 w-full sm:w-auto">
+                              <TeamLogo logoUrl={reg.logoUrl} teamName={reg.name} className="w-10 h-10" />
+                              <div className="flex flex-col min-w-0">
+                                  <span className="font-bold text-white text-sm truncate">{reg.name}</span>
+                                  <span className="text-[10px] text-brand-light truncate">
+                                      Mgr: <span className="text-blue-200">{reg.manager}</span> | By: {reg.submittedBy}
+                                  </span>
+                              </div>
+                          </div>
+                          <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                              <Button onClick={() => handleApproveRegistration(reg)} className="!py-1.5 !px-3 !text-xs bg-green-500 text-white hover:bg-green-600 border-none flex-1 sm:flex-none justify-center">
+                                  <Check size={12} className="mr-1" /> Approve
+                              </Button>
+                              <Button onClick={() => handleRejectRegistration(reg.id)} className="!py-1.5 !px-3 !text-xs bg-red-500/20 text-red-400 hover:bg-red-500/40 border-red-500/30 flex-1 sm:flex-none justify-center">
+                                  <XIcon size={12} className="mr-1" /> Reject
+                              </Button>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      )}
+
       {/* CLAIM REQUESTS SECTION */}
       {claimRequests.length > 0 && resolveTeamClaim && (
           <div className="mb-8 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">

@@ -5,7 +5,7 @@ import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ToggleLeft, ToggleRight } from 'lucide-react';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { useToast } from '../shared/Toast';
 import { Card } from '../shared/Card';
@@ -53,6 +53,8 @@ interface AdminPanelProps {
   startNewSeason: () => void; 
   resolveTeamClaim?: (teamId: string, approved: boolean) => void;
   isLoading?: boolean;
+  isRegistrationOpen?: boolean; // New prop
+  setRegistrationStatus?: (isOpen: boolean) => void; // New prop
 }
 
 type AdminTab = 'group-fixtures' | 'knockout' | 'teams' | 'rules' | 'settings';
@@ -71,7 +73,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       status, finalizeSeason, resumeSeason, startNewSeason,
       updateKnockoutMatch, rules, updateRules,
       banners, updateBanners, partners, updatePartners, initializeEmptyKnockoutStage,
-      generateKnockoutBracket
+      generateKnockoutBracket, isRegistrationOpen, setRegistrationStatus
   } = props;
 
   const handleAddKnockoutMatch = (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => {
@@ -104,6 +106,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       startNewSeason();
       addToast("New season started! History has been preserved.", 'success');
       setShowStartNewSeasonConfirm(false);
+  }
+
+  const toggleRegistration = () => {
+      if (setRegistrationStatus) {
+          setRegistrationStatus(!isRegistrationOpen);
+          addToast(isRegistrationOpen ? 'Pendaftaran ditutup.' : 'Pendaftaran dibuka.', 'info');
+      }
   }
 
   const renderContent = () => {
@@ -233,6 +242,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         return (
             <div className="space-y-6">
                  <h2 className="text-2xl font-black italic uppercase text-brand-text mb-4">Settings & Config</h2>
+                
+                {/* Registration Control Card */}
+                {setRegistrationStatus && (
+                    <Card className="border-brand-accent/50">
+                        <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
+                            <Users size={20} className="text-brand-vibrant" /> New Team Registration
+                        </h3>
+                        <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5">
+                            <div>
+                                <p className="font-bold text-white text-sm">Status Pendaftaran Publik</p>
+                                <p className="text-xs text-brand-light mt-1">
+                                    {isRegistrationOpen 
+                                        ? "Aktif. Tombol 'Daftar Tim Baru' terlihat di halaman depan." 
+                                        : "Nonaktif. Tombol pendaftaran disembunyikan."}
+                                </p>
+                            </div>
+                            <button 
+                                onClick={toggleRegistration}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-xs uppercase tracking-wider transition-all ${
+                                    isRegistrationOpen 
+                                    ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30' 
+                                    : 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                                }`}
+                            >
+                                {isRegistrationOpen ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                                {isRegistrationOpen ? 'Opened' : 'Closed'}
+                            </button>
+                        </div>
+                    </Card>
+                )}
+
                 <Card className="border-brand-accent/50">
                     <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
                         <Settings size={20} className="text-brand-vibrant" /> Season Status

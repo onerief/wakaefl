@@ -10,6 +10,7 @@ import { UserAuthModal } from './components/auth/UserAuthModal';
 import { ToastProvider } from './components/shared/Toast';
 import { TeamProfileModal } from './components/public/TeamProfileModal';
 import { UserProfileModal } from './components/public/UserProfileModal';
+import { TeamRegistrationModal } from './components/public/TeamRegistrationModal';
 import { onAuthChange, signOutUser, getGlobalStats } from './services/firebaseService';
 import { useToast } from './components/shared/Toast';
 import { Spinner } from './components/shared/Spinner';
@@ -36,6 +37,7 @@ function AppContent() {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [showUserAuth, setShowUserAuth] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
+  const [showTeamRegistration, setShowTeamRegistration] = useState(false);
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
   
   // Global Stats for Home Page
@@ -116,6 +118,15 @@ function AppContent() {
       );
   }
 
+  const handleRegisterTeamRequest = () => {
+      if (!currentUser) {
+          addToast('Silakan login atau daftar akun terlebih dahulu.', 'info');
+          setShowUserAuth(true);
+      } else {
+          setShowTeamRegistration(true);
+      }
+  }
+
   // Calculate current leader for Hall of Fame if not completed
   let currentLeader: Team | null = null;
   if (tournament.groups.length > 0 && activeMode === 'league') {
@@ -167,6 +178,8 @@ function AppContent() {
                   teamCount={globalStats.teamCount} 
                   partnerCount={globalStats.partnerCount}
                   banners={tournament.banners} 
+                  onRegisterTeam={handleRegisterTeamRequest}
+                  isRegistrationOpen={tournament.isRegistrationOpen}
                 />
               )}
               
@@ -231,13 +244,21 @@ function AppContent() {
           />
       )}
 
-      {/* User Profile / Team Claim Modal */}
+      {/* User Profile Modal */}
       {showUserProfile && currentUser && (
           <UserProfileModal 
             currentUser={currentUser}
             teams={tournament.teams}
             onClose={() => setShowUserProfile(false)}
             onLogout={handleLogout}
+          />
+      )}
+
+      {/* Team Registration Modal */}
+      {showTeamRegistration && currentUser && (
+          <TeamRegistrationModal 
+            currentUser={currentUser}
+            onClose={() => setShowTeamRegistration(false)}
           />
       )}
       

@@ -13,7 +13,8 @@ import {
   query,
   orderBy,
   limit,
-  onSnapshot
+  onSnapshot,
+  deleteDoc
 } from "firebase/firestore";
 import { 
   getAuth, 
@@ -63,6 +64,7 @@ if (typeof window !== 'undefined') {
 
 const TOURNAMENT_COLLECTION = 'tournament';
 const GLOBAL_CHAT_COLLECTION = 'global_chat';
+const REGISTRATIONS_COLLECTION = 'registrations';
 
 const sanitizeData = (data: any): any => {
   if (Array.isArray(data)) {
@@ -77,6 +79,45 @@ const sanitizeData = (data: any): any => {
     }, {});
   }
   return data;
+};
+
+// --- Registration Functions ---
+export const submitNewTeamRegistration = async (teamData: Omit<Team, 'id'>, userEmail: string) => {
+    try {
+        await addDoc(collection(firestore, REGISTRATIONS_COLLECTION), {
+            ...teamData,
+            submittedBy: userEmail,
+            timestamp: Date.now(),
+            status: 'pending'
+        });
+    } catch (error) {
+        console.error("Error submitting registration:", error);
+        throw error;
+    }
+};
+
+export const subscribeToRegistrations = (callback: (registrations: any[]) => void) => {
+    const q = query(
+        collection(firestore, REGISTRATIONS_COLLECTION),
+        orderBy('timestamp', 'desc')
+    );
+
+    return onSnapshot(q, (snapshot) => {
+        const regs: any[] = [];
+        snapshot.forEach((doc) => {
+            regs.push({ id: doc.id, ...doc.data() });
+        });
+        callback(regs);
+    });
+};
+
+export const deleteRegistration = async (regId: string) => {
+    try {
+        await deleteDoc(doc(firestore, REGISTRATIONS_COLLECTION, regId));
+    } catch (error) {
+        console.error("Error deleting registration:", error);
+        throw error;
+    }
 };
 
 // --- Global Chat Functions ---

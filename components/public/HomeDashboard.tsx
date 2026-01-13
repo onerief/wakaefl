@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Trophy, ListOrdered, ChevronRight, Gamepad2, Users, Star, Crown, Globe } from 'lucide-react';
+import { Trophy, ListOrdered, ChevronRight, Gamepad2, Users, Star, Crown, Globe, PlusCircle, Lock } from 'lucide-react';
 import { Card } from '../shared/Card';
 import { TournamentMode } from '../../types';
 import { BannerMarquee } from './BannerMarquee';
@@ -10,9 +10,11 @@ interface HomeDashboardProps {
   teamCount: number;
   partnerCount: number;
   banners?: string[];
+  onRegisterTeam?: () => void;
+  isRegistrationOpen?: boolean;
 }
 
-export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, teamCount, partnerCount, banners }) => {
+export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, teamCount, partnerCount, banners, onRegisterTeam, isRegistrationOpen = true }) => {
   return (
     <div className="space-y-8 py-4 animate-in fade-in duration-700">
       
@@ -42,15 +44,37 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, team
             Kelola liga reguler atau turnamen Champions League Way Kanan dengan sistem otomatis yang profesional dan real-time.
           </p>
           
-          <div className="flex gap-8">
+          <div className="flex flex-wrap gap-6 items-center">
              <div className="flex flex-col">
                 <span className="text-2xl md:text-3xl font-black text-white">{teamCount}</span>
                 <span className="text-[10px] font-bold text-brand-light uppercase tracking-widest">Teams Joined</span>
              </div>
-             <div className="h-10 w-px bg-white/10"></div>
+             <div className="h-10 w-px bg-white/10 hidden sm:block"></div>
              <div className="flex flex-col">
                 <span className="text-2xl md:text-3xl font-black text-white">{partnerCount}</span>
                 <span className="text-[10px] font-bold text-brand-light uppercase tracking-widest">Partners</span>
+             </div>
+             
+             {/* Registration Button */}
+             <div className="w-full sm:w-auto mt-4 sm:mt-0 sm:ml-8">
+                 {isRegistrationOpen ? (
+                     <button 
+                        onClick={onRegisterTeam}
+                        className="group relative flex items-center gap-3 px-6 py-3 bg-white text-brand-primary rounded-xl font-bold uppercase tracking-wider shadow-lg hover:shadow-white/20 transition-all hover:scale-105 active:scale-95"
+                     >
+                         <div className="absolute -inset-1 bg-gradient-to-r from-brand-vibrant to-brand-special rounded-xl blur opacity-20 group-hover:opacity-60 transition-opacity"></div>
+                         <PlusCircle size={20} className="relative z-10 text-brand-vibrant" />
+                         <span className="relative z-10">Daftar Tim Baru</span>
+                     </button>
+                 ) : (
+                     <button 
+                        disabled
+                        className="flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 text-brand-light rounded-xl font-bold uppercase tracking-wider cursor-not-allowed opacity-70"
+                     >
+                         <Lock size={20} className="text-brand-light/50" />
+                         <span>Pendaftaran Ditutup</span>
+                     </button>
+                 )}
              </div>
           </div>
         </div>
