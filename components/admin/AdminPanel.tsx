@@ -5,7 +5,7 @@ import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ToggleLeft, ToggleRight, ChevronDown, Check } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ToggleLeft, ToggleRight, ChevronDown, Check, Menu } from 'lucide-react';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { useToast } from '../shared/Toast';
 import { Card } from '../shared/Card';
@@ -71,9 +71,14 @@ const ADMIN_TABS: { id: AdminTab; label: string; icon: any }[] = [
     { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
+const MODES: { id: TournamentMode; label: string }[] = [
+    { id: 'league', label: 'Liga Reguler' },
+    { id: 'two_leagues', label: '2 Wilayah' },
+    { id: 'wakacl', label: 'WAKACL' },
+];
+
 export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('teams');
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAddingMatch, setIsAddingMatch] = useState<keyof KnockoutStageRounds | null>(null);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [editingKnockoutMatch, setEditingKnockoutMatch] = useState<KnockoutMatch | null>(null);
@@ -388,27 +393,71 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     }
   }
 
-  const ModeButton = ({ m, label, colorClass, borderClass }: { m: TournamentMode, label: string, colorClass: string, borderClass: string }) => (
-    <button
-        onClick={() => setMode(m)}
-        className={`w-full text-left px-4 py-2.5 rounded-lg transition-all border flex items-center justify-between group ${
-            mode === m 
-            ? `${colorClass} ${borderClass} shadow-md` 
-            : 'bg-black/20 border-transparent text-brand-light hover:bg-white/5 hover:text-white'
-        }`}
-    >
-        <span className="text-xs font-black uppercase tracking-wider">{label}</span>
-        {mode === m && <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>}
-    </button>
+  // Mobile Native Select Overlay Component
+  const MobileNativeSelect = ({ 
+      value, 
+      options, 
+      onChange, 
+      label, 
+      icon: Icon 
+  }: { 
+      value: string, 
+      options: { id: string, label: string }[], 
+      onChange: (val: any) => void, 
+      label: string, 
+      icon: any 
+  }) => (
+      <div className="relative bg-brand-secondary/40 border border-white/10 rounded-xl p-3 flex items-center justify-between shadow-lg">
+          <div className="flex items-center gap-3">
+              <div className="p-2 bg-brand-vibrant/20 rounded-lg text-brand-vibrant">
+                  <Icon size={20} />
+              </div>
+              <div className="flex flex-col">
+                  <span className="text-[10px] text-brand-light uppercase tracking-wider font-bold">Select {label}</span>
+                  <span className="text-sm font-bold text-white truncate max-w-[180px]">
+                      {options.find(o => o.id === value)?.label || 'Select...'}
+                  </span>
+              </div>
+          </div>
+          <ChevronDown size={20} className="text-brand-light" />
+          
+          {/* Invisible Native Select */}
+          <select 
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+          >
+              {options.map(opt => (
+                  <option key={opt.id} value={opt.id} className="text-black">
+                      {opt.label}
+                  </option>
+              ))}
+          </select>
+      </div>
   );
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 pb-4 lg:h-[calc(100vh-140px)]"> 
-    {/* Set fixed height on desktop to allow inner scroll */}
-      
-      {/* SIDEBAR NAVIGATION */}
-      <aside className="w-full lg:w-72 flex-shrink-0 space-y-6 relative z-30">
-          
+      {/* MOBILE NAVIGATION HEADER (Visible only on lg and below) */}
+      <div className="lg:hidden flex flex-col gap-3 sticky top-20 z-40 bg-brand-primary/95 backdrop-blur-xl p-2 rounded-2xl border border-white/10 shadow-2xl mb-4">
+          <MobileNativeSelect 
+              value={mode}
+              options={MODES}
+              onChange={(val) => setMode(val)}
+              label="Database"
+              icon={Database}
+          />
+          <MobileNativeSelect 
+              value={activeTab}
+              options={ADMIN_TABS.map(t => ({ id: t.id, label: t.label }))}
+              onChange={(val) => setActiveTab(val)}
+              label="Menu"
+              icon={ActiveIcon}
+          />
+      </div>
+
+      {/* DESKTOP SIDEBAR (Hidden on mobile) */}
+      <aside className="hidden lg:block w-72 flex-shrink-0 space-y-6 relative z-30">
           {/* Database Switcher */}
           <div className="bg-brand-secondary/40 backdrop-blur-sm border border-white/10 rounded-2xl p-4 shadow-xl">
              <div className="flex items-center gap-2 mb-4 px-1">
@@ -416,58 +465,50 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                  <h3 className="text-xs font-black text-brand-light uppercase tracking-widest">Select Database</h3>
              </div>
              <div className="space-y-2">
-                 <ModeButton m="league" label="Liga Reguler" colorClass="bg-blue-600 text-white" borderClass="border-blue-500" />
-                 <ModeButton m="two_leagues" label="2 Wilayah" colorClass="bg-purple-600 text-white" borderClass="border-purple-500" />
-                 <ModeButton m="wakacl" label="WAKACL" colorClass="bg-yellow-600 text-white" borderClass="border-yellow-500" />
+                 {MODES.map(m => (
+                     <button
+                        key={m.id}
+                        onClick={() => setMode(m.id)}
+                        className={`w-full text-left px-4 py-2.5 rounded-lg transition-all border flex items-center justify-between group ${
+                            mode === m.id
+                            ? 'bg-blue-600 border-blue-500 text-white shadow-md' 
+                            : 'bg-black/20 border-transparent text-brand-light hover:bg-white/5 hover:text-white'
+                        }`}
+                    >
+                        <span className="text-xs font-black uppercase tracking-wider">{m.label}</span>
+                        {mode === m.id && <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>}
+                    </button>
+                 ))}
              </div>
           </div>
 
-          {/* Menu Dropdown */}
+          {/* Menu Items */}
           <div className="bg-brand-secondary/40 backdrop-blur-sm border border-white/10 rounded-2xl p-2 shadow-xl">
-              <div className="relative">
-                  <button 
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
-                    className="w-full flex items-center justify-between bg-brand-vibrant text-white px-4 py-3 rounded-xl shadow-lg transition-all hover:bg-brand-vibrant/90 font-bold text-sm"
-                  >
-                      <div className="flex items-center gap-3">
-                          <ActiveIcon size={18} />
-                          {activeTabInfo.label}
-                      </div>
-                      <ChevronDown size={16} className={`transition-transform duration-300 ${isMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  {/* Dropdown Options */}
-                  {isMenuOpen && (
-                      <div className="absolute top-full left-0 right-0 mt-2 bg-brand-secondary border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
-                          {ADMIN_TABS.map((tab) => {
-                              const IsActive = activeTab === tab.id;
-                              return (
-                                  <button
-                                    key={tab.id}
-                                    onClick={() => {
-                                        setActiveTab(tab.id);
-                                        setIsMenuOpen(false);
-                                    }}
-                                    className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors border-b border-white/5 last:border-none ${
-                                        IsActive 
-                                        ? 'bg-brand-vibrant/10 text-brand-vibrant' 
-                                        : 'text-brand-light hover:bg-white/5 hover:text-white'
-                                    }`}
-                                  >
-                                      <div className="flex items-center gap-3">
-                                          <tab.icon size={16} />
-                                          {tab.label}
-                                      </div>
-                                      {IsActive && <Check size={14} />}
-                                  </button>
-                              )
-                          })}
-                      </div>
-                  )}
+              <div className="flex flex-col gap-1">
+                  {ADMIN_TABS.map((tab) => {
+                      const IsActive = activeTab === tab.id;
+                      return (
+                          <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                                IsActive 
+                                ? 'bg-brand-vibrant text-white shadow-lg' 
+                                : 'text-brand-light hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                              <div className="flex items-center gap-3">
+                                  <tab.icon size={18} />
+                                  {tab.label}
+                              </div>
+                              {IsActive && <Check size={14} />}
+                          </button>
+                      )
+                  })}
               </div>
           </div>
           
-          <div className="hidden lg:block bg-gradient-to-br from-brand-vibrant/20 to-transparent p-6 rounded-2xl border border-white/5 text-center">
+          <div className="bg-gradient-to-br from-brand-vibrant/20 to-transparent p-6 rounded-2xl border border-white/5 text-center">
              <LayoutDashboard size={32} className="mx-auto text-brand-vibrant mb-2 opacity-50" />
              <p className="text-[10px] text-brand-light uppercase tracking-widest font-bold">Admin Control Center</p>
           </div>

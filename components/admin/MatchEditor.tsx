@@ -67,10 +67,10 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
               <span className="text-[10px] font-bold text-brand-light opacity-50 uppercase">Leg {match.leg}</span>
               <button 
                 onClick={() => onEditSchedule(match)} 
-                className="text-brand-light hover:text-white transition-colors" 
+                className="p-2 -m-2 text-brand-light hover:text-white transition-colors" 
                 title="Edit Match Schedule"
               >
-                  <Pencil size={12} />
+                  <Pencil size={14} />
               </button>
           </div>
       </div>
@@ -78,35 +78,37 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 gap-y-3">
         {/* Team A */}
         <div className="flex flex-col items-center justify-center text-center gap-1 min-w-0">
-            <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-8 h-8" />
-            <span className="font-semibold text-brand-text truncate text-[10px] leading-tight w-full">{match.teamA.name}</span>
+            <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-10 h-10" />
+            <span className="font-semibold text-brand-text truncate text-xs leading-tight w-full">{match.teamA.name}</span>
         </div>
 
         {/* Score Inputs Center */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
             <input 
                 id={`scoreA-${match.id}`} 
                 type="number" 
+                inputMode="numeric"
                 value={scoreA} 
                 onChange={e => setScoreA(e.target.value)} 
-                className="w-10 h-10 text-center bg-brand-secondary border border-brand-accent rounded-lg text-brand-text font-bold text-lg focus:ring-2 focus:ring-brand-vibrant touch-manipulation" 
+                className="w-12 h-12 text-center bg-brand-secondary border border-brand-accent rounded-xl text-brand-text font-bold text-xl focus:ring-2 focus:ring-brand-vibrant touch-manipulation appearance-none" 
                 placeholder="-" 
             />
             <div className="text-brand-light text-xs font-bold px-1">-</div>
             <input 
                 id={`scoreB-${match.id}`} 
                 type="number" 
+                inputMode="numeric"
                 value={scoreB} 
                 onChange={e => setScoreB(e.target.value)} 
-                className="w-10 h-10 text-center bg-brand-secondary border border-brand-accent rounded-lg text-brand-text font-bold text-lg focus:ring-2 focus:ring-brand-vibrant touch-manipulation" 
+                className="w-12 h-12 text-center bg-brand-secondary border border-brand-accent rounded-xl text-brand-text font-bold text-xl focus:ring-2 focus:ring-brand-vibrant touch-manipulation appearance-none" 
                 placeholder="-" 
             />
         </div>
 
         {/* Team B */}
         <div className="flex flex-col items-center justify-center text-center gap-1 min-w-0">
-            <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-8 h-8" />
-            <span className="font-semibold text-brand-text truncate text-[10px] leading-tight w-full">{match.teamB.name}</span>
+            <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-10 h-10" />
+            <span className="font-semibold text-brand-text truncate text-xs leading-tight w-full">{match.teamB.name}</span>
         </div>
       </div>
 
@@ -114,25 +116,25 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
       <div className="flex items-center gap-2 mt-4 pt-3 border-t border-brand-accent/30">
           <div className="relative flex-grow">
             <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                <Link size={12} className="text-brand-light" />
+                <Link size={14} className="text-brand-light" />
             </div>
             <input
                 type="text"
                 value={proofUrl}
                 onChange={e => setProofUrl(e.target.value)}
-                className="w-full py-1.5 pl-7 pr-2 bg-brand-secondary border border-brand-accent rounded-md text-brand-text text-xs placeholder:text-brand-accent/80 focus:ring-1 focus:ring-brand-vibrant outline-none"
+                className="w-full py-2 pl-8 pr-2 bg-brand-secondary border border-brand-accent rounded-lg text-brand-text text-sm placeholder:text-brand-accent/80 focus:ring-1 focus:ring-brand-vibrant outline-none"
                 placeholder="Proof Link..."
             />
           </div>
           
-          <Button onClick={handleSave} className="!py-1.5 !px-3 h-8 text-xs shrink-0 bg-green-600 hover:bg-green-700 border-none">
-              <Save size={14}/>
+          <Button onClick={handleSave} className="!py-2 !px-4 h-10 text-sm shrink-0 bg-green-600 hover:bg-green-700 border-none">
+              <Save size={16}/>
           </Button>
           
           {/* Optional: Summary AI Button */}
           {match.status === 'finished' && (
-              <Button onClick={handleGenerate} disabled={isGenerating} variant="secondary" className="!py-1.5 !px-2 h-8 w-8 shrink-0">
-                  {isGenerating ? <Spinner size={12} /> : <Sparkles size={14} className="text-brand-special" />}
+              <Button onClick={handleGenerate} disabled={isGenerating} variant="secondary" className="!py-2 !px-3 h-10 w-10 shrink-0 flex items-center justify-center">
+                  {isGenerating ? <Spinner size={14} /> : <Sparkles size={16} className="text-brand-special" />}
               </Button>
           )}
       </div>
