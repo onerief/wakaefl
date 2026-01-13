@@ -20,6 +20,12 @@ import {
   updateProfile,
   type User
 } from "firebase/auth";
+import { 
+  getStorage, 
+  ref, 
+  uploadBytes, 
+  getDownloadURL 
+} from "firebase/storage";
 import type { TournamentState, TournamentMode, Team, Partner } from '../types';
 
 const firebaseConfig = {
@@ -35,6 +41,7 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const firestore = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app); // Initialize Storage
 const googleProvider = new GoogleAuthProvider();
 
 // Enable offline persistence
@@ -63,6 +70,25 @@ const sanitizeData = (data: any): any => {
     }, {});
   }
   return data;
+};
+
+// --- Storage Functions ---
+export const uploadTeamLogo = async (file: File): Promise<string> => {
+  try {
+    // Create a unique filename: logos/<timestamp>_<filename>
+    const fileName = `logos/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    const storageRef = ref(storage, fileName);
+    
+    // Upload the file
+    const snapshot = await uploadBytes(storageRef, file);
+    
+    // Get the public URL
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    return downloadURL;
+  } catch (error) {
+    console.error("Error uploading logo:", error);
+    throw new Error("Gagal mengupload gambar.");
+  }
 };
 
 // --- Database Functions ---

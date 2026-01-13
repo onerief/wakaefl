@@ -1,9 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import type { Team } from '../../types';
 import { Button } from '../shared/Button';
-import { Save, UserCircle, Instagram, MessageCircle, Globe, ArrowLeft, Loader } from 'lucide-react';
+import { Save, UserCircle, Instagram, MessageCircle, ArrowLeft, Loader, Upload, X } from 'lucide-react';
 import { TeamLogo } from '../shared/TeamLogo';
+import { uploadTeamLogo } from '../../services/firebaseService';
+import { useToast } from '../shared/Toast';
 
 interface UserTeamEditorProps {
   team: Team;
@@ -17,6 +19,32 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
   const [socialMediaUrl, setSocialMediaUrl] = useState(team.socialMediaUrl || '');
   const [logoUrl, setLogoUrl] = useState(team.logoUrl || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { addToast } = useToast();
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      if (file.size > 2 * 1024 * 1024) { // 2MB Limit
+          addToast('Ukuran file maksimal 2MB', 'error');
+          return;
+      }
+
+      setIsUploading(true);
+      try {
+          const downloadUrl = await uploadTeamLogo(file);
+          setLogoUrl(downloadUrl);
+          addToast('Logo berhasil diupload!', 'success');
+      } catch (error) {
+          addToast('Gagal mengupload logo.', 'error');
+          console.error(error);
+      } finally {
+          setIsUploading(false);
+      }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,30 +72,49 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
 
       <form onSubmit={handleSubmit} className="space-y-5">
         
-        {/* Logo Preview & Input */}
+        {/* Logo Upload Section */}
         <div className="bg-black/20 p-4 rounded-xl border border-white/5 flex flex-col items-center gap-4">
             <div className="relative group">
                 <TeamLogo logoUrl={logoUrl} teamName={team.name} className="w-24 h-24 shadow-2xl" />
-                <div className="absolute -bottom-2 -right-2 bg-brand-vibrant text-white text-[10px] px-2 py-1 rounded-full font-bold shadow-lg">Preview</div>
+                {isUploading && (
+                    <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
+                        <Loader className="animate-spin text-white" size={24} />
+                    </div>
+                )}
             </div>
-            <div className="w-full">
-                <label className="block text-xs font-bold text-brand-light uppercase tracking-wider mb-2">
-                    URL Logo Tim
-                </label>
-                <div className="relative">
-                    <Globe size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-vibrant" />
-                    <input 
-                        type="text" 
-                        value={logoUrl}
-                        onChange={(e) => setLogoUrl(e.target.value)}
-                        placeholder="https://..."
-                        className="w-full pl-10 pr-4 py-3 bg-brand-primary border border-brand-accent rounded-xl text-sm text-brand-text focus:ring-2 focus:ring-brand-vibrant outline-none transition-all"
-                    />
-                </div>
-                <p className="text-[10px] text-brand-light/50 mt-2">
-                    Tips: Upload gambar ke GitHub/Imgur, lalu salin "Direct Link" atau "Raw URL" ke sini.
-                </p>
+            
+            <div className="flex gap-2 w-full">
+                <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/*"
+                    className="hidden"
+                />
+                <Button 
+                    type="button" 
+                    onClick={() => fileInputRef.current?.click()} 
+                    variant="secondary" 
+                    disabled={isUploading}
+                    className="w-full flex justify-center !py-2.5 !text-xs !bg-brand-vibrant/10 hover:!bg-brand-vibrant/20 border-brand-vibrant/30 text-brand-vibrant"
+                >
+                    <Upload size={14} /> Upload Logo Baru
+                </Button>
+                {logoUrl && (
+                    <Button 
+                        type="button" 
+                        onClick={() => setLogoUrl('')} 
+                        variant="secondary"
+                        className="!px-3 !bg-red-500/10 border-red-500/30 text-red-400 hover:!bg-red-500/20"
+                        title="Hapus Logo"
+                    >
+                        <X size={14} />
+                    </Button>
+                )}
             </div>
+            <p className="text-[10px] text-brand-light/50 text-center">
+                Format: JPG, PNG. Maks 2MB.
+            </p>
         </div>
 
         {/* Manager Name */}
@@ -121,7 +168,7 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
             </div>
         </div>
 
-        <Button type="submit" disabled={isSaving} className="w-full !py-3 !rounded-xl text-sm font-bold shadow-lg">
+        <Button type="submit" disabled={isSaving || isUploading} className="w-full !py-3 !rounded-xl text-sm font-bold shadow-lg">
             {isSaving ? <Loader className="animate-spin" size={18} /> : <span className="flex items-center gap-2"><Save size={18} /> Simpan Perubahan</span>}
         </Button>
       </form>
