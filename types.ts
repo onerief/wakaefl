@@ -42,6 +42,16 @@ export interface MatchComment {
   isAdmin?: boolean;
 }
 
+export interface ChatMessage {
+  id: string;
+  text: string;
+  userId: string;
+  userName: string;
+  userPhoto?: string;
+  timestamp: number;
+  isAdmin?: boolean;
+}
+
 export interface Match {
   id: string;
   teamA: Team;

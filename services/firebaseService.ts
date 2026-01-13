@@ -7,7 +7,13 @@ import {
   getDoc, 
   enableIndexedDbPersistence,
   runTransaction,
-  updateDoc
+  updateDoc,
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  limit,
+  onSnapshot
 } from "firebase/firestore";
 import { 
   getAuth, 
@@ -26,7 +32,7 @@ import {
   uploadBytes, 
   getDownloadURL 
 } from "firebase/storage";
-import type { TournamentState, TournamentMode, Team, Partner } from '../types';
+import type { TournamentState, TournamentMode, Team, Partner, ChatMessage } from '../types';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCXZAvanJ8Ra-3oCRXvsaKBopGce4CPuXQ",
@@ -56,6 +62,7 @@ if (typeof window !== 'undefined') {
 }
 
 const TOURNAMENT_COLLECTION = 'tournament';
+const GLOBAL_CHAT_COLLECTION = 'global_chat';
 
 const sanitizeData = (data: any): any => {
   if (Array.isArray(data)) {
@@ -70,6 +77,42 @@ const sanitizeData = (data: any): any => {
     }, {});
   }
   return data;
+};
+
+// --- Global Chat Functions ---
+export const subscribeToGlobalChat = (callback: (messages: ChatMessage[]) => void) => {
+    const q = query(
+        collection(firestore, GLOBAL_CHAT_COLLECTION),
+        orderBy('timestamp', 'desc'),
+        limit(50)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+        const messages: ChatMessage[] = [];
+        snapshot.forEach((doc) => {
+            messages.push({ id: doc.id, ...doc.data() } as ChatMessage);
+        });
+        // Return reversed so oldest is at top for chat UI
+        callback(messages.reverse());
+    });
+};
+
+export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: boolean = false) => {
+    if (!text.trim()) return;
+    
+    try {
+        await addDoc(collection(firestore, GLOBAL_CHAT_COLLECTION), {
+            text: text.trim(),
+            userId: user.uid,
+            userName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+            userPhoto: user.photoURL || null,
+            timestamp: Date.now(),
+            isAdmin
+        });
+    } catch (error) {
+        console.error("Error sending chat:", error);
+        throw error;
+    }
 };
 
 // --- Storage Functions ---
@@ -251,18 +294,9 @@ export const updateUserTeamData = async (mode: TournamentMode, teamId: string, u
 
             if (teamIndex === -1) throw new Error("Team not found");
 
-            // Verify logic handled by UI, but double check here if needed? 
-            // For now, trust the UI calling this has checked ownership via auth.
-
             const updatedTeam = { ...teams[teamIndex], ...updates };
             const updatedTeams = [...teams];
             updatedTeams[teamIndex] = updatedTeam;
-
-            // Also need to update Groups and Matches if they contain copy of team data?
-            // Yes, based on the reducer logic, copies exist.
-            // Simplified approach: Update main Teams array. 
-            // NOTE: The Hook reloads data on change, but Groups/Matches might have stale copies in Firestore.
-            // Ideally, we update them too.
             
             const groups = data.groups.map(g => ({
                 ...g,

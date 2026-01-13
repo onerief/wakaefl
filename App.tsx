@@ -17,6 +17,7 @@ import { DashboardSkeleton } from './components/shared/Skeleton';
 import { Footer } from './components/Footer';
 import type { User } from 'firebase/auth';
 import { HallOfFame } from './components/public/HallOfFame';
+import { GlobalChat } from './components/public/GlobalChat';
 
 const AdminPanel = lazy(() => import('./components/admin/AdminPanel').then(module => ({ default: module.AdminPanel })));
 
@@ -203,6 +204,13 @@ function AppContent() {
           )}
         </Suspense>
       </main>
+      
+      {/* Floating Global Chat */}
+      <GlobalChat 
+          currentUser={currentUser} 
+          isAdmin={isAdminAuthenticated} 
+          onLoginRequest={() => setShowUserAuth(true)} 
+      />
 
       {/* Admin Login Modal */}
       {showAdminLogin && (
