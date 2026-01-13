@@ -1,6 +1,6 @@
 
 import { useReducer, useCallback, useState, useEffect } from 'react';
-import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment } from '../types';
+import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment, SeasonHistory } from '../types';
 import { generateSummary } from '../services/geminiService';
 import { getTournamentData, saveTournamentData } from '../services/firebaseService';
 import { useToast } from '../components/shared/Toast';
@@ -24,6 +24,8 @@ Group Stage:
   partners: [],
   mode: mode,
   isDoubleRoundRobin: true,
+  status: 'active',
+  history: [],
 });
 
 type Action =
@@ -39,6 +41,7 @@ type Action =
   | { type: 'ADD_MATCH_COMMENT'; payload: { matchId: string; comment: MatchComment } }
   | { type: 'GENERATE_MATCHES_FROM_GROUPS', payload: { matches: Match[] } }
   | { type: 'RESET'; payload: FullTournamentState }
+  | { type: 'START_NEW_SEASON' }
   | { type: 'UPDATE_RULES', payload: string }
   | { type: 'UPDATE_BANNERS', payload: string[] }
   | { type: 'UPDATE_PARTNERS', payload: Partner[] }
@@ -54,7 +57,9 @@ type Action =
   | { type: 'MOVE_TEAM'; payload: { teamId: string, sourceGroupId: string, destGroupId: string } }
   | { type: 'IMPORT_LEGACY_JSON'; payload: FullTournamentState }
   | { type: 'REQUEST_TEAM_CLAIM'; payload: { teamId: string; userEmail: string } }
-  | { type: 'RESOLVE_TEAM_CLAIM'; payload: { teamId: string; approved: boolean } };
+  | { type: 'RESOLVE_TEAM_CLAIM'; payload: { teamId: string; approved: boolean } }
+  | { type: 'FINALIZE_SEASON'; payload: SeasonHistory }
+  | { type: 'SET_STATUS'; payload: 'active' | 'completed' };
 
 const calculateStandings = (teams: Team[], matches: Match[]): Standing[] => {
   const standings: { [key: string]: Standing } = teams.reduce((acc, team) => {
@@ -148,6 +153,15 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     }
     case 'RESET':
       return action.payload;
+    case 'START_NEW_SEASON':
+        return {
+            ...createInitialState(state.mode),
+            history: state.history, // PRESERVE HISTORY
+            partners: state.partners, // PRESERVE PARTNERS
+            banners: state.banners, // PRESERVE BANNERS
+            rules: state.rules, // PRESERVE RULES
+            status: 'active'
+        };
     case 'INITIALIZE_EMPTY_KNOCKOUT':
       return { ...state, knockoutStage: { 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': [] } };
     case 'UPDATE_KNOCKOUT_MATCH': {
@@ -171,8 +185,6 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
       return { ...action.payload };
     case 'REQUEST_TEAM_CLAIM': {
         const { teamId, userEmail } = action.payload;
-        // Unset requestedOwnerEmail for this user from any other teams first to prevent multi-requests? 
-        // For simplicity, just update the target team.
         const updatedTeams = state.teams.map(t => 
             t.id === teamId ? { ...t, requestedOwnerEmail: userEmail } : t
         );
@@ -209,6 +221,14 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
 
         return { ...state, teams: updatedTeams, groups: updatedGroups, matches: updatedMatches };
     }
+    case 'FINALIZE_SEASON':
+        return {
+            ...state,
+            status: 'completed',
+            history: [...state.history, action.payload]
+        };
+    case 'SET_STATUS':
+        return { ...state, status: action.payload };
     default:
       return state;
   }
@@ -222,14 +242,13 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   // Load data when activeMode changes
   useEffect(() => {
     setIsLoading(true);
-    // Bersihkan state lama segera agar pengguna tidak bingung melihat data mode sebelumnya
     dispatch({ type: 'RESET', payload: createInitialState(activeMode) });
 
     getTournamentData(activeMode).then(data => {
       if (data) {
         dispatch({ type: 'SET_STATE', payload: data });
       } else {
-        // Biarkan default state jika database kosong
+        // Default state
       }
       setIsLoading(false);
     }).catch(err => {
@@ -238,13 +257,8 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
     });
   }, [activeMode]);
 
-  // Save data only if the user is an admin and the state has loaded
-  // NOTE: In a real app with user comments, you would want comments to write directly to DB 
-  // without waiting for admin action. For this proto, we will assume admin controls or open access writes.
   useEffect(() => {
     if (!isLoading) {
-       // Save automatically on state change for both Admin and User actions (like comments)
-       // Requires Firestore rules to be open or correctly set for "write"
        const debounce = setTimeout(() => saveTournamentData(activeMode, state), 2000);
        return () => clearTimeout(debounce);
     }
@@ -304,20 +318,13 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
 
   const generateKnockoutBracket = () => {
       if (state.mode === 'two_leagues') {
-          // Special logic for "2 Wilayah" (Neraka & Surga)
-          // Top 2 from each group proceed to Semi-Finals
-          // SF1: A1 vs B2 (Home & Away)
-          // SF2: B1 vs A2 (Home & Away)
-          // Final: Winner SF1 vs Winner SF2 (Single Match)
-
-          const groupA = state.groups[0]; // Assuming Index 0 is Neraka/A
-          const groupB = state.groups[1]; // Assuming Index 1 is Surga/B
+          const groupA = state.groups[0]; 
+          const groupB = state.groups[1]; 
 
           if (!groupA || !groupB) {
               return { success: false, message: "Groups not found for 2-League format." };
           }
 
-          // Sort standings
           const standingsA = [...groupA.standings].sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
           const standingsB = [...groupB.standings].sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
 
@@ -331,14 +338,12 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           const b2 = standingsB[1].team;
 
           const sfMatches: KnockoutMatch[] = [
-              // SF1: A1 vs B2 (2 Legs)
               {
                   id: 'sf-1', round: 'Semi-finals', matchNumber: 1,
                   teamA: a1, teamB: b2,
                   scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
                   winnerId: null, nextMatchId: 'final', placeholderA: 'Winner A1/B2', placeholderB: 'Winner B1/A2'
               },
-              // SF2: B1 vs A2 (2 Legs)
               {
                   id: 'sf-2', round: 'Semi-finals', matchNumber: 2,
                   teamA: b1, teamB: a2,
@@ -349,7 +354,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
 
           const finalMatch: KnockoutMatch = {
               id: 'final', round: 'Final', matchNumber: 3,
-              teamA: null, teamB: null, // To be determined
+              teamA: null, teamB: null, 
               scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
               winnerId: null, nextMatchId: null,
               placeholderA: 'Winner SF1', placeholderB: 'Winner SF2'
@@ -366,10 +371,52 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           return { success: true };
 
       } else {
-          // Standard logic for WAKACL (existing logic to be implemented if needed, currently empty/placeholder in previous steps)
-          // For now, return false if not in 2-league mode or implement standard bracket
            return { success: false, message: "Knockout generation only implemented for Two Leagues mode currently." };
       }
+  };
+
+  const finalizeSeason = () => {
+    let champion: Team | null = null;
+    let runnerUp: Team | undefined;
+
+    // Determine champion based on mode
+    if (state.mode === 'league') {
+        // League mode: Top of the single group standings
+        if (state.groups.length > 0) {
+            // Assume single group for league mode usually, or flatten standings
+            const allStandings = state.groups.flatMap(g => g.standings)
+                .sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
+            if (allStandings.length > 0) {
+                champion = allStandings[0].team;
+                if (allStandings.length > 1) runnerUp = allStandings[1].team;
+            }
+        }
+    } else {
+        // WAKACL or Two Leagues: Winner of Final Knockout Match
+        const finalMatch = state.knockoutStage?.['Final']?.[0];
+        if (finalMatch && finalMatch.winnerId) {
+             champion = state.teams.find(t => t.id === finalMatch.winnerId) || null;
+             if (champion && finalMatch.teamA && finalMatch.teamB) {
+                 runnerUp = finalMatch.teamA.id === champion.id ? finalMatch.teamB : finalMatch.teamA;
+             }
+        }
+    }
+
+    if (champion) {
+        const historyEntry: SeasonHistory = {
+            seasonId: `s-${Date.now()}`,
+            seasonName: `Season ${state.history.length + 1} (${new Date().toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })})`,
+            champion: champion,
+            runnerUp: runnerUp,
+            dateCompleted: Date.now()
+        };
+        dispatch({ type: 'FINALIZE_SEASON', payload: historyEntry });
+        return { success: true, message: `Season ended! Champion: ${champion.name}` };
+    } else {
+        // If no champion found (e.g. forgot to set final score), prompt user
+        dispatch({ type: 'SET_STATUS', payload: 'completed' });
+        return { success: false, message: "Season ended, but NO champion was detected. Did you set the Final Match winner?" };
+    }
   };
 
   const importLegacyData = useCallback((jsonData: any) => {
@@ -385,7 +432,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
               'Final': []
           };
 
-          // 1. Parse Teams and assign to groups
           jsonData.teams.forEach((t: any, index: number) => {
               const team: Team = {
                   id: `t-${index}-${t.name.replace(/\s+/g, '').toLowerCase()}`,
@@ -406,14 +452,12 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
               { id: 'g-surga', name: 'Grup Surga', teams: surgaTeams, standings: [] }
           ];
 
-          // 2. Parse Matches
           jsonData.schedule.forEach((s: any, index: number) => {
               const teamA = newTeams.find(t => t.name === s.home);
               const teamB = newTeams.find(t => t.name === s.away);
 
               if (teamA && teamB) {
                   if (s.stage === 'Regular') {
-                      // Regular League Match
                       const groupName = nerakaTeams.find(t => t.id === teamA.id) ? 'Neraka' : 'Surga';
                       const match: Match = {
                           id: `m-${index}`,
@@ -429,18 +473,12 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
                       };
                       groupMatches.push(match);
                   } else if (s.stage === 'Semi-Final') {
-                      // Semi Final (Assuming Aggregated logic needs to be handled manually or simple mapping)
-                      // The legacy data seems to list matches individually. 
-                      // We will try to map them to leg 1/2 if possible, or just add as single entry for now for simplicity
-                      // Warning: Logic here assumes specific structure of legacy JSON.
-                      
                       const existingMatchIndex = knockoutStage['Semi-finals'].findIndex(m => 
                         (m.teamA?.id === teamA.id && m.teamB?.id === teamB.id) || 
                         (m.teamA?.id === teamB.id && m.teamB?.id === teamA.id)
                       );
 
                       if (existingMatchIndex === -1) {
-                          // New SF Pairing
                           knockoutStage['Semi-finals'].push({
                               id: `sf-${index}`,
                               round: 'Semi-finals',
@@ -453,11 +491,10 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
                               winnerId: null, nextMatchId: null, placeholderA: '', placeholderB: ''
                           });
                       } else {
-                          // Second Leg of existing pairing (Simplified logic)
                           const m = knockoutStage['Semi-finals'][existingMatchIndex];
-                          if (m.teamA?.id === teamB.id) { // Swap detected, meaning this JSON row is effectively leg 2 return
-                              m.scoreB2 = s.homeScore; // Home in JSON is Team B in our Object
-                              m.scoreA2 = s.awayScore; // Away in JSON is Team A in our Object
+                          if (m.teamA?.id === teamB.id) { 
+                              m.scoreB2 = s.homeScore;
+                              m.scoreA2 = s.awayScore; 
                           }
                       }
                   } else if (s.stage === 'Final') {
@@ -474,12 +511,10 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
               }
           });
 
-          // 3. Calculate Standings
           groups.forEach(g => {
               g.standings = calculateStandings(g.teams, groupMatches.filter(m => m.group === g.name.split(' ')[1]));
           });
 
-          // 4. Construct State
           const importedState: FullTournamentState = {
               teams: newTeams,
               groups: groups,
@@ -488,8 +523,10 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
               rules: jsonData.rules || state.rules,
               banners: [jsonData.promoBannerUrl, jsonData.giftBannerUrl].filter(Boolean),
               partners: jsonData.sponsors || [],
-              mode: 'two_leagues', // Enforce the mode
-              isDoubleRoundRobin: true
+              mode: 'two_leagues',
+              isDoubleRoundRobin: true,
+              status: 'active',
+              history: []
           };
 
           dispatch({ type: 'IMPORT_LEGACY_JSON', payload: importedState });
@@ -514,6 +551,9 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       generateMatchesFromGroups,
       generateKnockoutBracket,
       importLegacyData,
+      finalizeSeason,
+      startNewSeason: () => dispatch({ type: 'START_NEW_SEASON' }),
+      resumeSeason: () => dispatch({ type: 'SET_STATUS', payload: 'active' }),
       resetTournament: () => dispatch({ type: 'RESET', payload: createInitialState(activeMode) }), 
       manualAddGroup: (name: string) => dispatch({ type: 'MANUAL_ADD_GROUP', payload: { id: `g${Date.now()}`, name, teams: [], standings: [] } }), 
       manualDeleteGroup: (id: string) => dispatch({ type: 'MANUAL_DELETE_GROUP', payload: id }), 

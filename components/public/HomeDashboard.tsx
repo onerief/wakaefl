@@ -1,10 +1,11 @@
 
 import React from 'react';
-import { Trophy, ListOrdered, ChevronRight, Gamepad2, Users, Star } from 'lucide-react';
+import { Trophy, ListOrdered, ChevronRight, Gamepad2, Users, Star, Crown, Globe } from 'lucide-react';
 import { Card } from '../shared/Card';
+import { TournamentMode } from '../../types';
 
 interface HomeDashboardProps {
-  onSelectMode: (mode: 'league' | 'wakacl') => void;
+  onSelectMode: (mode: TournamentMode | 'hall_of_fame') => void;
   teamCount: number;
   partnerCount: number;
 }
@@ -45,7 +46,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, team
       </div>
 
       {/* Mode Selection Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* League Mode Card */}
         <button 
           onClick={() => onSelectMode('league')}
@@ -53,20 +54,36 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, team
         >
           <div className="absolute -inset-1 bg-gradient-to-r from-brand-vibrant to-blue-800 rounded-[2rem] blur opacity-25 group-hover:opacity-100 transition duration-500"></div>
           <Card className="relative h-full !p-8 !rounded-[2rem] border-white/5 bg-brand-secondary/40 backdrop-blur-xl hover:border-brand-vibrant/50 transition-all">
-            <div className="flex justify-between items-start mb-12">
-              <div className="p-4 bg-brand-primary rounded-2xl border border-white/5 shadow-xl group-hover:scale-110 group-hover:bg-brand-vibrant/10 transition-all duration-500">
-                <ListOrdered size={40} className="text-brand-vibrant" />
+            <div className="flex justify-between items-start mb-8">
+              <div className="p-3 bg-brand-primary rounded-2xl border border-white/5 shadow-xl group-hover:scale-110 group-hover:bg-brand-vibrant/10 transition-all duration-500">
+                <ListOrdered size={32} className="text-brand-vibrant" />
               </div>
-              <ChevronRight className="text-brand-light group-hover:text-brand-vibrant transition-colors group-hover:translate-x-2 duration-500" size={32} />
+              <ChevronRight className="text-brand-light group-hover:text-brand-vibrant transition-colors group-hover:translate-x-2 duration-500" size={24} />
             </div>
-            <h3 className="text-3xl font-black text-white italic uppercase mb-2">Regular Liga</h3>
-            <p className="text-brand-light leading-relaxed mb-6">
-              Format klasemen tunggal. Semua tim bertanding satu sama lain dalam sistem Single atau Double Round Robin.
+            <h3 className="text-2xl font-black text-white italic uppercase mb-2">Regular Liga</h3>
+            <p className="text-brand-light text-sm leading-relaxed mb-4">
+              Klasemen tunggal. Sistem Single/Double Round Robin.
             </p>
-            <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 bg-brand-vibrant/10 rounded-full text-[10px] font-bold text-brand-vibrant uppercase tracking-wider border border-brand-vibrant/20">Points Based</span>
-              <span className="px-3 py-1 bg-white/5 rounded-full text-[10px] font-bold text-brand-light uppercase tracking-wider">Top Table Winner</span>
+          </Card>
+        </button>
+
+        {/* Two Leagues Mode Card */}
+        <button 
+          onClick={() => onSelectMode('two_leagues')}
+          className="group relative text-left"
+        >
+          <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-purple-800 rounded-[2rem] blur opacity-25 group-hover:opacity-100 transition duration-500"></div>
+          <Card className="relative h-full !p-8 !rounded-[2rem] border-white/5 bg-brand-secondary/40 backdrop-blur-xl hover:border-purple-500/50 transition-all">
+            <div className="flex justify-between items-start mb-8">
+              <div className="p-3 bg-brand-primary rounded-2xl border border-white/5 shadow-xl group-hover:scale-110 group-hover:bg-purple-500/10 transition-all duration-500">
+                <Globe size={32} className="text-purple-400" />
+              </div>
+              <ChevronRight className="text-brand-light group-hover:text-purple-400 transition-colors group-hover:translate-x-2 duration-500" size={24} />
             </div>
+            <h3 className="text-2xl font-black text-white italic uppercase mb-2">2 Wilayah</h3>
+            <p className="text-brand-light text-sm leading-relaxed mb-4">
+              Grup Neraka & Surga. Semi Final & Final untuk juara.
+            </p>
           </Card>
         </button>
 
@@ -77,20 +94,36 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, team
         >
           <div className="absolute -inset-1 bg-gradient-to-r from-brand-special to-brand-vibrant rounded-[2rem] blur opacity-25 group-hover:opacity-100 transition duration-500"></div>
           <Card className="relative h-full !p-8 !rounded-[2rem] border-white/5 bg-brand-secondary/40 backdrop-blur-xl hover:border-brand-special/50 transition-all">
-            <div className="flex justify-between items-start mb-12">
-              <div className="p-4 bg-brand-primary rounded-2xl border border-white/5 shadow-xl group-hover:scale-100 group-hover:bg-brand-special/10 transition-all duration-500">
-                <Trophy size={40} className="text-brand-special" />
+            <div className="flex justify-between items-start mb-8">
+              <div className="p-3 bg-brand-primary rounded-2xl border border-white/5 shadow-xl group-hover:scale-100 group-hover:bg-brand-special/10 transition-all duration-500">
+                <Trophy size={32} className="text-brand-special" />
               </div>
-              <ChevronRight className="text-brand-light group-hover:text-brand-special transition-colors group-hover:translate-x-2 duration-500" size={32} />
+              <ChevronRight className="text-brand-light group-hover:text-brand-special transition-colors group-hover:translate-x-2 duration-500" size={24} />
             </div>
-            <h3 className="text-3xl font-black text-white italic uppercase mb-2">WAKACL Format</h3>
-            <p className="text-brand-light leading-relaxed mb-6">
-              Format turnamen elit. Group Stage yang diikuti oleh fase Knockout yang mendebarkan hingga ke Grand Final.
+            <h3 className="text-2xl font-black text-white italic uppercase mb-2">WAKACL</h3>
+            <p className="text-brand-light text-sm leading-relaxed mb-4">
+              Group Stage + Knockout hingga Grand Final.
             </p>
-            <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 bg-brand-special/10 rounded-full text-[10px] font-bold text-brand-special uppercase tracking-wider border border-brand-special/20">Group Stage</span>
-              <span className="px-3 py-1 bg-white/5 rounded-full text-[10px] font-bold text-brand-light uppercase tracking-wider">Knockout Stage</span>
+          </Card>
+        </button>
+
+        {/* Hall of Fame Card */}
+        <button 
+          onClick={() => onSelectMode('hall_of_fame')}
+          className="group relative text-left"
+        >
+          <div className="absolute -inset-1 bg-gradient-to-r from-yellow-600 to-yellow-300 rounded-[2rem] blur opacity-25 group-hover:opacity-100 transition duration-500"></div>
+          <Card className="relative h-full !p-8 !rounded-[2rem] border-white/5 bg-brand-secondary/40 backdrop-blur-xl hover:border-yellow-500/50 transition-all">
+            <div className="flex justify-between items-start mb-8">
+              <div className="p-3 bg-brand-primary rounded-2xl border border-white/5 shadow-xl group-hover:scale-110 group-hover:bg-yellow-500/10 transition-all duration-500">
+                <Crown size={32} className="text-yellow-400" />
+              </div>
+              <ChevronRight className="text-brand-light group-hover:text-yellow-400 transition-colors group-hover:translate-x-2 duration-500" size={24} />
             </div>
+            <h3 className="text-2xl font-black text-white italic uppercase mb-2">Hall of Fame</h3>
+            <p className="text-brand-light text-sm leading-relaxed mb-4">
+              Daftar para juara dan legenda turnamen sebelumnya.
+            </p>
           </Card>
         </button>
       </div>

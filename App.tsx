@@ -10,17 +10,16 @@ import { UserAuthModal } from './components/auth/UserAuthModal';
 import { ToastProvider } from './components/shared/Toast';
 import { TeamProfileModal } from './components/public/TeamProfileModal';
 import { UserProfileModal } from './components/public/UserProfileModal';
-import { onAuthChange, signOutUser } from './services/firebaseService';
+import { onAuthChange, signOutUser, getGlobalStats } from './services/firebaseService';
 import { useToast } from './components/shared/Toast';
 import { Spinner } from './components/shared/Spinner';
 import { Footer } from './components/Footer';
 import type { User } from 'firebase/auth';
+import { HallOfFame } from './components/public/HallOfFame';
 
 const AdminPanel = lazy(() => import('./components/admin/AdminPanel').then(module => ({ default: module.AdminPanel })));
 
 // IMPORTANT: Replace this with your specific admin email(s) to secure the Admin Panel.
-// If empty, simple "admin" string check is used as a fallback for the prototype, 
-// which is less secure if users register with "admin..." in their email.
 const ADMIN_EMAILS = ['admin@wakacl.com', 'admin@waykanan.com'];
 
 function AppContent() {
@@ -37,6 +36,9 @@ function AppContent() {
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
   
+  // Global Stats for Home Page
+  const [globalStats, setGlobalStats] = useState({ teamCount: 0, partnerCount: 0 });
+
   const tournament = useTournament(activeMode, isAdminAuthenticated);
   const { addToast } = useToast();
 
@@ -44,13 +46,10 @@ function AppContent() {
     const unsubscribe = onAuthChange((user) => {
       setCurrentUser(user);
       
-      // Determine if the logged-in user is an Admin
-      // Logic: Must be logged in AND email must be in the allowed list OR contain 'admin' (legacy/fallback)
       if (user && user.email) {
           const isAllowedAdmin = ADMIN_EMAILS.includes(user.email) || user.email.toLowerCase().includes('admin');
           setIsAdminAuthenticated(isAllowedAdmin);
           
-          // If they were on the admin page but logged out or switched to a non-admin user, kick them out
           if (!isAllowedAdmin && view === 'admin') {
               setView('home');
           }
@@ -62,6 +61,13 @@ function AppContent() {
     return () => unsubscribe();
   }, [view]);
 
+  // Fetch global stats on mount to show correct numbers on Home Dashboard regardless of activeMode
+  useEffect(() => {
+      getGlobalStats().then(stats => {
+          setGlobalStats(stats);
+      });
+  }, []); // Run once on mount
+
   const handleAdminViewRequest = () => {
     if (isAdminAuthenticated) {
       setView('admin');
@@ -70,13 +76,17 @@ function AppContent() {
     }
   };
 
-  const handleSelectMode = (mode: TournamentMode) => {
-    setActiveMode(mode);
-    setView(mode);
+  const handleSelectMode = (mode: TournamentMode | 'hall_of_fame') => {
+    if (mode === 'hall_of_fame') {
+        setView('hall_of_fame');
+    } else {
+        setActiveMode(mode);
+        setView(mode as View);
+    }
   };
 
   const handleSetView = (newView: View) => {
-    if (newView === 'league' || newView === 'wakacl') {
+    if (newView === 'league' || newView === 'wakacl' || newView === 'two_leagues') {
         setActiveMode(newView as TournamentMode);
     }
     setView(newView);
@@ -104,11 +114,20 @@ function AppContent() {
       );
   }
 
+  // Calculate current leader for Hall of Fame if not completed
+  let currentLeader: Team | null = null;
+  if (tournament.groups.length > 0 && activeMode === 'league') {
+      const allStandings = tournament.groups.flatMap(g => g.standings).sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
+      if (allStandings.length > 0) currentLeader = allStandings[0].team;
+  } else if (tournament.knockoutStage?.Final?.[0]?.winnerId) {
+      const winnerId = tournament.knockoutStage.Final[0].winnerId;
+      currentLeader = tournament.teams.find(t => t.id === winnerId) || null;
+  }
+
   return (
     <div className="min-h-screen font-sans flex flex-col relative selection:bg-brand-vibrant selection:text-white overflow-x-hidden">
       {/* Dynamic Brand Background */}
       <div className="fixed inset-0 bg-brand-primary z-[-1] overflow-hidden">
-         {/* Tech Grid */}
          <div 
             className="absolute inset-0 opacity-[0.05] pointer-events-none"
             style={{ 
@@ -116,13 +135,9 @@ function AppContent() {
               backgroundSize: '40px 40px' 
             }}
          />
-         
-         {/* Animated Glow Blobs */}
          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-brand-vibrant/20 blur-[140px] rounded-full animate-pulse-slow"></div>
          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-brand-special/10 blur-[140px] rounded-full animate-pulse-slow" style={{ animationDelay: '1.5s' }}></div>
          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-brand-vibrant/5 blur-[160px] rounded-full pointer-events-none"></div>
-
-         {/* Vignette */}
          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(2,6,23,0.8)_100%)] pointer-events-none" />
       </div>
       
@@ -150,16 +165,16 @@ function AppContent() {
               {view === 'home' && (
                 <HomeDashboard 
                   onSelectMode={handleSelectMode} 
-                  teamCount={tournament.teams.length} 
-                  partnerCount={tournament.partners.length} 
+                  teamCount={globalStats.teamCount} 
+                  partnerCount={globalStats.partnerCount} 
                 />
               )}
               
-              {(view === 'league' || view === 'wakacl') && (
+              {(view === 'league' || view === 'wakacl' || view === 'two_leagues') && (
                 <PublicView 
                   groups={tournament.groups}
                   matches={tournament.matches}
-                  knockoutStage={view === 'wakacl' ? tournament.knockoutStage : null}
+                  knockoutStage={(view === 'wakacl' || view === 'two_leagues') ? tournament.knockoutStage : null}
                   rules={tournament.rules}
                   banners={tournament.banners}
                   onSelectTeam={setViewingTeam}
@@ -168,11 +183,21 @@ function AppContent() {
                 />
               )}
 
+              {view === 'hall_of_fame' && (
+                <HallOfFame
+                    history={tournament.history}
+                    currentStatus={tournament.status}
+                    mode={activeMode}
+                    currentLeader={currentLeader}
+                    onBack={() => setView('home')}
+                />
+              )}
+
               {view === 'admin' && isAdminAuthenticated && (
                 <AdminPanel 
                   {...tournament} 
                   mode={activeMode} 
-                  setMode={handleSelectMode} 
+                  setMode={(m) => { setActiveMode(m); setView(m as View); }} // Force view update correctly
                 />
               )}
             </>

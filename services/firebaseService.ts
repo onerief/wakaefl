@@ -19,7 +19,7 @@ import {
   updateProfile,
   type User
 } from "firebase/auth";
-import type { TournamentState, TournamentMode } from '../types';
+import type { TournamentState, TournamentMode, Team, Partner } from '../types';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCXZAvanJ8Ra-3oCRXvsaKBopGce4CPuXQ",
@@ -89,6 +89,36 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
     if (error.code === 'permission-denied') return null;
     console.error(`Firestore: Failed to get ${mode} data`, error);
     return null;
+  }
+};
+
+export const getGlobalStats = async (): Promise<{ teamCount: number; partnerCount: number }> => {
+  try {
+    const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
+    const uniqueTeams = new Set<string>();
+    const uniquePartners = new Set<string>();
+
+    const promises = modes.map(mode => getTournamentData(mode));
+    const results = await Promise.all(promises);
+
+    results.forEach(data => {
+      if (data) {
+        if (data.teams && Array.isArray(data.teams)) {
+          data.teams.forEach((t: Team) => uniqueTeams.add(t.id));
+        }
+        if (data.partners && Array.isArray(data.partners)) {
+          data.partners.forEach((p: Partner) => uniquePartners.add(p.id));
+        }
+      }
+    });
+
+    return {
+      teamCount: uniqueTeams.size,
+      partnerCount: uniquePartners.size
+    };
+  } catch (error) {
+    console.error("Failed to get global stats:", error);
+    return { teamCount: 0, partnerCount: 0 };
   }
 };
 

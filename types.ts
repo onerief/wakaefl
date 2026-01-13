@@ -87,6 +87,15 @@ export interface Partner {
 }
 
 export type TournamentMode = 'league' | 'wakacl' | 'two_leagues';
+export type TournamentStatus = 'active' | 'completed';
+
+export interface SeasonHistory {
+  seasonId: string;
+  seasonName: string; // e.g. "Season 1", "Jan 2024"
+  champion: Team;
+  runnerUp?: Team;
+  dateCompleted: number;
+}
 
 export interface TournamentState {
   teams: Team[];
@@ -98,6 +107,8 @@ export interface TournamentState {
   partners: Partner[];
   mode: TournamentMode;
   isDoubleRoundRobin: boolean;
+  status: TournamentStatus;
+  history: SeasonHistory[];
 }
 
-export type View = 'home' | 'league' | 'wakacl' | 'admin';
+export type View = 'home' | 'league' | 'wakacl' | 'two_leagues' | 'admin' | 'hall_of_fame';

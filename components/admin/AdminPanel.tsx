@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
-import type { Team, Match, KnockoutStageRounds, KnockoutMatch, Group, TournamentState, Partner, TournamentMode } from '../../types';
+import type { Team, Match, KnockoutStageRounds, KnockoutMatch, Group, TournamentState, Partner, TournamentMode, TournamentStatus } from '../../types';
 import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, LayoutGrid, Database, Zap, Shield, AlertCircle } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, LayoutGrid, Database, Zap, Shield, AlertCircle, PlayCircle, StopCircle, Archive } from 'lucide-react';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { useToast } from '../shared/Toast';
 import { Card } from '../shared/Card';
@@ -13,6 +13,7 @@ import { RulesEditor } from './RulesEditor';
 import { BannerSettings } from './BannerSettings';
 import { PartnerSettings } from './PartnerSettings';
 import { GenerateBracketConfirmationModal } from './GenerateBracketConfirmationModal';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface AdminPanelProps {
   teams: Team[];
@@ -23,6 +24,7 @@ interface AdminPanelProps {
   banners: string[];
   partners: Partner[];
   mode: TournamentMode;
+  status: TournamentStatus;
   isDoubleRoundRobin: boolean;
   setMode: (mode: TournamentMode) => void;
   setRoundRobin: (isDouble: boolean) => void;
@@ -46,6 +48,10 @@ interface AdminPanelProps {
   generateMatchesFromGroups: () => void;
   setTournamentState: (state: TournamentState) => void;
   importLegacyData: (jsonData: any) => void;
+  finalizeSeason: () => { success: boolean; message: string };
+  resumeSeason: () => void;
+  startNewSeason: () => void; // New prop
+  resolveTeamClaim?: (teamId: string, approved: boolean) => void;
   isLoading?: boolean;
 }
 
@@ -56,10 +62,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const [isAddingMatch, setIsAddingMatch] = useState<keyof KnockoutStageRounds | null>(null);
   const [selectedMatchdays, setSelectedMatchdays] = useState<Record<string, string>>({});
   const [showGenerateBracketConfirm, setShowGenerateBracketConfirm] = useState(false);
+  const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
+  const [showStartNewSeasonConfirm, setShowStartNewSeasonConfirm] = useState(false);
   const { addToast } = useToast();
   
   const { 
       matches, updateMatchScore, teams, knockoutStage, groups, mode, setMode, 
+      status, finalizeSeason, resumeSeason, startNewSeason,
       isDoubleRoundRobin, setRoundRobin, updateKnockoutMatch, rules, updateRules,
       banners, updateBanners, partners, updatePartners, initializeEmptyKnockoutStage,
       setTournamentState, generateKnockoutBracket
@@ -79,6 +88,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           addToast(result.message || "Failed to generate bracket.", 'error');
       }
       setShowGenerateBracketConfirm(false);
+  }
+
+  const handleFinalizeSeason = () => {
+      const result = finalizeSeason();
+      if (result.success) {
+          addToast(result.message, 'success');
+      } else {
+          addToast(result.message, 'error');
+      }
+      setShowFinalizeConfirm(false);
+  }
+
+  const handleStartNewSeason = () => {
+      startNewSeason();
+      addToast("New season started! History has been preserved.", 'success');
+      setShowStartNewSeasonConfirm(false);
   }
 
   const renderContent = () => {
@@ -203,6 +228,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       case 'settings':
         return (
             <div className="space-y-8">
+                <div className="bg-brand-secondary/30 p-6 rounded-xl border border-brand-accent">
+                    <h3 className="text-xl font-bold text-brand-text mb-4">Season Control</h3>
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div>
+                            <p className="font-semibold text-white">Current Status: 
+                                <span className={`ml-2 px-2 py-0.5 rounded text-sm uppercase ${status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                    {status}
+                                </span>
+                            </p>
+                            <p className="text-xs text-brand-light mt-1">
+                                {status === 'active' 
+                                    ? "The season is currently ongoing. Matches can be played and scores updated." 
+                                    : "The season is finalized. The winner has been recorded in the Hall of Fame."}
+                            </p>
+                        </div>
+                        {status === 'active' ? (
+                            <Button onClick={() => setShowFinalizeConfirm(true)} className="bg-yellow-600 text-white hover:bg-yellow-700 border-none">
+                                <StopCircle size={16} /> End Season & Crown Champion
+                            </Button>
+                        ) : (
+                            <div className="flex gap-2">
+                                <Button onClick={resumeSeason} variant="secondary">
+                                    <PlayCircle size={16} /> Resume/Edit
+                                </Button>
+                                <Button onClick={() => setShowStartNewSeasonConfirm(true)} className="bg-blue-600 hover:bg-blue-700 text-white border-none">
+                                    <Archive size={16} /> Start New Season
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </div>
                 <BannerSettings banners={banners} onUpdateBanners={updateBanners} />
                 <PartnerSettings partners={partners} onUpdatePartners={updatePartners} />
             </div>
@@ -292,6 +348,32 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
         {renderContent()}
       </div>
+      
+      <ConfirmationModal
+        isOpen={showFinalizeConfirm}
+        onClose={() => setShowFinalizeConfirm(false)}
+        onConfirm={handleFinalizeSeason}
+        title="Finalize Season"
+        message="Are you sure you want to end the current season? The current leader/champion will be recorded in the Hall of Fame history."
+        confirmText="Yes, End Season"
+        confirmButtonClass="bg-yellow-600 text-white hover:bg-yellow-700"
+      />
+
+      <ConfirmationModal
+        isOpen={showStartNewSeasonConfirm}
+        onClose={() => setShowStartNewSeasonConfirm(false)}
+        onConfirm={handleStartNewSeason}
+        title="Start New Season"
+        message={
+            <p>
+                This will <strong>clear all current teams, matches, and groups</strong> to prepare for a fresh season. 
+                <br/><br/>
+                Your Hall of Fame history, partners, and rules will be preserved. Are you sure?
+            </p>
+        }
+        confirmText="Yes, Start Fresh"
+        confirmButtonClass="bg-blue-600 text-white hover:bg-blue-700"
+      />
     </div>
   );
 };

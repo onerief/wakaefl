@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import type { View, Team } from '../types';
-import { Shield, LogOut, Zap, Home, User as UserIcon, LogIn } from 'lucide-react';
+import { Shield, LogOut, Zap, Home, User as UserIcon, LogIn, Globe } from 'lucide-react';
 import type { User } from 'firebase/auth';
 import { UserProfileModal } from './public/UserProfileModal';
 
@@ -68,6 +68,17 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <span>Liga</span>
+          </button>
+
+          <button
+            onClick={() => setView('two_leagues')}
+            className={`px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
+              currentView === 'two_leagues'
+                ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-lg'
+                : 'text-brand-light hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <span>2 Wilayah</span>
           </button>
 
           <button
