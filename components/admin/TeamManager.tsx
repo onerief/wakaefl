@@ -56,6 +56,11 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const [numGroups, setNumGroups] = useState(4);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [importedData, setImportedData] = useState<TournamentState | null>(null);
+  
+  // States for Legacy Import Confirmation
+  const [showLegacyImportConfirm, setShowLegacyImportConfirm] = useState(false);
+  const [legacyImportData, setLegacyImportData] = useState<any>(null);
+
   const [isSavingTeam, setIsSavingTeam] = useState(false);
   const { addToast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -304,18 +309,34 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
               const text = e.target?.result;
               if (typeof text !== 'string') throw new Error("Unreadable file");
               const data = JSON.parse(text);
-              if (importLegacyData) {
-                  importLegacyData(data);
+              
+              // Validate structure vaguely
+              if (!data.teams || !Array.isArray(data.teams) || !data.schedule) {
+                  throw new Error("Invalid Legacy JSON format");
               }
+
+              // Store data temporarily and ask for confirmation
+              setLegacyImportData(data);
+              setShowLegacyImportConfirm(true);
+
           } catch (error) {
               console.error(error);
-              addToast('Failed to import legacy data.', 'error');
+              addToast('Failed to parse legacy file. Please check format.', 'error');
           } finally {
               if (event.target) event.target.value = '';
           }
       }
       reader.readAsText(file);
   }
+
+  const handleConfirmLegacyImport = () => {
+      if (legacyImportData && importLegacyData) {
+          importLegacyData(legacyImportData);
+          // Success toast is handled in the hook
+      }
+      setShowLegacyImportConfirm(false);
+      setLegacyImportData(null);
+  };
 
   const canGenerateGroups = teams.length >= 2;
   const topSeedTeams = teams.filter(t => t.isTopSeed);
@@ -628,6 +649,33 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
         }
         confirmText="Yes, Restore Data"
         confirmButtonClass="bg-brand-vibrant text-white hover:bg-opacity-80"
+      />
+
+      <ConfirmationModal
+        isOpen={showLegacyImportConfirm}
+        onClose={() => {
+            setShowLegacyImportConfirm(false);
+            setLegacyImportData(null);
+        }}
+        onConfirm={handleConfirmLegacyImport}
+        title="Confirm Legacy Data Import"
+        message={
+            <div>
+                <p className="mb-2">Successfully parsed legacy data file.</p>
+                <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-md text-sm text-brand-light mb-4">
+                    <p className="font-bold text-yellow-400 mb-1">Summary of data found:</p>
+                    <ul className="list-disc pl-4 space-y-1">
+                        <li>Teams: {legacyImportData?.teams?.length || 0}</li>
+                        <li>Matches: {legacyImportData?.schedule?.length || 0}</li>
+                    </ul>
+                </div>
+                <p className="text-red-400 font-bold text-sm">
+                    Warning: Importing this data will OVERWRITE all current teams, groups, and matches in the selected mode. This action is irreversible.
+                </p>
+            </div>
+        }
+        confirmText="Yes, Import & Save"
+        confirmButtonClass="bg-purple-600 text-white hover:bg-purple-700"
       />
     </Card>
   );
