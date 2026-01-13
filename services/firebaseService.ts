@@ -82,7 +82,7 @@ const sanitizeData = (data: any): any => {
 };
 
 // --- Registration Functions ---
-export const submitNewTeamRegistration = async (teamData: Omit<Team, 'id'>, userEmail: string) => {
+export const submitNewTeamRegistration = async (teamData: Omit<Team, 'id'> & { preferredMode?: string }, userEmail: string) => {
     try {
         await addDoc(collection(firestore, REGISTRATIONS_COLLECTION), {
             ...teamData,

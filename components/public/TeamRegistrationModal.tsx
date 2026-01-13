@@ -2,11 +2,12 @@
 import React, { useState, useRef } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { X, Upload, UserCircle, MessageCircle, Instagram, Loader, Send } from 'lucide-react';
+import { X, Upload, UserCircle, MessageCircle, Instagram, Loader, Send, Trophy, ChevronDown } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { uploadTeamLogo, submitNewTeamRegistration } from '../../services/firebaseService';
 import { TeamLogo } from '../shared/TeamLogo';
 import type { User } from 'firebase/auth';
+import type { TournamentMode } from '../../types';
 
 interface TeamRegistrationModalProps {
     currentUser: User;
@@ -19,6 +20,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
     const [whatsappNumber, setWhatsappNumber] = useState('');
     const [socialMediaUrl, setSocialMediaUrl] = useState('');
     const [logoUrl, setLogoUrl] = useState('');
+    const [preferredMode, setPreferredMode] = useState<TournamentMode>('league');
     const [isUploading, setIsUploading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
@@ -61,7 +63,8 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                 whatsappNumber: whatsappNumber.trim(),
                 socialMediaUrl: socialMediaUrl.trim(),
                 logoUrl: logoUrl,
-                ownerEmail: currentUser.email || ''
+                ownerEmail: currentUser.email || '',
+                preferredMode: preferredMode
             }, currentUser.email || '');
             
             addToast('Formulir pendaftaran berhasil dikirim! Tunggu persetujuan admin.', 'success');
@@ -124,6 +127,27 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
 
                             {/* Fields */}
                             <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-brand-light uppercase mb-1">Target Kompetisi *</label>
+                                    <div className="relative">
+                                        <Trophy size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-vibrant" />
+                                        <select
+                                            value={preferredMode}
+                                            onChange={(e) => setPreferredMode(e.target.value as TournamentMode)}
+                                            className="w-full pl-10 pr-10 p-3 bg-brand-secondary border border-brand-accent rounded-xl text-white text-sm focus:ring-2 focus:ring-brand-vibrant outline-none appearance-none"
+                                            required
+                                        >
+                                            <option value="league">Liga Reguler</option>
+                                            <option value="two_leagues">2 Wilayah (Neraka/Surga)</option>
+                                            <option value="wakacl">WAKACL (Champions League)</option>
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-light">
+                                            <ChevronDown size={16} />
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-brand-light mt-1 ml-1">Pilih turnamen yang ingin Anda ikuti.</p>
+                                </div>
+
                                 <div>
                                     <label className="block text-xs font-bold text-brand-light uppercase mb-1">Nama Tim *</label>
                                     <input

@@ -367,8 +367,10 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                               <TeamLogo logoUrl={reg.logoUrl} teamName={reg.name} className="w-10 h-10" />
                               <div className="flex flex-col min-w-0">
                                   <span className="font-bold text-white text-sm truncate">{reg.name}</span>
-                                  <span className="text-[10px] text-brand-light truncate">
-                                      Mgr: <span className="text-blue-200">{reg.manager}</span> | By: {reg.submittedBy}
+                                  <span className="text-[10px] text-brand-light truncate flex flex-col sm:flex-row sm:gap-2">
+                                      <span className="flex gap-1">Target: <span className="text-yellow-400 font-bold uppercase">{reg.preferredMode === 'league' ? 'Liga' : reg.preferredMode === 'two_leagues' ? '2 Wilayah' : reg.preferredMode === 'wakacl' ? 'WAKACL' : 'N/A'}</span></span>
+                                      <span className="hidden sm:inline">|</span>
+                                      <span>Mgr: <span className="text-blue-200">{reg.manager}</span></span>
                                   </span>
                               </div>
                           </div>
