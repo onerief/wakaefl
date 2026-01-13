@@ -14,10 +14,6 @@ interface HeaderProps {
   currentUser: User | null;
   onUserAuthRequest: () => void;
   onUserLogout: () => void;
-  // Passed implicitly via parent props spreading if managed in App, 
-  // but explicit props are safer here. We need tournament data access for the profile modal.
-  // To avoid prop drilling hell, let's keep the modal triggering here but manage state in parent or pass handlers.
-  // Actually, easiest is to let Parent handle the "Show Profile" state.
   onShowProfile?: () => void;
 }
 
@@ -85,20 +81,23 @@ export const Header: React.FC<HeaderProps> = ({
             <span>WAKACL</span>
           </button>
           
-          <div className="w-px h-6 bg-white/10 mx-1"></div>
-
-          {/* Admin Button */}
-          <button
-            onClick={onAdminViewRequest}
-            className={`px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-              currentView === 'admin' && isAdminAuthenticated
-                ? 'bg-gradient-to-r from-brand-vibrant to-indigo-600 text-white shadow-lg'
-                : 'text-brand-light hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Shield size={16} />
-            <span className="hidden lg:inline">Admin</span>
-          </button>
+          {/* Admin Button - ONLY Visible if Authenticated */}
+          {isAdminAuthenticated && (
+            <>
+                <div className="w-px h-6 bg-white/10 mx-1"></div>
+                <button
+                    onClick={onAdminViewRequest}
+                    className={`px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
+                    currentView === 'admin'
+                        ? 'bg-gradient-to-r from-brand-vibrant to-indigo-600 text-white shadow-lg'
+                        : 'text-brand-light hover:text-white hover:bg-white/5'
+                    }`}
+                >
+                    <Shield size={16} />
+                    <span className="hidden lg:inline">Admin</span>
+                </button>
+            </>
+          )}
           
           {/* User Auth Section */}
           <div className="w-px h-6 bg-white/10 mx-1"></div>
@@ -154,12 +153,14 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
              )}
 
-            <button 
-                onClick={onAdminViewRequest}
-                className={`p-2 transition-colors ${isAdminAuthenticated ? 'text-brand-vibrant' : 'text-brand-light hover:text-white'}`}
-            >
-                <Shield size={20} />
-            </button>
+            {isAdminAuthenticated && (
+                <button 
+                    onClick={onAdminViewRequest}
+                    className={`p-2 transition-colors ${currentView === 'admin' ? 'text-brand-vibrant' : 'text-brand-light hover:text-white'}`}
+                >
+                    <Shield size={20} />
+                </button>
+            )}
         </div>
       </div>
     </header>

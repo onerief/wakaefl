@@ -1,13 +1,14 @@
 
 import React from 'react';
-import { Shield, Instagram, Twitter, MessageCircle, Gamepad2, Trophy, Monitor } from 'lucide-react';
+import { Shield, Instagram, Twitter, MessageCircle, Gamepad2, Trophy, Monitor, Lock } from 'lucide-react';
 import type { Partner } from '../types';
 
 interface FooterProps {
     partners?: Partner[];
+    onAdminLogin?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ partners }) => {
+export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin }) => {
   const hasPartners = partners && partners.length > 0;
 
   return (
@@ -124,9 +125,20 @@ export const Footer: React.FC<FooterProps> = ({ partners }) => {
         {/* Bottom Bar */}
         <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-brand-light/40 font-medium">
             <p>&copy; 2024 Way Kanan eFootball Community. All rights reserved.</p>
-            <div className="flex gap-6">
+            <div className="flex gap-6 items-center">
                 <span className="hover:text-brand-light transition-colors cursor-pointer">Privacy Policy</span>
                 <span className="hover:text-brand-light transition-colors cursor-pointer">Terms of Service</span>
+                
+                {/* Simplified Admin Login Trigger */}
+                {onAdminLogin && (
+                    <button 
+                        onClick={onAdminLogin}
+                        className="hover:text-brand-vibrant transition-colors"
+                        title="Admin Login"
+                    >
+                        <Lock size={12} />
+                    </button>
+                )}
             </div>
         </div>
       </div>

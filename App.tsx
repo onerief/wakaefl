@@ -217,7 +217,10 @@ function AppContent() {
         />
       )}
 
-      <Footer partners={tournament.partners} />
+      <Footer 
+        partners={tournament.partners} 
+        onAdminLogin={() => setShowAdminLogin(true)}
+      />
     </div>
   );
 }

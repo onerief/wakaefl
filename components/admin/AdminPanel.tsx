@@ -276,7 +276,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           <button 
               onClick={() => setActiveTab('knockout')} 
               disabled={mode === 'league'}
-              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'knockout' ? 'bg-brand-special text-brand-primary shadow-lg' : 'text-brand-light hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed'}`}
+              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'knockout' ? 'bg-brand-special text-brand-primary shadow-lg' : 'text-brand-light hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed'} ${mode === 'league' ? 'hidden' : ''}`}
           >
               <Trophy size={14} className="inline mr-2" /> Knockout
           </button>
