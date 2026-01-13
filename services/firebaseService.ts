@@ -1,35 +1,53 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  enableIndexedDbPersistence 
+} from "firebase/firestore";
 import { 
   getAuth, 
   signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut, 
   onAuthStateChanged,
+  updateProfile,
   type User
 } from "firebase/auth";
 import type { TournamentState, TournamentMode } from '../types';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBtj_YChCMkvsiUI_tMZ9TOqj_Qoampoz8",
-  authDomain: "kanyeucl.firebaseapp.com",
-  databaseURL: "https://kanyeucl-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "kanyeucl",
-  storageBucket: "kanyeucl.appspot.com",
-  messagingSenderId: "77625357474",
-  appId: "1:77625357474:web:5fdd65f1d43f997c66d3fb"
+  apiKey: "AIzaSyCXZAvanJ8Ra-3oCRXvsaKBopGce4CPuXQ",
+  authDomain: "wakaefootball.firebaseapp.com",
+  projectId: "wakaefootball",
+  storageBucket: "wakaefootball.firebasestorage.app",
+  messagingSenderId: "521586554111",
+  appId: "1:521586554111:web:aa9fa9caf44e06bbd848ca",
+  measurementId: "G-CXXT1NJEWH"
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const firestore = getFirestore(app);
 const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+
+// Enable offline persistence
+if (typeof window !== 'undefined') {
+  enableIndexedDbPersistence(firestore).catch((err) => {
+    if (err.code == 'failed-precondition') {
+      console.warn('Firestore persistence failed-precondition: Multiple tabs open');
+    } else if (err.code == 'unimplemented') {
+      console.warn('Firestore persistence unimplemented');
+    }
+  });
+}
 
 const TOURNAMENT_COLLECTION = 'tournament';
 
-/**
- * Recursively removes all undefined values from an object.
- * Firestore does not support 'undefined' as a value and will throw errors.
- */
 const sanitizeData = (data: any): any => {
   if (Array.isArray(data)) {
     return data.map(sanitizeData);
@@ -52,10 +70,7 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
     const cleanData = sanitizeData(state);
     await setDoc(tournamentDocRef, cleanData);
   } catch (error: any) {
-    if (error.code === 'permission-denied') {
-      // Quietly ignore write failures for unauthorized users
-      return;
-    }
+    if (error.code === 'permission-denied') return;
     console.error(`Firestore: Failed to save ${mode} data`, error);
   }
 };
@@ -69,10 +84,8 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
     }
     return null;
   } catch (error: any) {
-    if (error.code === 'permission-denied') {
-      console.warn(`Firestore: Read permission denied for ${mode}. Check your security rules if this is unintended.`);
-      return null;
-    }
+    if (error.code === 'unavailable' || error.message.includes('offline')) return null;
+    if (error.code === 'permission-denied') return null;
     console.error(`Firestore: Failed to get ${mode} data`, error);
     return null;
   }
@@ -81,6 +94,18 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
 // --- Auth Functions ---
 export const signInUser = (email: string, password: string) => {
   return signInWithEmailAndPassword(auth, email, password);
+};
+
+export const registerUser = (email: string, password: string) => {
+    return createUserWithEmailAndPassword(auth, email, password);
+};
+
+export const signInWithGoogle = () => {
+    return signInWithPopup(auth, googleProvider);
+};
+
+export const updateUserProfile = (user: User, displayName: string) => {
+    return updateProfile(user, { displayName });
 };
 
 export const signOutUser = () => {

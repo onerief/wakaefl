@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import type { Team, Match } from '../../types';
 import { Card } from '../shared/Card';
-import { X, UserCircle, Instagram, Smartphone, Trophy, Zap, Star, Activity, Target } from 'lucide-react';
+import { X, UserCircle, Instagram, Smartphone, Zap, Star, Activity, Target, ShieldAlert, TrendingUp } from 'lucide-react';
 import { TeamLogo } from '../shared/TeamLogo';
 
 interface TeamProfileModalProps {
@@ -11,10 +11,11 @@ interface TeamProfileModalProps {
   onClose: () => void;
 }
 
-const StatBox = ({ label, value, colorClass = "text-brand-text" }: { label: string, value: string | number, colorClass?: string }) => (
-    <div className="bg-white/5 border border-white/5 p-3 rounded-2xl flex flex-col items-center justify-center min-w-[70px] flex-1">
+const StatBox = ({ label, value, colorClass = "text-brand-text", subLabel }: { label: string, value: string | number, colorClass?: string, subLabel?: string }) => (
+    <div className="bg-white/5 border border-white/5 p-3 rounded-2xl flex flex-col items-center justify-center min-w-[70px] flex-1 hover:bg-white/10 transition-colors">
         <span className={`text-xl font-black italic tracking-tighter ${colorClass}`}>{value}</span>
         <span className="text-[9px] font-bold text-brand-light uppercase tracking-widest">{label}</span>
+        {subLabel && <span className="text-[8px] text-brand-light/50 mt-1">{subLabel}</span>}
     </div>
 );
 
@@ -22,6 +23,7 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
   const whatsappLink = team.whatsappNumber ? `https://wa.me/${team.whatsappNumber.replace(/\D/g, '')}` : null;
   
   const stats = useMemo(() => {
+    // Filter for group matches involving this team
     const teamMatches = matches.filter(m => 
         m.status === 'finished' && (m.teamA.id === team.id || m.teamB.id === team.id)
     );
@@ -33,8 +35,8 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
     let ga = 0;
     const form: ('W' | 'D' | 'L')[] = [];
 
+    // Sort matches by ID (as proxy for date) to determine form
     teamMatches.sort((a, b) => {
-        // Simple sort by ID/Peformance - in real app would use date
         return a.id.localeCompare(b.id);
     }).forEach(m => {
         const isTeamA = m.teamA.id === team.id;
@@ -128,16 +130,42 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
             </div>
 
             {/* Quick Stats Grid */}
-            <div className="w-full flex gap-2 mb-6">
-                <StatBox label="PLD" value={stats.played} />
-                <StatBox label="W" value={stats.wins} colorClass="text-cyan-400" />
-                <StatBox label="D" value={stats.draws} colorClass="text-brand-light" />
-                <StatBox label="L" value={stats.losses} colorClass="text-red-400" />
-                <StatBox label="GD" value={stats.gd > 0 ? `+${stats.gd}` : stats.gd} colorClass={stats.gd > 0 ? "text-green-400" : stats.gd < 0 ? "text-red-400" : "text-brand-light"} />
+            <div className="w-full flex gap-2 mb-2">
+                <StatBox label="Played" value={stats.played} />
+                <StatBox label="Won" value={stats.wins} colorClass="text-cyan-400" />
+                <StatBox label="Drawn" value={stats.draws} colorClass="text-brand-light" />
+                <StatBox label="Lost" value={stats.losses} colorClass="text-red-400" />
+            </div>
+
+            {/* Goal Stats Grid */}
+             <div className="w-full grid grid-cols-3 gap-2 mb-6">
+                 <div className="bg-white/5 border border-white/5 p-3 rounded-2xl flex flex-col items-center hover:bg-white/10 transition-colors">
+                    <div className="flex items-center gap-1 mb-1 opacity-70">
+                         <Target size={10} className="text-green-400" />
+                        <span className="text-[9px] font-bold text-brand-light uppercase tracking-widest">Goals For</span>
+                    </div>
+                    <span className="text-lg font-black text-white">{stats.gf}</span>
+                 </div>
+                 <div className="bg-white/5 border border-white/5 p-3 rounded-2xl flex flex-col items-center hover:bg-white/10 transition-colors">
+                    <div className="flex items-center gap-1 mb-1 opacity-70">
+                         <ShieldAlert size={10} className="text-red-400" />
+                        <span className="text-[9px] font-bold text-brand-light uppercase tracking-widest">Goals Agst</span>
+                    </div>
+                    <span className="text-lg font-black text-white">{stats.ga}</span>
+                 </div>
+                 <div className="bg-white/5 border border-white/5 p-3 rounded-2xl flex flex-col items-center hover:bg-white/10 transition-colors">
+                    <div className="flex items-center gap-1 mb-1 opacity-70">
+                         <TrendingUp size={10} className="text-brand-vibrant" />
+                        <span className="text-[9px] font-bold text-brand-light uppercase tracking-widest">Goal Diff</span>
+                    </div>
+                    <span className={`text-lg font-black ${stats.gd > 0 ? "text-green-400" : stats.gd < 0 ? "text-red-400" : "text-white"}`}>
+                        {stats.gd > 0 ? '+' : ''}{stats.gd}
+                    </span>
+                 </div>
             </div>
 
             {/* Form Section */}
-            <div className="w-full mb-8 bg-black/20 rounded-2xl p-4 border border-white/5">
+            <div className="w-full mb-6 bg-black/20 rounded-2xl p-4 border border-white/5">
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <Activity size={14} className="text-brand-vibrant" />
@@ -147,11 +175,12 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
                         {stats.form.length > 0 ? stats.form.map((res, i) => (
                             <div 
                                 key={i} 
-                                className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-black text-white ${
+                                className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black text-white ${
                                     res === 'W' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.3)]' :
-                                    res === 'D' ? 'bg-brand-light/50' :
+                                    res === 'D' ? 'bg-gray-500' :
                                     'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.3)]'
                                 }`}
+                                title={res === 'W' ? 'Win' : res === 'D' ? 'Draw' : 'Loss'}
                             >
                                 {res}
                             </div>
@@ -161,22 +190,13 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
                     </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col">
-                        <span className="text-[9px] font-bold text-brand-light uppercase tracking-widest opacity-50">Goals For</span>
-                        <div className="flex items-center gap-2">
-                            <Target size={12} className="text-brand-vibrant" />
-                            <span className="text-lg font-black italic">{stats.gf}</span>
-                        </div>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[9px] font-bold text-brand-light uppercase tracking-widest opacity-50">Manager</span>
-                        <div className="flex items-center gap-2">
-                            <UserCircle size={12} className="text-brand-vibrant" />
-                            <span className="text-sm font-bold truncate max-w-[120px]">{team.manager || 'N/A'}</span>
-                        </div>
-                    </div>
-                </div>
+                 <div className="flex items-center justify-between border-t border-white/5 pt-3 mt-3">
+                     <span className="text-[10px] font-bold text-brand-light uppercase tracking-widest opacity-50">Team Manager</span>
+                     <div className="flex items-center gap-2">
+                        <UserCircle size={14} className="text-brand-vibrant" />
+                        <span className="text-sm font-bold text-white truncate max-w-[150px]">{team.manager || 'N/A'}</span>
+                     </div>
+                 </div>
             </div>
 
             {/* Social Actions */}

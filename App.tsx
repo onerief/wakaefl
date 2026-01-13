@@ -6,38 +6,65 @@ import { HomeDashboard } from './components/public/HomeDashboard';
 import { useTournament } from './hooks/useTournament';
 import type { View, Team, TournamentMode } from './types';
 import { Login } from './components/admin/Login';
+import { UserAuthModal } from './components/auth/UserAuthModal';
 import { ToastProvider } from './components/shared/Toast';
 import { TeamProfileModal } from './components/public/TeamProfileModal';
 import { onAuthChange, signOutUser } from './services/firebaseService';
 import { useToast } from './components/shared/Toast';
 import { Spinner } from './components/shared/Spinner';
 import { Footer } from './components/Footer';
+import type { User } from 'firebase/auth';
 
 const AdminPanel = lazy(() => import('./components/admin/AdminPanel').then(module => ({ default: module.AdminPanel })));
+
+// IMPORTANT: Replace this with your specific admin email(s) to secure the Admin Panel.
+// If empty, simple "admin" string check is used as a fallback for the prototype, 
+// which is less secure if users register with "admin..." in their email.
+const ADMIN_EMAILS = ['admin@wakacl.com', 'admin@waykanan.com'];
 
 function AppContent() {
   const [view, setView] = useState<View>('home');
   const [activeMode, setActiveMode] = useState<TournamentMode>('league');
+  
+  // Auth States
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
+  
+  // Modals
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [showUserAuth, setShowUserAuth] = useState(false);
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
   
-  // Hook is reactive to activeMode and authentication status
   const tournament = useTournament(activeMode, isAdminAuthenticated);
   const { addToast } = useToast();
 
   useEffect(() => {
     const unsubscribe = onAuthChange((user) => {
-      setIsAdminAuthenticated(!!user);
+      setCurrentUser(user);
+      
+      // Determine if the logged-in user is an Admin
+      // Logic: Must be logged in AND email must be in the allowed list OR contain 'admin' (legacy/fallback)
+      if (user && user.email) {
+          const isAllowedAdmin = ADMIN_EMAILS.includes(user.email) || user.email.toLowerCase().includes('admin');
+          setIsAdminAuthenticated(isAllowedAdmin);
+          
+          // If they were on the admin page but logged out or switched to a non-admin user, kick them out
+          if (!isAllowedAdmin && view === 'admin') {
+              setView('home');
+          }
+      } else {
+          setIsAdminAuthenticated(false);
+          if (view === 'admin') setView('home');
+      }
     });
     return () => unsubscribe();
-  }, []);
+  }, [view]);
 
   const handleAdminViewRequest = () => {
     if (isAdminAuthenticated) {
       setView('admin');
     } else {
-      setShowLogin(true);
+      setShowAdminLogin(true);
     }
   };
 
@@ -51,6 +78,12 @@ function AppContent() {
         setActiveMode(newView as TournamentMode);
     }
     setView(newView);
+  }
+
+  const handleLogout = async () => {
+      await signOutUser();
+      addToast('Anda telah keluar.', 'info');
+      setView('home');
   }
 
   return (
@@ -80,7 +113,10 @@ function AppContent() {
         setView={handleSetView}
         isAdminAuthenticated={isAdminAuthenticated}
         onAdminViewRequest={handleAdminViewRequest}
-        onLogout={async () => { await signOutUser(); setView('home'); }}
+        onLogout={handleLogout}
+        currentUser={currentUser}
+        onUserAuthRequest={() => setShowUserAuth(true)}
+        onUserLogout={handleLogout}
       />
       
       <main className="container mx-auto p-4 md:p-8 flex-grow relative z-20">
@@ -123,7 +159,24 @@ function AppContent() {
         </Suspense>
       </main>
 
-      {showLogin && <Login onLoginSuccess={() => { setIsAdminAuthenticated(true); setShowLogin(false); setView('admin'); }} onClose={() => setShowLogin(false)} />}
+      {/* Admin Login Modal */}
+      {showAdminLogin && (
+        <Login 
+            onLoginSuccess={() => { 
+                setShowAdminLogin(false); 
+                setView('admin'); 
+            }} 
+            onClose={() => setShowAdminLogin(false)} 
+        />
+      )}
+
+      {/* User Register/Login Modal */}
+      {showUserAuth && (
+          <UserAuthModal 
+            onClose={() => setShowUserAuth(false)}
+            onSuccess={() => setShowUserAuth(false)}
+          />
+      )}
       
       {viewingTeam && (
         <TeamProfileModal 

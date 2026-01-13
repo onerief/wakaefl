@@ -1,7 +1,8 @@
 
 import React from 'react';
 import type { View } from '../types';
-import { Shield, User, LogOut, Zap, Home } from 'lucide-react';
+import { Shield, LogOut, Zap, Home, User as UserIcon, LogIn } from 'lucide-react';
+import type { User } from 'firebase/auth';
 
 interface HeaderProps {
   currentView: View;
@@ -9,9 +10,21 @@ interface HeaderProps {
   isAdminAuthenticated: boolean;
   onAdminViewRequest: () => void;
   onLogout: () => void;
+  currentUser: User | null;
+  onUserAuthRequest: () => void;
+  onUserLogout: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ currentView, setView, isAdminAuthenticated, onAdminViewRequest, onLogout }) => {
+export const Header: React.FC<HeaderProps> = ({ 
+    currentView, 
+    setView, 
+    isAdminAuthenticated, 
+    onAdminViewRequest, 
+    onLogout, // Admin Logout
+    currentUser,
+    onUserAuthRequest,
+    onUserLogout
+}) => {
   return (
     <header className="sticky top-0 z-50 bg-brand-primary/80 backdrop-blur-md border-b border-white/5 shadow-2xl">
       <div className="container mx-auto px-4 md:px-8 py-3 flex justify-between items-center">
@@ -67,26 +80,50 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, isAdminAut
           
           <div className="w-px h-6 bg-white/10 mx-1"></div>
 
+          {/* Admin Button */}
           <button
             onClick={onAdminViewRequest}
-            className={`px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
               currentView === 'admin' && isAdminAuthenticated
                 ? 'bg-gradient-to-r from-brand-vibrant to-indigo-600 text-white shadow-lg'
                 : 'text-brand-light hover:text-white hover:bg-white/5'
             }`}
           >
             <Shield size={16} />
-            <span>Admin</span>
+            <span className="hidden lg:inline">Admin</span>
           </button>
           
-          {isAdminAuthenticated && (
-            <button
-              onClick={onLogout}
-              className="ml-2 w-9 h-9 flex items-center justify-center rounded-full text-brand-light hover:bg-red-500/20 hover:text-red-400 transition-colors"
-              title="Logout"
-            >
-              <LogOut size={16} />
-            </button>
+          {/* User Auth Section */}
+          <div className="w-px h-6 bg-white/10 mx-1"></div>
+          
+          {currentUser ? (
+              <div className="flex items-center gap-2 pl-2">
+                   <div className="flex items-center gap-2 px-3 py-1.5 bg-brand-vibrant/10 rounded-full border border-brand-vibrant/20">
+                      {currentUser.photoURL ? (
+                          <img src={currentUser.photoURL} alt="Profile" className="w-5 h-5 rounded-full ring-1 ring-brand-vibrant" />
+                      ) : (
+                          <UserIcon size={16} className="text-brand-vibrant" />
+                      )}
+                      <span className="text-xs font-bold text-white max-w-[100px] truncate">
+                        {currentUser.displayName || currentUser.email?.split('@')[0] || 'Member'}
+                      </span>
+                   </div>
+                   <button
+                    onClick={onUserLogout}
+                    className="w-9 h-9 flex items-center justify-center rounded-full text-brand-light hover:bg-red-500/20 hover:text-red-400 transition-colors"
+                    title="Logout"
+                    >
+                    <LogOut size={16} />
+                    </button>
+              </div>
+          ) : (
+             <button
+                onClick={onUserAuthRequest}
+                className="px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-2 bg-brand-vibrant text-white hover:bg-blue-600 shadow-lg shadow-blue-500/20"
+              >
+                <LogIn size={14} />
+                <span>Masuk / Daftar</span>
+              </button>
           )}
         </div>
 
@@ -98,6 +135,22 @@ export const Header: React.FC<HeaderProps> = ({ currentView, setView, isAdminAut
             >
                 <Home size={20} />
             </button>
+            
+            {/* User Mobile Auth */}
+             {currentUser ? (
+                <button onClick={onUserLogout} className="p-2 rounded-lg text-brand-light hover:text-red-400">
+                     {currentUser.photoURL ? (
+                          <img src={currentUser.photoURL} alt="Profile" className="w-6 h-6 rounded-full" />
+                      ) : (
+                          <UserIcon size={20} />
+                      )}
+                </button>
+             ) : (
+                <button onClick={onUserAuthRequest} className="p-2 rounded-lg text-brand-vibrant bg-white/5">
+                    <LogIn size={20} />
+                </button>
+             )}
+
             <button 
                 onClick={onAdminViewRequest}
                 className={`p-2 transition-colors ${isAdminAuthenticated ? 'text-brand-vibrant' : 'text-brand-light hover:text-white'}`}

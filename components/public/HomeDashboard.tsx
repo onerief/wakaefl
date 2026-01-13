@@ -23,8 +23,8 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, team
             <span className="text-xs font-black text-brand-special uppercase tracking-widest">The Ultimate eFootball Hub</span>
           </div>
           <h1 className="text-5xl md:text-7xl font-black text-white italic uppercase tracking-tighter leading-none mb-6">
-            Pilih Format <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-vibrant via-brand-special to-brand-vibrant">Pertandingan</span>
+            WAY KANAN <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-vibrant via-brand-special to-brand-vibrant">eFootball Mobile</span>
           </h1>
           <p className="text-brand-light text-lg mb-8 max-w-md">
             Kelola liga reguler atau turnamen Champions League Way Kanan dengan sistem otomatis yang profesional dan real-time.
@@ -78,7 +78,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, team
           <div className="absolute -inset-1 bg-gradient-to-r from-brand-special to-brand-vibrant rounded-[2rem] blur opacity-25 group-hover:opacity-100 transition duration-500"></div>
           <Card className="relative h-full !p-8 !rounded-[2rem] border-white/5 bg-brand-secondary/40 backdrop-blur-xl hover:border-brand-special/50 transition-all">
             <div className="flex justify-between items-start mb-12">
-              <div className="p-4 bg-brand-primary rounded-2xl border border-white/5 shadow-xl group-hover:scale-110 group-hover:bg-brand-special/10 transition-all duration-500">
+              <div className="p-4 bg-brand-primary rounded-2xl border border-white/5 shadow-xl group-hover:scale-100 group-hover:bg-brand-special/10 transition-all duration-500">
                 <Trophy size={40} className="text-brand-special" />
               </div>
               <ChevronRight className="text-brand-light group-hover:text-brand-special transition-colors group-hover:translate-x-2 duration-500" size={32} />
