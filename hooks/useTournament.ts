@@ -27,6 +27,7 @@ Group Stage:
   status: 'active',
   history: [],
   isRegistrationOpen: true, // Default open for new setup
+  headerLogoUrl: '', // Default empty
 });
 
 type Action =
@@ -62,7 +63,8 @@ type Action =
   | { type: 'RESOLVE_TEAM_CLAIM'; payload: { teamId: string; approved: boolean } }
   | { type: 'FINALIZE_SEASON'; payload: SeasonHistory }
   | { type: 'SET_STATUS'; payload: 'active' | 'completed' }
-  | { type: 'SET_REGISTRATION_STATUS'; payload: boolean };
+  | { type: 'SET_REGISTRATION_STATUS'; payload: boolean }
+  | { type: 'UPDATE_HEADER_LOGO'; payload: string };
 
 const calculateStandings = (teams: Team[], matches: Match[]): Standing[] => {
   const standings: { [key: string]: Standing } = teams.reduce((acc, team) => {
@@ -190,6 +192,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
             partners: state.partners, // PRESERVE PARTNERS
             banners: state.banners, // PRESERVE BANNERS
             rules: state.rules, // PRESERVE RULES
+            headerLogoUrl: state.headerLogoUrl, // PRESERVE LOGO
             status: 'active'
         };
     case 'INITIALIZE_EMPTY_KNOCKOUT':
@@ -342,6 +345,8 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
         return { ...state, status: action.payload };
     case 'SET_REGISTRATION_STATUS':
         return { ...state, isRegistrationOpen: action.payload };
+    case 'UPDATE_HEADER_LOGO':
+        return { ...state, headerLogoUrl: action.payload };
     default:
       return state;
   }
@@ -360,7 +365,11 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
     getTournamentData(activeMode).then(data => {
       if (data) {
         // Ensure legacy data gets the flag if missing
-        const safeData = { ...data, isRegistrationOpen: data.isRegistrationOpen ?? true };
+        const safeData = { 
+            ...data, 
+            isRegistrationOpen: data.isRegistrationOpen ?? true,
+            headerLogoUrl: data.headerLogoUrl || ''
+        };
         dispatch({ type: 'SET_STATE', payload: safeData });
       } else {
         // Default state
@@ -642,7 +651,8 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
               isDoubleRoundRobin: true,
               status: 'active',
               history: [],
-              isRegistrationOpen: true
+              isRegistrationOpen: true,
+              headerLogoUrl: ''
           };
 
           dispatch({ type: 'IMPORT_LEGACY_JSON', payload: importedState });
@@ -699,6 +709,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       setRegistrationStatus: (isOpen: boolean) => dispatch({ type: 'SET_REGISTRATION_STATUS', payload: isOpen }),
       deleteKnockoutMatch: (id: string) => dispatch({ type: 'DELETE_KNOCKOUT_MATCH', payload: id }),
       updateKnockoutMatchDetails: (matchId: string, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => dispatch({ type: 'UPDATE_KNOCKOUT_MATCH_DETAILS', payload: { matchId, teamAId, teamBId, placeholderA, placeholderB } }),
-      updateMatchSchedule: (matchId: string, teamAId: string, teamBId: string) => dispatch({ type: 'UPDATE_MATCH_SCHEDULE', payload: { matchId, teamAId, teamBId } })
+      updateMatchSchedule: (matchId: string, teamAId: string, teamBId: string) => dispatch({ type: 'UPDATE_MATCH_SCHEDULE', payload: { matchId, teamAId, teamBId } }),
+      updateHeaderLogo: (url: string) => dispatch({ type: 'UPDATE_HEADER_LOGO', payload: url })
   };
 };

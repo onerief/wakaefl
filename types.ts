@@ -121,6 +121,7 @@ export interface TournamentState {
   status: TournamentStatus;
   history: SeasonHistory[];
   isRegistrationOpen: boolean; // New: Controls visibility of registration button
+  headerLogoUrl?: string; // New: Custom logo for header
 }
 
 export type View = 'home' | 'league' | 'wakacl' | 'two_leagues' | 'admin' | 'hall_of_fame';

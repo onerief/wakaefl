@@ -15,6 +15,7 @@ interface HeaderProps {
   onUserAuthRequest: () => void;
   onUserLogout: () => void;
   onShowProfile?: () => void;
+  headerLogoUrl?: string; // New prop for custom logo
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -26,7 +27,8 @@ export const Header: React.FC<HeaderProps> = ({
     currentUser,
     onUserAuthRequest,
     onUserLogout,
-    onShowProfile
+    onShowProfile,
+    headerLogoUrl
 }) => {
   return (
     <header className="sticky top-0 z-50 bg-brand-primary/80 backdrop-blur-md border-b border-white/5 shadow-2xl">
@@ -34,16 +36,28 @@ export const Header: React.FC<HeaderProps> = ({
         
         {/* Logo Area */}
         <div className="flex items-center gap-2 sm:gap-3 group cursor-pointer min-w-0" onClick={() => setView('home')}>
-            <div className="relative flex-shrink-0">
-                <Shield size={28} className="sm:w-8 sm:h-8 text-brand-vibrant fill-brand-vibrant/20 drop-shadow-[0_0_8px_rgba(37,99,235,0.5)] group-hover:scale-110 transition-transform duration-300"/>
-                <Zap size={12} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-special animate-pulse sm:w-[14px] sm:h-[14px]" />
-            </div>
-            <div className="min-w-0 flex flex-col">
-                <h1 className="text-base sm:text-lg md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-vibrant to-brand-special tracking-tighter uppercase italic leading-none truncate">
-                    WAY KANAN
-                </h1>
-                <p className="text-[9px] sm:text-[10px] md:text-xs font-bold text-brand-light tracking-widest uppercase">WAKACL Hub</p>
-            </div>
+            {headerLogoUrl ? (
+                <div className="relative h-10 sm:h-12 w-auto flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
+                    <img 
+                        src={headerLogoUrl} 
+                        alt="Tournament Logo" 
+                        className="h-full w-auto object-contain drop-shadow-[0_0_8px_rgba(37,99,235,0.5)]"
+                    />
+                </div>
+            ) : (
+                <>
+                    <div className="relative flex-shrink-0">
+                        <Shield size={28} className="sm:w-8 sm:h-8 text-brand-vibrant fill-brand-vibrant/20 drop-shadow-[0_0_8px_rgba(37,99,235,0.5)] group-hover:scale-110 transition-transform duration-300"/>
+                        <Zap size={12} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-special animate-pulse sm:w-[14px] sm:h-[14px]" />
+                    </div>
+                    <div className="min-w-0 flex flex-col">
+                        <h1 className="text-base sm:text-lg md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-vibrant to-brand-special tracking-tighter uppercase italic leading-none truncate">
+                            WAY KANAN
+                        </h1>
+                        <p className="text-[9px] sm:text-[10px] md:text-xs font-bold text-brand-light tracking-widest uppercase">WAKACL Hub</p>
+                    </div>
+                </>
+            )}
         </div>
 
         {/* Desktop Nav */}

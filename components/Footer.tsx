@@ -38,6 +38,7 @@ export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin }) => {
                                 src={partner.logoUrl} 
                                 alt={partner.name} 
                                 className="h-8 md:h-10 w-auto object-contain max-w-[150px] drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]"
+                                loading="lazy"
                             />
                         </a>
                     ))

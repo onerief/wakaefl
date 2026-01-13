@@ -12,6 +12,7 @@ import { Card } from '../shared/Card';
 import { RulesEditor } from './RulesEditor';
 import { BannerSettings } from './BannerSettings';
 import { PartnerSettings } from './PartnerSettings';
+import { BrandingSettings } from './BrandingSettings';
 import { GenerateBracketConfirmationModal } from './GenerateBracketConfirmationModal';
 import { ConfirmationModal } from './ConfirmationModal';
 import { MatchScheduleEditor } from './MatchScheduleEditor';
@@ -59,6 +60,8 @@ interface AdminPanelProps {
   setRegistrationStatus?: (isOpen: boolean) => void;
   updateKnockoutMatchDetails?: (matchId: string, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => void;
   updateMatchSchedule?: (matchId: string, teamAId: string, teamBId: string) => void;
+  headerLogoUrl?: string;
+  updateHeaderLogo?: (url: string) => void;
 }
 
 type AdminTab = 'group-fixtures' | 'knockout' | 'teams' | 'rules' | 'settings';
@@ -96,7 +99,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       generateKnockoutBracket, 
       isRegistrationOpen, 
       setRegistrationStatus,
-      deleteKnockoutMatch, updateKnockoutMatchDetails, updateMatchSchedule
+      deleteKnockoutMatch, updateKnockoutMatchDetails, updateMatchSchedule,
+      headerLogoUrl, updateHeaderLogo
   } = props;
 
   const handleAddKnockoutMatch = (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => {
@@ -322,6 +326,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
             <div className="space-y-6 pb-12">
                  <h2 className="text-2xl font-black italic uppercase text-brand-text mb-4">Settings & Config</h2>
                 
+                {updateHeaderLogo && (
+                    <BrandingSettings 
+                        headerLogoUrl={headerLogoUrl || ''} 
+                        onUpdateHeaderLogo={updateHeaderLogo} 
+                    />
+                )}
+
                 {/* Registration Control Card */}
                 {setRegistrationStatus && (
                     <Card className="border-brand-accent/50 z-10 relative">

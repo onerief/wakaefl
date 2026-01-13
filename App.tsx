@@ -1,8 +1,12 @@
 
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Header } from './components/Header';
-import { PublicView } from './components/public/PublicView';
-import { HomeDashboard } from './components/public/HomeDashboard';
+// Lazy load components for code splitting
+const PublicView = lazy(() => import('./components/public/PublicView').then(module => ({ default: module.PublicView })));
+const HomeDashboard = lazy(() => import('./components/public/HomeDashboard').then(module => ({ default: module.HomeDashboard })));
+const HallOfFame = lazy(() => import('./components/public/HallOfFame').then(module => ({ default: module.HallOfFame })));
+const AdminPanel = lazy(() => import('./components/admin/AdminPanel').then(module => ({ default: module.AdminPanel })));
+
 import { useTournament } from './hooks/useTournament';
 import type { View, Team, TournamentMode } from './types';
 import { Login } from './components/admin/Login';
@@ -17,10 +21,7 @@ import { Spinner } from './components/shared/Spinner';
 import { DashboardSkeleton } from './components/shared/Skeleton';
 import { Footer } from './components/Footer';
 import type { User } from 'firebase/auth';
-import { HallOfFame } from './components/public/HallOfFame';
 import { GlobalChat } from './components/public/GlobalChat';
-
-const AdminPanel = lazy(() => import('./components/admin/AdminPanel').then(module => ({ default: module.AdminPanel })));
 
 // IMPORTANT: Replace this with your specific admin email(s) to secure the Admin Panel.
 const ADMIN_EMAILS = ['admin@wakacl.com', 'admin@waykanan.com'];
@@ -171,6 +172,7 @@ function AppContent() {
         onUserAuthRequest={() => setShowUserAuth(true)}
         onUserLogout={handleLogout}
         onShowProfile={() => setShowUserProfile(true)}
+        headerLogoUrl={tournament.headerLogoUrl}
       />
       
       <main className="container mx-auto px-2 py-4 md:p-8 flex-grow relative z-20">
