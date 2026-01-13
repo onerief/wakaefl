@@ -12,6 +12,7 @@ import { Card } from '../shared/Card';
 import { RulesEditor } from './RulesEditor';
 import { BannerSettings } from './BannerSettings';
 import { PartnerSettings } from './PartnerSettings';
+import { GenerateBracketConfirmationModal } from './GenerateBracketConfirmationModal';
 
 interface AdminPanelProps {
   teams: Team[];
@@ -44,6 +45,7 @@ interface AdminPanelProps {
   manualRemoveTeamFromGroup: (teamId: string, groupId: string) => void;
   generateMatchesFromGroups: () => void;
   setTournamentState: (state: TournamentState) => void;
+  importLegacyData: (jsonData: any) => void;
   isLoading?: boolean;
 }
 
@@ -53,19 +55,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('teams');
   const [isAddingMatch, setIsAddingMatch] = useState<keyof KnockoutStageRounds | null>(null);
   const [selectedMatchdays, setSelectedMatchdays] = useState<Record<string, string>>({});
+  const [showGenerateBracketConfirm, setShowGenerateBracketConfirm] = useState(false);
   const { addToast } = useToast();
   
   const { 
       matches, updateMatchScore, teams, knockoutStage, groups, mode, setMode, 
       isDoubleRoundRobin, setRoundRobin, updateKnockoutMatch, rules, updateRules,
       banners, updateBanners, partners, updatePartners, initializeEmptyKnockoutStage,
-      setTournamentState
+      setTournamentState, generateKnockoutBracket
   } = props;
 
   const handleAddKnockoutMatch = (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => {
       props.addKnockoutMatch(round, teamAId, teamBId, placeholderA, placeholderB);
       addToast(`Match added to ${round}.`, 'success');
       setIsAddingMatch(null);
+  }
+
+  const handleGenerateBracket = () => {
+      const result = generateKnockoutBracket();
+      if (result.success) {
+          addToast("Knockout bracket generated successfully!", 'success');
+      } else {
+          addToast(result.message || "Failed to generate bracket.", 'error');
+      }
+      setShowGenerateBracketConfirm(false);
   }
 
   const renderContent = () => {
@@ -133,22 +146,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           </div>
         );
       case 'knockout':
-        if (mode !== 'wakacl') {
+        if (mode === 'league') {
             return (
                 <div className="text-center bg-brand-secondary/30 p-12 rounded-2xl border border-brand-accent border-dashed">
                     <Zap size={48} className="mx-auto text-brand-light/30 mb-4" />
                     <h3 className="text-xl font-bold text-brand-text mb-2">Knockout Restricted</h3>
-                    <p className="text-brand-light">Knockout stage is only available in <strong>WAKACL Hub</strong> mode. Please switch mode in settings or header.</p>
+                    <p className="text-brand-light">Knockout stage is only available in <strong>WAKACL</strong> or <strong>2 Wilayah</strong> mode.</p>
                 </div>
             )
         }
         return (
           <div>
-            {!knockoutStage ? (
+            {!knockoutStage || Object.values(knockoutStage).every((r: any) => r.length === 0) ? (
               <div className="text-center bg-brand-secondary p-8 rounded-lg border border-brand-accent border-dashed">
                 <h3 className="text-xl font-bold text-brand-text mb-2">The Knockout Stage Awaits</h3>
                 <p className="text-brand-light mb-4">Finish the group stage to generate.</p>
                 <div className="flex justify-center gap-4">
+                  <Button onClick={() => setShowGenerateBracketConfirm(true)}>
+                    Auto-Generate Bracket
+                  </Button>
                   <Button onClick={() => initializeEmptyKnockoutStage()} variant="secondary">
                     Create Manually
                   </Button>
@@ -172,6 +188,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               </div>
             )}
              {isAddingMatch && <KnockoutMatchForm round={isAddingMatch} teams={teams} onSave={handleAddKnockoutMatch} onClose={() => setIsAddingMatch(null)} />}
+             {showGenerateBracketConfirm && (
+                 <GenerateBracketConfirmationModal 
+                    onConfirm={handleGenerateBracket} 
+                    onCancel={() => setShowGenerateBracketConfirm(false)} 
+                 />
+             )}
           </div>
         );
       case 'teams':
@@ -202,21 +224,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                   <div>
                       <h2 className="font-black text-white italic uppercase leading-none">Database Terpilih</h2>
                       <p className="text-[10px] text-brand-light font-bold uppercase tracking-widest">
-                          Mengelola Data: <span className={mode === 'wakacl' ? 'text-brand-special' : 'text-brand-vibrant'}>{mode === 'wakacl' ? 'WAKACL (Tournament)' : 'LIGA (Regular)'}</span>
+                          Mengelola Data: 
+                          <span className={mode === 'wakacl' ? 'text-brand-special' : mode === 'two_leagues' ? 'text-purple-400' : 'text-brand-vibrant'}>
+                              {mode === 'wakacl' ? ' WAKACL (Tourn)' : mode === 'two_leagues' ? ' 2 Wilayah' : ' LIGA (Reguler)'}
+                          </span>
                       </p>
                   </div>
               </div>
               
-              <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 w-full sm:w-auto">
+              <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 w-full sm:w-auto overflow-x-auto">
                   <button 
                     onClick={() => setMode('league')}
-                    className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${mode === 'league' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'text-brand-light hover:text-white'}`}
+                    className={`flex-1 whitespace-nowrap px-4 py-2 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${mode === 'league' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'text-brand-light hover:text-white'}`}
                   >
                       Liga Reguler
                   </button>
                   <button 
+                    onClick={() => setMode('two_leagues')}
+                    className={`flex-1 whitespace-nowrap px-4 py-2 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${mode === 'two_leagues' ? 'bg-purple-600 text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
+                  >
+                      Liga 2 Wilayah
+                  </button>
+                  <button 
                     onClick={() => setMode('wakacl')}
-                    className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${mode === 'wakacl' ? 'bg-brand-special text-brand-primary shadow-lg' : 'text-brand-light hover:text-white'}`}
+                    className={`flex-1 whitespace-nowrap px-4 py-2 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${mode === 'wakacl' ? 'bg-brand-special text-brand-primary shadow-lg' : 'text-brand-light hover:text-white'}`}
                   >
                       WAKACL Hub
                   </button>
@@ -244,7 +275,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           </button>
           <button 
               onClick={() => setActiveTab('knockout')} 
-              disabled={mode !== 'wakacl'}
+              disabled={mode === 'league'}
               className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'knockout' ? 'bg-brand-special text-brand-primary shadow-lg' : 'text-brand-light hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed'}`}
           >
               <Trophy size={14} className="inline mr-2" /> Knockout

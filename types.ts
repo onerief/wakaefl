@@ -85,7 +85,7 @@ export interface Partner {
   websiteUrl?: string | null;
 }
 
-export type TournamentMode = 'league' | 'wakacl';
+export type TournamentMode = 'league' | 'wakacl' | 'two_leagues';
 
 export interface TournamentState {
   teams: Team[];

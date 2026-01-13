@@ -4,7 +4,7 @@ import type { Team, Group, Match, KnockoutStageRounds, TournamentState } from '.
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail } from 'lucide-react';
+import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { GenerateGroupsConfirmationModal } from './GenerateGroupsConfirmationModal';
 import { useToast } from '../shared/Toast';
@@ -32,6 +32,7 @@ interface TeamManagerProps {
   manualRemoveTeamFromGroup: (teamId: string, groupId: string) => void;
   generateMatchesFromGroups: () => void;
   setTournamentState: (state: TournamentState) => void;
+  importLegacyData?: (jsonData: any) => void; // New optional prop
   rules: string;
 }
 
@@ -40,7 +41,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
     teams, groups, matches, knockoutStage, addTeam, updateTeam, deleteTeam, 
     generateGroupStage, onGenerationSuccess, resetTournament, moveTeamToGroup, 
     assignTopSeedToGroup, manualAddGroup, manualDeleteGroup, manualAddTeamToGroup, 
-    manualRemoveTeamFromGroup, generateMatchesFromGroups, setTournamentState, rules
+    manualRemoveTeamFromGroup, generateMatchesFromGroups, setTournamentState, importLegacyData, rules
   } = props;
   const [showForm, setShowForm] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
@@ -55,6 +56,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const [isSavingTeam, setIsSavingTeam] = useState(false);
   const { addToast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const legacyFileInputRef = React.useRef<HTMLInputElement>(null);
   
   const isTeamInUse = (teamId: string) => {
     return groups.some(g => g.teams.some(t => t.id === teamId));
@@ -284,6 +286,34 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
     setImportedData(null);
   };
 
+  // Specific handler for legacy JSON format
+  const handleLegacyImportClick = () => {
+      legacyFileInputRef.current?.click();
+  }
+
+  const handleLegacyFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+          try {
+              const text = e.target?.result;
+              if (typeof text !== 'string') throw new Error("Unreadable file");
+              const data = JSON.parse(text);
+              if (importLegacyData) {
+                  importLegacyData(data);
+              }
+          } catch (error) {
+              console.error(error);
+              addToast('Failed to import legacy data.', 'error');
+          } finally {
+              if (event.target) event.target.value = '';
+          }
+      }
+      reader.readAsText(file);
+  }
+
   const canGenerateGroups = teams.length >= 2;
   const topSeedTeams = teams.filter(t => t.isTopSeed);
   const groupOptions = Array.from({ length: numGroups }, (_, i) => String.fromCharCode(65 + i));
@@ -392,7 +422,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                   <p className="text-brand-light mb-3 text-sm">
                       Download a JSON file containing all current tournament data (teams, groups, matches, etc.). Keep this file safe to restore your tournament later.
                   </p>
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
                     <Button onClick={handleBackupData} variant="secondary" className="w-full sm:w-auto">
                         <Download size={16} />
                         Backup Tournament Data
@@ -401,10 +431,23 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                         <Upload size={16} />
                         Restore from Backup
                     </Button>
+                    {importLegacyData && (
+                        <Button onClick={handleLegacyImportClick} variant="secondary" className="w-full sm:w-auto bg-purple-900/30 text-purple-300 border-purple-500/30 hover:bg-purple-900/50">
+                            <FileJson size={16} />
+                            Import Legacy S2 Data
+                        </Button>
+                    )}
                     <input 
                         type="file"
                         ref={fileInputRef}
                         onChange={handleFileChange}
+                        className="hidden"
+                        accept="application/json"
+                    />
+                    <input 
+                        type="file"
+                        ref={legacyFileInputRef}
+                        onChange={handleLegacyFileChange}
                         className="hidden"
                         accept="application/json"
                     />
