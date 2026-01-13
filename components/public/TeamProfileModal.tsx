@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import type { Team, Match } from '../../types';
 import { Card } from '../shared/Card';
-import { X, UserCircle, Instagram, Smartphone, Zap, Star, Activity, Target, ShieldAlert, TrendingUp } from 'lucide-react';
+import { X, UserCircle, Instagram, Smartphone, Zap, Star, Activity, Target, ShieldAlert, TrendingUp, Calendar } from 'lucide-react';
 import { TeamLogo } from '../shared/TeamLogo';
 
 interface TeamProfileModalProps {
@@ -22,12 +22,14 @@ const StatBox = ({ label, value, colorClass = "text-brand-text", subLabel }: { l
 export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matches, onClose }) => {
   const whatsappLink = team.whatsappNumber ? `https://wa.me/${team.whatsappNumber.replace(/\D/g, '')}` : null;
   
-  const stats = useMemo(() => {
-    // Filter for group matches involving this team
-    const teamMatches = matches.filter(m => 
-        m.status === 'finished' && (m.teamA.id === team.id || m.teamB.id === team.id)
-    );
+  const teamMatches = useMemo(() => {
+     return matches.filter(m => 
+        (m.status === 'finished' || m.status === 'scheduled') && 
+        (m.teamA.id === team.id || m.teamB.id === team.id)
+     ).sort((a, b) => b.id.localeCompare(a.id)); // Newest first
+  }, [matches, team.id]);
 
+  const stats = useMemo(() => {
     let wins = 0;
     let draws = 0;
     let losses = 0;
@@ -35,10 +37,16 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
     let ga = 0;
     const form: ('W' | 'D' | 'L')[] = [];
 
-    // Sort matches by ID (as proxy for date) to determine form
-    teamMatches.sort((a, b) => {
-        return a.id.localeCompare(b.id);
-    }).forEach(m => {
+    // Filter only finished matches for stats
+    const finishedMatches = teamMatches.filter(m => m.status === 'finished');
+    
+    // Reverse for form calculation (oldest to newest needed for correct W-D-L sequence if we were graphing, but for recent form usually we show last 5. 
+    // Let's iterate normally since we sorted Descending above)
+    
+    // We actually want oldest->newest for the "Form" array to read left-to-right as "Past -> Recent" usually, OR "Recent -> Past".
+    // Let's stick to Recent -> Past for the display boxes left-to-right.
+    
+    finishedMatches.forEach(m => {
         const isTeamA = m.teamA.id === team.id;
         const scoreSelf = isTeamA ? m.scoreA! : m.scoreB!;
         const scoreOpp = isTeamA ? m.scoreB! : m.scoreA!;
@@ -59,16 +67,16 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
     });
 
     return {
-        played: teamMatches.length,
+        played: finishedMatches.length,
         wins,
         draws,
         losses,
         gf,
         ga,
         gd: gf - ga,
-        form: form.slice(-5) // Last 5 matches
+        form: form.slice(0, 5) // Last 5 matches (since we sorted desc)
     };
-  }, [matches, team.id]);
+  }, [teamMatches, team.id]);
 
   return (
     <div 
@@ -76,7 +84,7 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-md relative animate-in zoom-in-95 slide-in-from-bottom-4 duration-500"
+        className="w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar relative animate-in zoom-in-95 slide-in-from-bottom-4 duration-500 rounded-[2rem]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Profile Card Overlay Styling */}
@@ -169,7 +177,7 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                         <Activity size={14} className="text-brand-vibrant" />
-                        <span className="text-[10px] font-black text-brand-light uppercase tracking-widest">Recent Form</span>
+                        <span className="text-[10px] font-black text-brand-light uppercase tracking-widest">Recent Form (Last 5)</span>
                     </div>
                     <div className="flex gap-1">
                         {stats.form.length > 0 ? stats.form.map((res, i) => (
@@ -197,6 +205,53 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
                         <span className="text-sm font-bold text-white truncate max-w-[150px]">{team.manager || 'N/A'}</span>
                      </div>
                  </div>
+            </div>
+
+            {/* MATCH HISTORY */}
+            <div className="w-full mb-6">
+                <h4 className="flex items-center gap-2 text-xs font-black text-brand-light uppercase tracking-widest mb-4">
+                    <Calendar size={14} /> Match History
+                </h4>
+                <div className="space-y-2">
+                    {teamMatches.length > 0 ? (
+                        teamMatches.slice(0, 5).map(match => {
+                            const isTeamA = match.teamA.id === team.id;
+                            const opponent = isTeamA ? match.teamB : match.teamA;
+                            const scoreSelf = isTeamA ? match.scoreA : match.scoreB;
+                            const scoreOpp = isTeamA ? match.scoreB : match.scoreA;
+                            const isWin = scoreSelf !== null && scoreOpp !== null && scoreSelf > scoreOpp;
+                            const isDraw = scoreSelf !== null && scoreOpp !== null && scoreSelf === scoreOpp;
+                            
+                            return (
+                                <div key={match.id} className="flex items-center justify-between bg-white/5 p-2 rounded-lg border border-white/5">
+                                    <div className="flex items-center gap-2">
+                                         <div className={`w-1 h-8 rounded-full ${
+                                             match.status !== 'finished' ? 'bg-brand-light/30' :
+                                             isWin ? 'bg-green-500' : isDraw ? 'bg-gray-500' : 'bg-red-500'
+                                         }`}></div>
+                                         <div className="flex flex-col">
+                                             <span className="text-[10px] text-brand-light uppercase">vs</span>
+                                             <span className="text-xs font-bold text-white truncate max-w-[120px]">{opponent.name}</span>
+                                         </div>
+                                    </div>
+                                    {match.status === 'finished' ? (
+                                        <div className="flex items-center gap-2 font-mono font-bold text-sm">
+                                            <span className={scoreSelf! > scoreOpp! ? 'text-green-400' : ''}>{scoreSelf}</span>
+                                            <span className="text-brand-light/50">-</span>
+                                            <span className={scoreOpp! > scoreSelf! ? 'text-green-400' : ''}>{scoreOpp}</span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-[10px] bg-brand-light/10 text-brand-light px-2 py-1 rounded">Scheduled</span>
+                                    )}
+                                </div>
+                            )
+                        })
+                    ) : (
+                         <div className="text-center py-4 bg-white/5 rounded-lg border border-dashed border-white/10 text-xs text-brand-light italic">
+                             No matches found for this team.
+                         </div>
+                    )}
+                </div>
             </div>
 
             {/* Social Actions */}

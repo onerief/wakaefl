@@ -9,18 +9,29 @@ interface StandingsTableProps {
 }
 
 export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSelectTeam }) => {
-  const headers = ['Pos', 'Club', 'P', 'W', 'D', 'L', 'GD', 'Pts'];
+  const headers = ['Pos', 'Club', 'P', 'W', 'D', 'L', 'GD', 'Pts', 'Form'];
+
   return (
     <div className="overflow-hidden rounded-xl border border-white/10 bg-brand-secondary/20 backdrop-blur-sm">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left text-brand-light">
-          <thead className="text-xs text-brand-text/70 uppercase bg-black/20 border-b border-white/5">
+      <div className="w-full">
+        <table className="w-full text-sm text-left text-brand-light table-fixed">
+          <thead className="text-[10px] sm:text-xs text-brand-text/70 uppercase bg-black/20 border-b border-white/5">
             <tr>
-              {headers.map((header, idx) => (
-                <th key={header} scope="col" className={`px-3 py-4 font-bold tracking-wider ${idx === 1 ? 'text-left' : 'text-center'} ${['W', 'D', 'L'].includes(header) ? 'hidden sm:table-cell' : ''}`}>
-                  {header}
-                </th>
-              ))}
+              {headers.map((header, idx) => {
+                let classes = "py-2 sm:py-3 font-bold tracking-wider whitespace-nowrap ";
+                
+                if (header === 'Pos') classes += "w-8 text-center px-1";
+                else if (header === 'Club') classes += "text-left px-2 w-auto"; 
+                else if (['W', 'D', 'L'].includes(header)) classes += "hidden md:table-cell text-center w-8 sm:w-10 px-1";
+                else if (header === 'Form') classes += "hidden sm:table-cell text-center w-24 px-1";
+                else classes += "text-center w-8 sm:w-10 px-1"; // P, GD, Pts
+
+                return (
+                  <th key={header} scope="col" className={classes}>
+                    {header}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -36,44 +47,60 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSel
                   `}
                 >
                   {/* Position */}
-                  <td className="px-3 py-3 text-center relative">
+                  <td className="py-2 text-center relative px-1">
                     {isQualifier && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4/5 w-1 bg-brand-vibrant rounded-r-full shadow-[0_0_10px_#06b6d4]"></div>
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 h-3/5 w-0.5 bg-brand-vibrant rounded-r-full"></div>
                     )}
-                    <span className={`font-bold ${isQualifier ? 'text-brand-vibrant' : 'text-brand-light/50'}`}>
+                    <span className={`font-bold text-xs ${isQualifier ? 'text-brand-vibrant' : 'text-brand-light/50'}`}>
                         {index + 1}
                     </span>
                   </td>
 
                   {/* Team */}
-                  <th scope="row" className="px-3 py-3 font-medium text-brand-text whitespace-nowrap">
-                    <button onClick={() => onSelectTeam(standing.team)} className="flex items-center gap-3 text-left w-full group">
-                      <div className="relative">
-                        <TeamLogo logoUrl={standing.team.logoUrl} teamName={standing.team.name} className="w-8 h-8 sm:w-9 sm:h-9 transition-transform group-hover:scale-110"/>
-                        {isQualifier && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-brand-vibrant rounded-full border-2 border-brand-secondary shadow-lg"></div>}
+                  <td className="py-2 px-2 font-medium text-brand-text overflow-hidden">
+                    <button onClick={() => onSelectTeam(standing.team)} className="flex items-center gap-2 text-left w-full group max-w-full">
+                      <div className="relative flex-shrink-0">
+                        <TeamLogo logoUrl={standing.team.logoUrl} teamName={standing.team.name} className="w-6 h-6 sm:w-8 sm:h-8 transition-transform group-hover:scale-110"/>
+                        {isQualifier && <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-brand-vibrant rounded-full border border-brand-secondary shadow-sm"></div>}
                       </div>
-                      <span className="group-hover:text-brand-vibrant transition-colors">{standing.team.name}</span>
+                      <span className="truncate text-xs sm:text-sm font-semibold group-hover:text-brand-vibrant transition-colors">{standing.team.name}</span>
                     </button>
-                  </th>
+                  </td>
 
                   {/* Stats */}
-                  <td className="px-3 py-3 text-center text-brand-text">{standing.played}</td>
-                  <td className="px-3 py-3 text-center hidden sm:table-cell opacity-70">{standing.wins}</td>
-                  <td className="px-3 py-3 text-center hidden sm:table-cell opacity-70">{standing.draws}</td>
-                  <td className="px-3 py-3 text-center hidden sm:table-cell opacity-70">{standing.losses}</td>
+                  <td className="py-2 px-1 text-center text-brand-text text-xs">{standing.played}</td>
+                  <td className="py-2 px-1 text-center hidden md:table-cell opacity-70 text-xs">{standing.wins}</td>
+                  <td className="py-2 px-1 text-center hidden md:table-cell opacity-70 text-xs">{standing.draws}</td>
+                  <td className="py-2 px-1 text-center hidden md:table-cell opacity-70 text-xs">{standing.losses}</td>
                   
                   {/* Goal Difference */}
-                  <td className="px-3 py-3 text-center">
+                  <td className="py-2 px-1 text-center text-xs">
                     <span className={`font-bold ${standing.goalDifference > 0 ? 'text-green-400' : standing.goalDifference < 0 ? 'text-red-400' : 'text-brand-light'}`}>
                         {standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}
                     </span>
                   </td>
                   
                   {/* Points */}
-                  <td className="px-3 py-3 text-center">
-                    <span className="font-black text-white bg-white/10 px-2 py-1 rounded-md min-w-[30px] inline-block shadow-inner border border-white/5">
+                  <td className="py-2 px-1 text-center">
+                    <span className="font-black text-white bg-white/10 px-1.5 py-0.5 rounded text-xs border border-white/5 shadow-sm">
                         {standing.points}
                     </span>
+                  </td>
+
+                  {/* Form */}
+                  <td className="py-2 px-1 text-center hidden sm:table-cell">
+                      <div className="flex items-center justify-center gap-1">
+                          {standing.form && standing.form.length > 0 ? standing.form.map((res, i) => (
+                              <div 
+                                key={i} 
+                                title={res === 'W' ? 'Win' : res === 'D' ? 'Draw' : 'Loss'}
+                                className={`
+                                  w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full 
+                                  ${res === 'W' ? 'bg-green-500' : res === 'D' ? 'bg-gray-500' : 'bg-red-500'}
+                                `}
+                              />
+                          )) : <span className="text-[10px] text-brand-light/20">-</span>}
+                      </div>
                   </td>
                 </tr>
               );

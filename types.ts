@@ -20,6 +20,7 @@ export interface Standing {
   losses: number;
   goalDifference: number;
   points: number;
+  form: ('W' | 'D' | 'L')[]; // New: Array of last 5 results
 }
 
 export interface Group {

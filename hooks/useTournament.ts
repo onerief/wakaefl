@@ -63,10 +63,11 @@ type Action =
 
 const calculateStandings = (teams: Team[], matches: Match[]): Standing[] => {
   const standings: { [key: string]: Standing } = teams.reduce((acc, team) => {
-    acc[team.id] = { team, played: 0, wins: 0, draws: 0, losses: 0, goalDifference: 0, points: 0 };
+    acc[team.id] = { team, played: 0, wins: 0, draws: 0, losses: 0, goalDifference: 0, points: 0, form: [] };
     return acc;
   }, {} as { [key: string]: Standing });
 
+  // Process Stats
   matches.forEach(match => {
     if (match.status !== 'finished' || match.scoreA === null || match.scoreB === null) return;
     const { teamA, teamB, scoreA, scoreB } = match;
@@ -84,6 +85,32 @@ const calculateStandings = (teams: Team[], matches: Match[]): Standing[] => {
       else if (scoreB === scoreA) { standings[teamB.id].draws++; standings[teamB.id].points += 1; }
       else { standings[teamB.id].losses++; }
     }
+  });
+  
+  // Calculate Form (Last 5 matches based on ID or matchday)
+  // Sort matches to ensure order (using ID as simplistic timestamp if dates absent)
+  const sortedMatches = [...matches].sort((a, b) => a.id.localeCompare(b.id));
+
+  teams.forEach(team => {
+      if (!standings[team.id]) return;
+      
+      const teamMatches = sortedMatches.filter(m => 
+          m.status === 'finished' && 
+          (m.teamA.id === team.id || m.teamB.id === team.id)
+      );
+
+      // Take last 5
+      const recentMatches = teamMatches.slice(-5);
+      
+      standings[team.id].form = recentMatches.map(m => {
+          const isTeamA = m.teamA.id === team.id;
+          const scoreSelf = isTeamA ? m.scoreA! : m.scoreB!;
+          const scoreOpp = isTeamA ? m.scoreB! : m.scoreA!;
+          
+          if (scoreSelf > scoreOpp) return 'W';
+          if (scoreSelf === scoreOpp) return 'D';
+          return 'L';
+      });
   });
 
   return Object.values(standings).sort((a, b) => {

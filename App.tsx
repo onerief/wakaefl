@@ -13,6 +13,7 @@ import { UserProfileModal } from './components/public/UserProfileModal';
 import { onAuthChange, signOutUser, getGlobalStats } from './services/firebaseService';
 import { useToast } from './components/shared/Toast';
 import { Spinner } from './components/shared/Spinner';
+import { DashboardSkeleton } from './components/shared/Skeleton';
 import { Footer } from './components/Footer';
 import type { User } from 'firebase/auth';
 import { HallOfFame } from './components/public/HallOfFame';
@@ -153,13 +154,10 @@ function AppContent() {
         onShowProfile={() => setShowUserProfile(true)}
       />
       
-      <main className="container mx-auto p-4 md:p-8 flex-grow relative z-20">
+      <main className="container mx-auto px-2 py-4 md:p-8 flex-grow relative z-20">
         <Suspense fallback={<div className="flex justify-center py-20"><Spinner size={40} /></div>}>
           {tournament.isLoading ? (
-             <div className="flex flex-col items-center justify-center py-32 space-y-4">
-                <Spinner size={48} />
-                <p className="text-brand-light font-bold uppercase tracking-widest animate-pulse">Loading {activeMode} Database...</p>
-             </div>
+             <DashboardSkeleton />
           ) : (
             <>
               {view === 'home' && (

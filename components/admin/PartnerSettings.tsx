@@ -61,7 +61,7 @@ export const PartnerSettings: React.FC<PartnerSettingsProps> = ({ partners, onUp
                 Manage Official Partners
             </h3>
             
-            <form onSubmit={handleAdd} className="grid grid-cols-1 sm:grid-cols-12 gap-2 mb-6 p-4 bg-brand-primary rounded-lg border border-brand-accent">
+            <form onSubmit={handleAdd} className="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-6 p-4 bg-brand-primary rounded-lg border border-brand-accent">
                 <div className="sm:col-span-3">
                     <label className="block text-xs font-medium text-brand-light mb-1">Partner Name</label>
                     <input 
@@ -92,7 +92,7 @@ export const PartnerSettings: React.FC<PartnerSettingsProps> = ({ partners, onUp
                         className="w-full p-2 bg-brand-secondary border border-brand-accent rounded-md text-brand-text text-sm"
                     />
                 </div>
-                <div className="sm:col-span-2 flex items-end">
+                <div className="sm:col-span-2 flex items-end mt-2 sm:mt-0">
                     <Button type="submit" className="w-full text-sm">
                         <Plus size={16} /> Add
                     </Button>
@@ -120,7 +120,7 @@ export const PartnerSettings: React.FC<PartnerSettingsProps> = ({ partners, onUp
                             </div>
                             <button
                                 onClick={() => handleDelete(partner.id)}
-                                className="text-brand-light hover:text-red-400 p-1 transition-colors"
+                                className="text-brand-light hover:text-red-400 p-2 transition-colors"
                                 title="Remove Partner"
                             >
                                 <Trash2 size={16} />
@@ -129,7 +129,7 @@ export const PartnerSettings: React.FC<PartnerSettingsProps> = ({ partners, onUp
                     ))
                 ) : (
                     <div className="col-span-full text-center py-6 text-brand-light italic bg-brand-secondary/30 rounded-lg border border-brand-accent border-dashed text-sm">
-                        No partners added. The footer will display default placeholder partners until you add your own.
+                        No partners added.
                     </div>
                 )}
             </div>

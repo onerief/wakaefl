@@ -2,88 +2,134 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { X, UserCircle, LogOut, Shield, CheckCircle, Clock, Trophy, ListOrdered, Globe } from 'lucide-react';
+import { X, UserCircle, LogOut, Shield, CheckCircle, Clock, Trophy, ListOrdered, Globe, Edit, ChevronRight } from 'lucide-react';
 import type { User } from 'firebase/auth';
 import type { Team, TournamentMode } from '../../types';
 import { TeamLogo } from '../shared/TeamLogo';
 import { useToast } from '../shared/Toast';
-import { getTournamentData, submitTeamClaimRequest } from '../../services/firebaseService';
+import { getTournamentData, submitTeamClaimRequest, getUserTeams, updateUserTeamData } from '../../services/firebaseService';
 import { Spinner } from '../shared/Spinner';
+import { UserTeamEditor } from './UserTeamEditor';
 
 interface UserProfileModalProps {
   currentUser: User;
-  teams: Team[]; // Initial teams from current view (optional usage now)
+  teams: Team[]; 
   onClose: () => void;
   onLogout: () => void;
-  onRequestClaim?: (teamId: string, userEmail: string) => void; // Deprecated/Optional
 }
 
 export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser, onClose, onLogout }) => {
   const { addToast } = useToast();
-  const [activeMode, setActiveMode] = useState<TournamentMode>('league');
-  const [modeTeams, setModeTeams] = useState<Team[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedTeamId, setSelectedTeamId] = useState('');
+  
+  // Dashboard State
+  const [viewState, setViewState] = useState<'dashboard' | 'edit-team'>('dashboard');
+  const [userOwnedTeams, setUserOwnedTeams] = useState<{ mode: TournamentMode, team: Team }[]>([]);
+  const [teamToEdit, setTeamToEdit] = useState<{ mode: TournamentMode, team: Team } | null>(null);
+  const [isLoadingOwned, setIsLoadingOwned] = useState(true);
 
-  // Fetch teams when mode changes
+  // Claiming State
+  const [claimMode, setClaimMode] = useState<TournamentMode>('league');
+  const [claimableTeams, setClaimableTeams] = useState<Team[]>([]);
+  const [selectedClaimTeamId, setSelectedClaimTeamId] = useState('');
+  const [isLoadingClaimable, setIsLoadingClaimable] = useState(false);
+
+  // --- Effect: Fetch User's Owned Teams ---
+  const fetchUserTeams = async () => {
+      setIsLoadingOwned(true);
+      if (currentUser.email) {
+          const teams = await getUserTeams(currentUser.email);
+          setUserOwnedTeams(teams);
+      }
+      setIsLoadingOwned(false);
+  };
+
   useEffect(() => {
-    const fetchTeams = async () => {
-        setIsLoading(true);
+      fetchUserTeams();
+  }, [currentUser.email]);
+
+  // --- Effect: Fetch Claimable Teams for Selected Mode ---
+  useEffect(() => {
+    const fetchClaimable = async () => {
+        setIsLoadingClaimable(true);
         try {
-            const data = await getTournamentData(activeMode);
+            const data = await getTournamentData(claimMode);
             if (data && data.teams) {
-                setModeTeams(data.teams);
+                setClaimableTeams(data.teams);
             } else {
-                setModeTeams([]);
+                setClaimableTeams([]);
             }
         } catch (error) {
-            console.error("Error fetching teams for modal:", error);
-            addToast("Gagal memuat data tim.", 'error');
+            console.error("Error fetching claimable teams:", error);
         } finally {
-            setIsLoading(false);
+            setIsLoadingClaimable(false);
         }
     };
+    fetchClaimable();
+  }, [claimMode]);
 
-    fetchTeams();
-  }, [activeMode, addToast]);
+  // Computed: Filter teams available for claim
+  const pendingTeamInClaimMode = useMemo(() => claimableTeams.find(t => t.requestedOwnerEmail === currentUser.email), [claimableTeams, currentUser.email]);
+  const alreadyOwnedInClaimMode = useMemo(() => userOwnedTeams.some(ut => ut.mode === claimMode), [userOwnedTeams, claimMode]);
+  const availableTeams = useMemo(() => claimableTeams.filter(t => !t.ownerEmail && t.id !== pendingTeamInClaimMode?.id), [claimableTeams, pendingTeamInClaimMode]);
 
-  // Determine current status for the ACTIVE mode
-  const myTeam = useMemo(() => modeTeams.find(t => t.ownerEmail === currentUser.email), [modeTeams, currentUser.email]);
-  const pendingTeam = useMemo(() => modeTeams.find(t => t.requestedOwnerEmail === currentUser.email), [modeTeams, currentUser.email]);
-  const availableTeams = useMemo(() => modeTeams.filter(t => !t.ownerEmail && t.id !== pendingTeam?.id), [modeTeams, pendingTeam]);
+  // --- Handlers ---
+
+  const handleEditClick = (teamItem: { mode: TournamentMode, team: Team }) => {
+      setTeamToEdit(teamItem);
+      setViewState('edit-team');
+  };
+
+  const handleSaveTeamUpdates = async (updates: Partial<Team>) => {
+      if (!teamToEdit) return;
+      try {
+          await updateUserTeamData(teamToEdit.mode, teamToEdit.team.id, updates);
+          addToast('Tim berhasil diperbarui!', 'success');
+          
+          // Refresh local data
+          await fetchUserTeams();
+          setViewState('dashboard');
+          setTeamToEdit(null);
+      } catch (e) {
+          console.error(e);
+          addToast('Gagal memperbarui tim.', 'error');
+      }
+  };
 
   const handleClaimSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!selectedTeamId) return;
+      if (!selectedClaimTeamId) return;
       if (!currentUser.email) {
           addToast('Email anda tidak valid.', 'error');
           return;
       }
 
       try {
-          await submitTeamClaimRequest(activeMode, selectedTeamId, currentUser.email);
-          addToast(`Permintaan klaim untuk mode ${activeMode === 'league' ? 'Liga' : activeMode === 'wakacl' ? 'WAKACL' : '2 Wilayah'} berhasil dikirim!`, 'success');
+          await submitTeamClaimRequest(claimMode, selectedClaimTeamId, currentUser.email);
+          addToast(`Permintaan klaim berhasil dikirim!`, 'success');
           
-          // Optimistic update
-          setModeTeams(prev => prev.map(t => 
-             t.id === selectedTeamId ? { ...t, requestedOwnerEmail: currentUser.email! } : t
+          // Optimistic update for UI
+          setClaimableTeams(prev => prev.map(t => 
+             t.id === selectedClaimTeamId ? { ...t, requestedOwnerEmail: currentUser.email! } : t
           ));
-          setSelectedTeamId('');
+          setSelectedClaimTeamId('');
       } catch (error: any) {
           addToast(error.message || 'Gagal mengirim permintaan.', 'error');
       }
   };
 
-  const tabs: { id: TournamentMode; label: string; icon: React.ReactNode }[] = [
-      { id: 'league', label: 'Liga Reguler', icon: <ListOrdered size={14} /> },
-      { id: 'wakacl', label: 'WAKACL', icon: <Trophy size={14} /> },
-      { id: 'two_leagues', label: '2 Wilayah', icon: <Globe size={14} /> },
-  ];
+  const getModeLabel = (m: TournamentMode) => {
+      switch(m) {
+          case 'league': return 'Liga Reguler';
+          case 'wakacl': return 'WAKACL';
+          case 'two_leagues': return '2 Wilayah';
+          default: return m;
+      }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] backdrop-blur-md p-4 animate-in fade-in duration-300">
       <Card className="w-full max-w-md relative !p-0 overflow-hidden shadow-2xl !bg-brand-primary border-brand-vibrant/20 max-h-[90vh] flex flex-col">
-        <button onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-white transition-colors z-10" aria-label="Close modal">
+        <button onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-white transition-colors z-20" aria-label="Close modal">
           <X size={24} />
         </button>
 
@@ -99,118 +145,149 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
                     </div>
                 )}
             </div>
-            <h2 className="text-xl font-bold text-white relative z-10">{currentUser.displayName || 'User'}</h2>
+            <h2 className="text-xl font-bold text-white relative z-10">{currentUser.displayName || 'Member'}</h2>
             <p className="text-sm text-brand-light relative z-10">{currentUser.email}</p>
         </div>
 
-        {/* Mode Tabs */}
-        <div className="flex bg-black/20 border-b border-white/5 flex-shrink-0">
-            {tabs.map(tab => (
-                <button
-                    key={tab.id}
-                    onClick={() => setActiveMode(tab.id)}
-                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 border-b-2 ${
-                        activeMode === tab.id 
-                        ? 'text-brand-vibrant border-brand-vibrant bg-white/5' 
-                        : 'text-brand-light/50 border-transparent hover:text-brand-light hover:bg-white/5'
-                    }`}
-                >
-                    {tab.icon}
-                    <span className="hidden sm:inline">{tab.label}</span>
-                </button>
-            ))}
-        </div>
-
-        <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar flex-grow">
-            {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-8 space-y-3">
-                    <Spinner size={32} />
-                    <p className="text-xs text-brand-light animate-pulse">Memuat Data {activeMode.toUpperCase()}...</p>
-                </div>
-            ) : (
-                <>
-                    {/* STATUS: OWNED TEAM */}
-                    {myTeam && (
-                        <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center animate-in slide-in-from-bottom-2">
-                            <div className="flex items-center justify-center gap-2 mb-2 text-green-400 font-bold uppercase tracking-wider text-xs">
-                                <CheckCircle size={14} />
-                                Manager Tim ({activeMode === 'league' ? 'Liga' : activeMode === 'wakacl' ? 'WAKACL' : '2 Wilayah'})
-                            </div>
-                            <div className="flex flex-col items-center gap-3 mt-4">
-                                <TeamLogo logoUrl={myTeam.logoUrl} teamName={myTeam.name} className="w-16 h-16" />
-                                <h3 className="text-xl font-black text-white italic">{myTeam.name}</h3>
-                                <p className="text-xs text-brand-light">Anda memiliki akses penuh di mode ini.</p>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* STATUS: PENDING REQUEST */}
-                    {!myTeam && pendingTeam && (
-                        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-center animate-in slide-in-from-bottom-2">
-                            <div className="flex items-center justify-center gap-2 mb-3 text-yellow-400 font-bold uppercase tracking-wider text-xs">
-                                <Clock size={14} />
-                                Menunggu Konfirmasi ({activeMode === 'league' ? 'Liga' : activeMode === 'wakacl' ? 'WAKACL' : '2 Wilayah'})
-                            </div>
-                            <div className="flex items-center gap-4 bg-black/20 p-3 rounded-lg text-left">
-                                <TeamLogo logoUrl={pendingTeam.logoUrl} teamName={pendingTeam.name} className="w-10 h-10" />
-                                <div>
-                                    <p className="font-bold text-white text-sm">{pendingTeam.name}</p>
-                                    <p className="text-[10px] text-brand-light">Hubungi admin untuk persetujuan.</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* STATUS: NO TEAM & FORM */}
-                    {!myTeam && !pendingTeam && (
-                        <div className="space-y-4 animate-in slide-in-from-bottom-2">
-                            <div className="flex items-center gap-2 text-brand-light text-sm">
-                                <Shield size={16} className="text-brand-vibrant" />
-                                <span className="font-bold">Klaim Tim - {activeMode === 'league' ? 'Liga Reguler' : activeMode === 'wakacl' ? 'WAKACL' : 'Liga 2 Wilayah'}</span>
-                            </div>
-                            <p className="text-xs text-brand-light/70">
-                                Pilih tim yang ingin anda kelola di kompetisi ini.
-                            </p>
-                            
-                            <form onSubmit={handleClaimSubmit} className="space-y-3">
-                                <div className="relative">
-                                    <select 
-                                        value={selectedTeamId}
-                                        onChange={(e) => setSelectedTeamId(e.target.value)}
-                                        className="w-full p-3 bg-black/20 border border-brand-accent rounded-xl text-brand-text text-sm focus:ring-2 focus:ring-brand-vibrant outline-none appearance-none"
-                                        required
-                                    >
-                                        <option value="">-- Pilih Tim Tersedia ({availableTeams.length}) --</option>
-                                        {availableTeams.map(t => (
-                                            <option key={t.id} value={t.id}>
-                                                {t.name} {t.requestedOwnerEmail ? '(Ada Request Lain)' : ''}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-light">
-                                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <div className="p-6 overflow-y-auto custom-scrollbar flex-grow">
+            
+            {/* VIEW: DASHBOARD */}
+            {viewState === 'dashboard' && (
+                <div className="space-y-8">
+                    
+                    {/* Section 1: My Teams */}
+                    <div>
+                        <h3 className="text-xs font-black text-brand-light uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <Shield size={14} className="text-brand-vibrant" /> Tim Saya
+                        </h3>
+                        
+                        {isLoadingOwned ? (
+                            <div className="flex justify-center py-4"><Spinner /></div>
+                        ) : userOwnedTeams.length > 0 ? (
+                            <div className="space-y-3">
+                                {userOwnedTeams.map((item, idx) => (
+                                    <div key={idx} className="bg-gradient-to-r from-brand-secondary to-transparent border border-white/5 rounded-xl p-3 flex items-center justify-between group hover:border-brand-vibrant/30 transition-all">
+                                        <div className="flex items-center gap-3">
+                                            <TeamLogo logoUrl={item.team.logoUrl} teamName={item.team.name} className="w-10 h-10" />
+                                            <div>
+                                                <h4 className="font-bold text-white text-sm">{item.team.name}</h4>
+                                                <span className="text-[10px] text-brand-vibrant bg-brand-vibrant/10 px-2 py-0.5 rounded uppercase font-bold tracking-wider">
+                                                    {getModeLabel(item.mode)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleEditClick(item)}
+                                            className="p-2 rounded-lg bg-white/5 hover:bg-brand-vibrant hover:text-white text-brand-light transition-all"
+                                            title="Edit Tim"
+                                        >
+                                            <Edit size={16} />
+                                        </button>
                                     </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-6 bg-black/20 rounded-xl border border-dashed border-white/10 text-xs text-brand-light">
+                                Anda belum memiliki tim. Silakan daftar di bawah.
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Section 2: Join Competition */}
+                    <div className="border-t border-white/5 pt-6">
+                        <h3 className="text-xs font-black text-brand-light uppercase tracking-widest mb-4 flex items-center gap-2">
+                            <Trophy size={14} className="text-brand-special" /> Daftar Kompetisi
+                        </h3>
+
+                        {/* Mode Selector */}
+                        <div className="flex bg-black/30 rounded-lg p-1 mb-4">
+                            {(['league', 'wakacl', 'two_leagues'] as TournamentMode[]).map(m => (
+                                <button
+                                    key={m}
+                                    onClick={() => setClaimMode(m)}
+                                    className={`flex-1 py-2 text-[10px] font-bold uppercase rounded-md transition-all ${
+                                        claimMode === m ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'
+                                    }`}
+                                >
+                                    {m === 'league' ? 'Liga' : m === 'wakacl' ? 'WAKACL' : '2 Region'}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Status Message */}
+                        {alreadyOwnedInClaimMode ? (
+                            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 flex items-center gap-3">
+                                <CheckCircle size={18} className="text-green-400 flex-shrink-0" />
+                                <span className="text-xs text-green-100">Anda sudah memiliki tim di kompetisi ini.</span>
+                            </div>
+                        ) : pendingTeamInClaimMode ? (
+                            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 flex items-center gap-3">
+                                <Clock size={18} className="text-yellow-400 flex-shrink-0" />
+                                <div>
+                                    <p className="text-xs font-bold text-yellow-100">Menunggu Persetujuan</p>
+                                    <p className="text-[10px] text-yellow-200/70">Request untuk tim <strong>{pendingTeamInClaimMode.name}</strong> sedang diproses admin.</p>
                                 </div>
-                                <Button type="submit" className="w-full" disabled={!selectedTeamId}>
-                                    Kirim Permintaan
+                            </div>
+                        ) : (
+                            /* Claim Form */
+                            <form onSubmit={handleClaimSubmit} className="space-y-3">
+                                {isLoadingClaimable ? (
+                                    <div className="text-center py-2"><Spinner size={14} /></div>
+                                ) : (
+                                    <div className="relative">
+                                        <select 
+                                            value={selectedClaimTeamId}
+                                            onChange={(e) => setSelectedClaimTeamId(e.target.value)}
+                                            className="w-full p-3 bg-black/20 border border-brand-accent rounded-xl text-brand-text text-xs font-bold focus:ring-2 focus:ring-brand-vibrant outline-none appearance-none"
+                                            required
+                                        >
+                                            <option value="">-- Pilih Tim Tersedia ({availableTeams.length}) --</option>
+                                            {availableTeams.map(t => (
+                                                <option key={t.id} value={t.id}>
+                                                    {t.name} {t.requestedOwnerEmail ? '(High Demand)' : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-light">
+                                            <ChevronRight size={14} className="rotate-90" />
+                                        </div>
+                                    </div>
+                                )}
+                                <Button type="submit" className="w-full text-xs" disabled={!selectedClaimTeamId || isLoadingClaimable}>
+                                    Kirim Request
                                 </Button>
                             </form>
-                        </div>
-                    )}
-                </>
+                        )}
+                    </div>
+                </div>
             )}
 
-            {/* Logout */}
-            <div className="border-t border-white/5 pt-6 mt-auto">
+            {/* VIEW: EDIT TEAM */}
+            {viewState === 'edit-team' && teamToEdit && (
+                <UserTeamEditor 
+                    team={teamToEdit.team} 
+                    onSave={handleSaveTeamUpdates}
+                    onCancel={() => {
+                        setViewState('dashboard');
+                        setTeamToEdit(null);
+                    }}
+                />
+            )}
+
+        </div>
+
+        {/* Footer Logout */}
+        {viewState === 'dashboard' && (
+            <div className="border-t border-white/5 bg-brand-secondary/30 p-4">
                 <button 
                     onClick={onLogout}
-                    className="w-full py-3 flex items-center justify-center gap-2 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors text-sm font-bold"
+                    className="w-full py-2 flex items-center justify-center gap-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-xs font-bold uppercase tracking-wider"
                 >
-                    <LogOut size={16} />
+                    <LogOut size={14} />
                     Keluar Akun
                 </button>
             </div>
-        </div>
+        )}
       </Card>
     </div>
   );

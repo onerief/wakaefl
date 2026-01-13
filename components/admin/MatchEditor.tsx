@@ -29,15 +29,15 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
     const numB = parseInt(scoreB, 10);
     if (!isNaN(numA) && !isNaN(numB)) {
       onUpdateScore(match.id, numA, numB, proofUrl);
-      addToast('Match score saved successfully!', 'success');
+      addToast('Score saved!', 'success');
     } else {
-      addToast('Invalid score format.', 'error');
+      addToast('Invalid score.', 'error');
     }
   };
 
   const handleGenerate = async () => {
       if (match.status !== 'finished') {
-          const message = 'Please save a final score before generating a summary.';
+          const message = 'Please save final score first.';
           setError(message);
           addToast(message, 'error');
           return;
@@ -46,7 +46,7 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
       setIsGenerating(true);
       try {
         await onGenerateSummary(match.id);
-        addToast('Match summary generated!', 'success');
+        addToast('Summary generated!', 'success');
       } catch (e) {
           const message = 'Failed to generate summary.';
           setError(message);
@@ -58,8 +58,8 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
   }
 
   return (
-    <Card className="!p-3 bg-brand-primary hover:!ring-brand-vibrant relative">
-      <div className="flex justify-between items-center mb-2">
+    <Card className="!p-3 bg-brand-primary hover:!ring-brand-vibrant relative transition-all">
+      <div className="flex justify-between items-center mb-3">
            <span className="text-[10px] font-bold text-brand-vibrant bg-brand-vibrant/10 px-2 py-0.5 rounded-full">
             MD {match.matchday}
           </span>
@@ -67,60 +67,71 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
       </div>
      
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 gap-y-3">
-        {/* Row 1: Team Names */}
-        <div className="flex items-center gap-1.5 min-w-0">
-            <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
-            <span className="font-semibold text-brand-text truncate text-xs sm:text-sm">{match.teamA.name}</span>
-        </div>
-        <div className="text-xs text-brand-light">vs</div>
-        <div className="flex items-center gap-1.5 min-w-0 justify-end">
-            <span className="font-semibold text-brand-text truncate text-xs sm:text-sm text-right">{match.teamB.name}</span>
-            <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+        {/* Team A */}
+        <div className="flex flex-col items-center justify-center text-center gap-1 min-w-0">
+            <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-8 h-8" />
+            <span className="font-semibold text-brand-text truncate text-[10px] leading-tight w-full">{match.teamA.name}</span>
         </div>
 
-        {/* Row 2: Scores and Actions */}
+        {/* Score Inputs Center */}
         <div className="flex items-center gap-1">
-            <label htmlFor={`scoreA-${match.id}`} className="sr-only">Score A</label>
-            <input id={`scoreA-${match.id}`} type="number" value={scoreA} onChange={e => setScoreA(e.target.value)} className="w-full p-1.5 text-center bg-brand-primary border border-brand-accent rounded-md text-brand-text font-bold text-sm" placeholder="-" />
+            <input 
+                id={`scoreA-${match.id}`} 
+                type="number" 
+                value={scoreA} 
+                onChange={e => setScoreA(e.target.value)} 
+                className="w-10 h-10 text-center bg-brand-secondary border border-brand-accent rounded-lg text-brand-text font-bold text-lg focus:ring-2 focus:ring-brand-vibrant touch-manipulation" 
+                placeholder="-" 
+            />
+            <div className="text-brand-light text-xs font-bold px-1">-</div>
+            <input 
+                id={`scoreB-${match.id}`} 
+                type="number" 
+                value={scoreB} 
+                onChange={e => setScoreB(e.target.value)} 
+                className="w-10 h-10 text-center bg-brand-secondary border border-brand-accent rounded-lg text-brand-text font-bold text-lg focus:ring-2 focus:ring-brand-vibrant touch-manipulation" 
+                placeholder="-" 
+            />
         </div>
-        <div className="flex items-center justify-center gap-1">
-            <Button onClick={() => onEditSchedule(match)} variant="secondary" className="!p-1.5 h-8 w-8" title="Edit Schedule">
-                <Pencil size={12}/>
-            </Button>
-            <Button onClick={handleGenerate} disabled={isGenerating} variant="secondary" className="!p-1.5 h-8 w-8" title="Generate Summary">
-                {isGenerating ? <Spinner size={12} /> : <Sparkles size={12} />}
-            </Button>
+
+        {/* Team B */}
+        <div className="flex flex-col items-center justify-center text-center gap-1 min-w-0">
+            <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-8 h-8" />
+            <span className="font-semibold text-brand-text truncate text-[10px] leading-tight w-full">{match.teamB.name}</span>
         </div>
-        <div className="flex items-center gap-1">
-            <label htmlFor={`scoreB-${match.id}`} className="sr-only">Score B</label>
-            <input id={`scoreB-${match.id}`} type="number" value={scoreB} onChange={e => setScoreB(e.target.value)} className="w-full p-1.5 text-center bg-brand-primary border border-brand-accent rounded-md text-brand-text font-bold text-sm" placeholder="-" />
-        </div>
-        
-        {/* Row 3: Proof and Save */}
-        <div className="relative col-span-3 mt-1">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+      </div>
+
+      {/* Actions Row */}
+      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-brand-accent/30">
+          <div className="relative flex-grow">
+            <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
                 <Link size={12} className="text-brand-light" />
             </div>
             <input
-                id={`proof-${match.id}`}
                 type="text"
                 value={proofUrl}
                 onChange={e => setProofUrl(e.target.value)}
-                className="w-full p-2 pl-8 pr-20 bg-brand-primary border border-brand-accent rounded-md text-brand-text text-xs placeholder:text-brand-accent/80"
-                placeholder="Proof URL"
+                className="w-full py-1.5 pl-7 pr-2 bg-brand-secondary border border-brand-accent rounded-md text-brand-text text-xs placeholder:text-brand-accent/80 focus:ring-1 focus:ring-brand-vibrant outline-none"
+                placeholder="Proof Link..."
             />
-            <div className="absolute inset-y-0 right-0 pr-1 flex items-center">
-                <Button onClick={handleSave} className="!py-0.5 !px-2 h-7 text-xs">
-                    <Save size={12}/>
-                    <span className="ml-1">Save</span>
-                </Button>
-            </div>
-        </div>
+          </div>
+          
+          <Button onClick={handleSave} className="!py-1.5 !px-3 h-8 text-xs shrink-0 bg-green-600 hover:bg-green-700 border-none">
+              <Save size={14}/>
+          </Button>
+          
+          {/* Optional: Summary AI Button */}
+          {match.status === 'finished' && (
+              <Button onClick={handleGenerate} disabled={isGenerating} variant="secondary" className="!py-1.5 !px-2 h-8 w-8 shrink-0">
+                  {isGenerating ? <Spinner size={12} /> : <Sparkles size={14} className="text-brand-special" />}
+              </Button>
+          )}
       </div>
-        {error && <p className="text-red-400 text-xs mt-2 text-center">{error}</p>}
+
+        {error && <p className="text-red-400 text-[10px] mt-2 text-center">{error}</p>}
         {match.summary && !isGenerating && (
-            <div className="border-t border-brand-accent/50 pt-2 mt-2">
-                <p className="text-xs text-brand-light italic line-clamp-2"><strong>AI:</strong> "{match.summary}"</p>
+            <div className="bg-brand-secondary/30 p-2 rounded mt-2 border border-white/5">
+                <p className="text-[10px] text-brand-light italic line-clamp-2">"{match.summary}"</p>
             </div>
         )}
     </Card>

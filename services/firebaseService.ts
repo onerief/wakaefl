@@ -6,7 +6,8 @@ import {
   setDoc, 
   getDoc, 
   enableIndexedDbPersistence,
-  runTransaction
+  runTransaction,
+  updateDoc
 } from "firebase/firestore";
 import { 
   getAuth, 
@@ -165,6 +166,85 @@ export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: strin
     throw e;
   }
 };
+
+export const getUserTeams = async (userEmail: string): Promise<{ mode: TournamentMode, team: Team }[]> => {
+    const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
+    const userTeams: { mode: TournamentMode, team: Team }[] = [];
+
+    try {
+        const promises = modes.map(async (mode) => {
+            const data = await getTournamentData(mode);
+            if (data && data.teams) {
+                const myTeam = data.teams.find(t => t.ownerEmail === userEmail);
+                if (myTeam) {
+                    return { mode, team: myTeam };
+                }
+            }
+            return null;
+        });
+
+        const results = await Promise.all(promises);
+        results.forEach(res => {
+            if (res) userTeams.push(res);
+        });
+
+        return userTeams;
+    } catch (error) {
+        console.error("Error fetching user teams:", error);
+        return [];
+    }
+};
+
+export const updateUserTeamData = async (mode: TournamentMode, teamId: string, updates: Partial<Team>) => {
+    const tournamentDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const docSnap = await transaction.get(tournamentDocRef);
+            if (!docSnap.exists()) throw new Error("Data not found");
+
+            const data = docSnap.data() as TournamentState;
+            const teams = data.teams;
+            const teamIndex = teams.findIndex(t => t.id === teamId);
+
+            if (teamIndex === -1) throw new Error("Team not found");
+
+            // Verify logic handled by UI, but double check here if needed? 
+            // For now, trust the UI calling this has checked ownership via auth.
+
+            const updatedTeam = { ...teams[teamIndex], ...updates };
+            const updatedTeams = [...teams];
+            updatedTeams[teamIndex] = updatedTeam;
+
+            // Also need to update Groups and Matches if they contain copy of team data?
+            // Yes, based on the reducer logic, copies exist.
+            // Simplified approach: Update main Teams array. 
+            // NOTE: The Hook reloads data on change, but Groups/Matches might have stale copies in Firestore.
+            // Ideally, we update them too.
+            
+            const groups = data.groups.map(g => ({
+                ...g,
+                teams: g.teams.map(t => t.id === teamId ? { ...t, ...updates } : t),
+                standings: g.standings.map(s => s.team.id === teamId ? { ...s, team: { ...s.team, ...updates } } : s)
+            }));
+
+            const matches = data.matches.map(m => {
+                let mUpdate = { ...m };
+                if (m.teamA.id === teamId) mUpdate.teamA = { ...m.teamA, ...updates };
+                if (m.teamB.id === teamId) mUpdate.teamB = { ...m.teamB, ...updates };
+                return mUpdate;
+            });
+
+            transaction.update(tournamentDocRef, { 
+                teams: updatedTeams,
+                groups: groups,
+                matches: matches
+            });
+        });
+    } catch (error) {
+        console.error("Failed to update team:", error);
+        throw error;
+    }
+}
 
 // --- Auth Functions ---
 export const signInUser = (email: string, password: string) => {

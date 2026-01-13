@@ -111,7 +111,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       case 'group-fixtures':
         if (matches.length === 0) {
           return (
-            <div className="text-center bg-brand-secondary p-8 rounded-lg border border-brand-accent border-dashed">
+            <div className="text-center bg-brand-secondary p-8 rounded-lg border border-brand-accent border-dashed mt-4">
               <h3 className="text-xl font-bold text-brand-text mb-2">No Matches Generated</h3>
               <p className="text-brand-light">Go to the 'Teams' tab to generate the fixtures for {mode.toUpperCase()}.</p>
             </div>
@@ -119,7 +119,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         }
         
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 mt-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {groups.map(group => {
                     const groupLetter = group.name.split(' ')[1];
@@ -173,7 +173,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       case 'knockout':
         if (mode === 'league') {
             return (
-                <div className="text-center bg-brand-secondary/30 p-12 rounded-2xl border border-brand-accent border-dashed">
+                <div className="text-center bg-brand-secondary/30 p-12 rounded-2xl border border-brand-accent border-dashed mt-4">
                     <Zap size={48} className="mx-auto text-brand-light/30 mb-4" />
                     <h3 className="text-xl font-bold text-brand-text mb-2">Knockout Restricted</h3>
                     <p className="text-brand-light">Knockout stage is only available in <strong>WAKACL</strong> or <strong>2 Wilayah</strong> mode.</p>
@@ -181,12 +181,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
             )
         }
         return (
-          <div>
+          <div className="mt-4">
             {!knockoutStage || Object.values(knockoutStage).every((r: any) => r.length === 0) ? (
               <div className="text-center bg-brand-secondary p-8 rounded-lg border border-brand-accent border-dashed">
                 <h3 className="text-xl font-bold text-brand-text mb-2">The Knockout Stage Awaits</h3>
                 <p className="text-brand-light mb-4">Finish the group stage to generate.</p>
-                <div className="flex justify-center gap-4">
+                <div className="flex flex-col sm:flex-row justify-center gap-4">
                   <Button onClick={() => setShowGenerateBracketConfirm(true)}>
                     Auto-Generate Bracket
                   </Button>
@@ -200,8 +200,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                 {(Object.keys(knockoutStage) as Array<keyof KnockoutStageRounds>).map((roundName) => (
                   <div key={roundName}>
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-2xl font-bold text-brand-vibrant">{roundName}</h3>
-                      <Button onClick={() => setIsAddingMatch(roundName)} variant="secondary"><Plus size={16} /> Add Match</Button>
+                      <h3 className="text-lg sm:text-2xl font-bold text-brand-vibrant">{roundName}</h3>
+                      <Button onClick={() => setIsAddingMatch(roundName)} variant="secondary" className="!px-3 !py-1.5 text-xs"><Plus size={14} /> Add</Button>
                     </div>
                     <div className="space-y-4">
                       {knockoutStage[roundName].map((match: KnockoutMatch) => (
@@ -222,37 +222,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           </div>
         );
       case 'teams':
-        return <TeamManager {...props} onGenerationSuccess={() => setActiveTab('group-fixtures')} />;
+        return <div className="mt-4"><TeamManager {...props} onGenerationSuccess={() => setActiveTab('group-fixtures')} /></div>;
       case 'rules':
-        return <RulesEditor rules={rules} onSave={updateRules} />;
+        return <div className="mt-4"><RulesEditor rules={rules} onSave={updateRules} /></div>;
       case 'settings':
         return (
-            <div className="space-y-8">
+            <div className="space-y-8 mt-4">
                 <div className="bg-brand-secondary/30 p-6 rounded-xl border border-brand-accent">
                     <h3 className="text-xl font-bold text-brand-text mb-4">Season Control</h3>
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div>
-                            <p className="font-semibold text-white">Current Status: 
-                                <span className={`ml-2 px-2 py-0.5 rounded text-sm uppercase ${status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                    <div className="flex flex-col gap-4">
+                        <div className="p-3 bg-black/20 rounded-lg">
+                            <p className="font-semibold text-white flex items-center gap-2">
+                                Status: 
+                                <span className={`px-2 py-0.5 rounded text-xs uppercase font-black tracking-wider ${status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                                     {status}
                                 </span>
                             </p>
-                            <p className="text-xs text-brand-light mt-1">
+                            <p className="text-[10px] text-brand-light mt-1 leading-relaxed">
                                 {status === 'active' 
-                                    ? "The season is currently ongoing. Matches can be played and scores updated." 
-                                    : "The season is finalized. The winner has been recorded in the Hall of Fame."}
+                                    ? "Season is ongoing. Matches open for scoring." 
+                                    : "Season finalized. Winner recorded in Hall of Fame."}
                             </p>
                         </div>
                         {status === 'active' ? (
-                            <Button onClick={() => setShowFinalizeConfirm(true)} className="bg-yellow-600 text-white hover:bg-yellow-700 border-none">
+                            <Button onClick={() => setShowFinalizeConfirm(true)} className="bg-yellow-600 text-white hover:bg-yellow-700 border-none w-full justify-center">
                                 <StopCircle size={16} /> End Season & Crown Champion
                             </Button>
                         ) : (
-                            <div className="flex gap-2">
-                                <Button onClick={resumeSeason} variant="secondary">
+                            <div className="flex flex-col sm:flex-row gap-2">
+                                <Button onClick={resumeSeason} variant="secondary" className="w-full justify-center">
                                     <PlayCircle size={16} /> Resume/Edit
                                 </Button>
-                                <Button onClick={() => setShowStartNewSeasonConfirm(true)} className="bg-blue-600 hover:bg-blue-700 text-white border-none">
+                                <Button onClick={() => setShowStartNewSeasonConfirm(true)} className="bg-blue-600 hover:bg-blue-700 text-white border-none w-full justify-center">
                                     <Archive size={16} /> Start New Season
                                 </Button>
                             </div>
@@ -269,83 +270,77 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   }
 
   return (
-    <div className="pb-20">
-      {/* Database Switcher */}
-      <Card className="mb-8 !p-2 bg-brand-vibrant/5 border-brand-vibrant/20 border-dashed">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4">
-              <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-brand-vibrant/20 flex items-center justify-center text-brand-vibrant">
-                      <Database size={20} />
+    <div className="pb-24">
+      {/* Header & Title */}
+      <div className="flex items-center gap-3 mb-6">
+          <Shield className="text-brand-vibrant w-8 h-8" />
+          <h2 className="text-2xl sm:text-3xl font-black italic uppercase text-brand-text">Admin Panel</h2>
+      </div>
+
+      {/* Database Switcher - Horizontal Scroll on Mobile */}
+      <Card className="mb-6 !p-3 bg-brand-vibrant/5 border-brand-vibrant/20 border-dashed">
+          <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-3 px-1">
+                  <div className="w-8 h-8 rounded-lg bg-brand-vibrant/20 flex items-center justify-center text-brand-vibrant shrink-0">
+                      <Database size={16} />
                   </div>
-                  <div>
-                      <h2 className="font-black text-white italic uppercase leading-none">Database Terpilih</h2>
-                      <p className="text-[10px] text-brand-light font-bold uppercase tracking-widest">
-                          Mengelola Data: 
-                          <span className={mode === 'wakacl' ? 'text-brand-special' : mode === 'two_leagues' ? 'text-purple-400' : 'text-brand-vibrant'}>
-                              {mode === 'wakacl' ? ' WAKACL (Tourn)' : mode === 'two_leagues' ? ' 2 Wilayah' : ' LIGA (Reguler)'}
-                          </span>
+                  <div className="min-w-0">
+                      <h2 className="text-sm font-black text-white italic uppercase leading-none">Database</h2>
+                      <p className="text-[10px] text-brand-light font-bold uppercase tracking-widest truncate">
+                          Mode: <span className="text-white">{mode.replace('_', ' ')}</span>
                       </p>
                   </div>
               </div>
               
-              <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 w-full sm:w-auto overflow-x-auto">
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 sm:pb-0 no-scrollbar">
                   <button 
                     onClick={() => setMode('league')}
-                    className={`flex-1 whitespace-nowrap px-4 py-2 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${mode === 'league' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'text-brand-light hover:text-white'}`}
+                    className={`flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${mode === 'league' ? 'bg-brand-vibrant text-brand-primary border-brand-vibrant' : 'bg-black/40 text-brand-light border-white/5 hover:bg-white/5'}`}
                   >
                       Liga Reguler
                   </button>
                   <button 
                     onClick={() => setMode('two_leagues')}
-                    className={`flex-1 whitespace-nowrap px-4 py-2 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${mode === 'two_leagues' ? 'bg-purple-600 text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
+                    className={`flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${mode === 'two_leagues' ? 'bg-purple-600 text-white border-purple-500' : 'bg-black/40 text-brand-light border-white/5 hover:bg-white/5'}`}
                   >
                       Liga 2 Wilayah
                   </button>
                   <button 
                     onClick={() => setMode('wakacl')}
-                    className={`flex-1 whitespace-nowrap px-4 py-2 rounded-lg text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all ${mode === 'wakacl' ? 'bg-brand-special text-brand-primary shadow-lg' : 'text-brand-light hover:text-white'}`}
+                    className={`flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${mode === 'wakacl' ? 'bg-brand-special text-brand-primary border-brand-special' : 'bg-black/40 text-brand-light border-white/5 hover:bg-white/5'}`}
                   >
                       WAKACL Hub
                   </button>
               </div>
           </div>
-          {teams.length === 0 && (
-              <div className="mx-4 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400">
-                  <AlertCircle size={16} />
-                  <p className="text-xs font-bold">Database {mode.toUpperCase()} saat ini masih kosong. Jika data sebelumnya ada di mode lain, gunakan Backup & Restore di tab Teams.</p>
-              </div>
-          )}
       </Card>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h2 className="text-2xl sm:text-3xl font-black italic uppercase text-brand-text flex items-center gap-3">
-            <Shield className="text-brand-vibrant" />
-            Admin Panel
-        </h2>
-        <div className="flex flex-wrap gap-1 bg-brand-secondary/50 backdrop-blur-md p-1 rounded-xl border border-white/5">
-          <button onClick={() => setActiveTab('teams')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'teams' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'text-brand-light hover:text-white hover:bg-white/5'}`}>
-              <Users size={14} className="inline mr-2" /> Teams
+      {/* Navigation Tabs - Horizontal Scroll on Mobile */}
+      <div className="sticky top-[64px] z-40 bg-brand-primary/95 backdrop-blur-md py-2 border-b border-white/5 -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent sm:static sm:border-none">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar sm:flex-wrap">
+          <button onClick={() => setActiveTab('teams')} className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'teams' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'bg-brand-secondary/50 text-brand-light hover:text-white border border-white/5'}`}>
+              <Users size={14} /> Teams
           </button>
-          <button onClick={() => setActiveTab('group-fixtures')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'group-fixtures' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'text-brand-light hover:text-white hover:bg-white/5'}`}>
-              <ListChecks size={14} className="inline mr-2" /> Fixtures
+          <button onClick={() => setActiveTab('group-fixtures')} className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'group-fixtures' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'bg-brand-secondary/50 text-brand-light hover:text-white border border-white/5'}`}>
+              <ListChecks size={14} /> Fixtures
           </button>
           <button 
               onClick={() => setActiveTab('knockout')} 
               disabled={mode === 'league'}
-              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'knockout' ? 'bg-brand-special text-brand-primary shadow-lg' : 'text-brand-light hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed'} ${mode === 'league' ? 'hidden' : ''}`}
+              className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'knockout' ? 'bg-brand-special text-brand-primary shadow-lg' : 'bg-brand-secondary/50 text-brand-light hover:text-white border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed'} ${mode === 'league' ? 'hidden' : ''}`}
           >
-              <Trophy size={14} className="inline mr-2" /> Knockout
+              <Trophy size={14} /> Knockout
           </button>
-          <button onClick={() => setActiveTab('rules')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'rules' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'text-brand-light hover:text-white hover:bg-white/5'}`}>
-              <BookOpen size={14} className="inline mr-2" /> Rules
+          <button onClick={() => setActiveTab('rules')} className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'rules' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'bg-brand-secondary/50 text-brand-light hover:text-white border border-white/5'}`}>
+              <BookOpen size={14} /> Rules
           </button>
-          <button onClick={() => setActiveTab('settings')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'settings' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'text-brand-light hover:text-white hover:bg-white/5'}`}>
-              <Settings size={14} className="inline mr-2" /> Settings
+          <button onClick={() => setActiveTab('settings')} className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'settings' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'bg-brand-secondary/50 text-brand-light hover:text-white border border-white/5'}`}>
+              <Settings size={14} /> Settings
           </button>
         </div>
       </div>
 
-      <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+      <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 min-h-[50vh]">
         {renderContent()}
       </div>
       
@@ -365,11 +360,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         onConfirm={handleStartNewSeason}
         title="Start New Season"
         message={
-            <p>
-                This will <strong>clear all current teams, matches, and groups</strong> to prepare for a fresh season. 
-                <br/><br/>
-                Your Hall of Fame history, partners, and rules will be preserved. Are you sure?
-            </p>
+            <div className="text-sm">
+                <p className="mb-2">This will <strong>clear all current teams, matches, and groups</strong> to prepare for a fresh season.</p>
+                <p>Your Hall of Fame history, partners, and rules will be preserved. Are you sure?</p>
+            </div>
         }
         confirmText="Yes, Start Fresh"
         confirmButtonClass="bg-blue-600 text-white hover:bg-blue-700"

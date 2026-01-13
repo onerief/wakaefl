@@ -51,9 +51,9 @@ export const BannerSettings: React.FC<BannerSettingsProps> = ({ banners, onUpdat
                     value={newBannerUrl}
                     onChange={(e) => setNewBannerUrl(e.target.value)}
                     placeholder="Enter image URL (https://...)"
-                    className="flex-grow p-2 bg-brand-primary border border-brand-accent rounded-md text-brand-text focus:ring-2 focus:ring-brand-vibrant"
+                    className="flex-grow p-2.5 bg-brand-primary border border-brand-accent rounded-md text-brand-text focus:ring-2 focus:ring-brand-vibrant"
                 />
-                <Button type="submit">
+                <Button type="submit" className="justify-center">
                     <Plus size={16} /> Add Banner
                 </Button>
             </form>
@@ -71,7 +71,7 @@ export const BannerSettings: React.FC<BannerSettingsProps> = ({ banners, onUpdat
                             </div>
                             <button
                                 onClick={() => handleDelete(index)}
-                                className="absolute top-2 right-2 bg-red-600/80 text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                                className="absolute top-2 right-2 bg-red-600/80 text-white p-2 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg"
                                 title="Remove Banner"
                             >
                                 <Trash2 size={16} />

@@ -4,7 +4,7 @@ import type { Team, Group, Match, KnockoutStageRounds, TournamentState } from '.
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon } from 'lucide-react';
+import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { GenerateGroupsConfirmationModal } from './GenerateGroupsConfirmationModal';
 import { useToast } from '../shared/Toast';
@@ -34,7 +34,6 @@ interface TeamManagerProps {
   setTournamentState: (state: TournamentState) => void;
   importLegacyData?: (jsonData: any) => void; 
   rules: string;
-  // New props for claim resolution
   resolveTeamClaim?: (teamId: string, approved: boolean) => void;
 }
 
@@ -56,8 +55,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const [numGroups, setNumGroups] = useState(4);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [importedData, setImportedData] = useState<TournamentState | null>(null);
+  const [searchTerm, setSearchTerm] = useState(''); // NEW SEARCH STATE
   
-  // States for Legacy Import Confirmation
   const [showLegacyImportConfirm, setShowLegacyImportConfirm] = useState(false);
   const [legacyImportData, setLegacyImportData] = useState<any>(null);
 
@@ -70,11 +69,17 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
     return groups.some(g => g.teams.some(t => t.id === teamId));
   }
 
+  // Filtered teams for display
+  const filteredTeams = teams.filter(t => 
+      t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      t.manager?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const handleAddClick = () => {
     setEditingTeam(null);
     setShowForm(true);
   };
-
+  
   const handleEditClick = (team: Team) => {
     setEditingTeam(team);
     setShowForm(true);
@@ -218,19 +223,13 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const handleMoveTeamSave = (destinationGroupId: string) => {
     if (!movingTeam) return;
     moveTeamToGroup(movingTeam.id, destinationGroupId);
-    addToast(`Team "${movingTeam.name}" moved successfully. Matches and standings for affected groups have been reset.`, 'success');
+    addToast(`Team "${movingTeam.name}" moved successfully.`, 'success');
     setMovingTeam(null);
   };
 
   const handleBackupData = () => {
     try {
-        const backupData = {
-            teams,
-            groups,
-            matches,
-            knockoutStage,
-            rules
-        };
+        const backupData = { teams, groups, matches, knockoutStage, rules };
         const jsonString = JSON.stringify(backupData, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -242,44 +241,34 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        addToast('Tournament data backup is downloading.', 'success');
+        addToast('Data backup is downloading.', 'success');
     } catch (error) {
         console.error("Failed to create backup:", error);
         addToast('Failed to create data backup.', 'error');
     }
   };
 
-  const handleRestoreClick = () => {
-    fileInputRef.current?.click();
-  };
+  const handleRestoreClick = () => fileInputRef.current?.click();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const text = e.target?.result;
-        if (typeof text !== 'string') {
-          throw new Error("File content is not readable.");
-        }
+        if (typeof text !== 'string') throw new Error("File content is not readable.");
         const data = JSON.parse(text) as TournamentState;
-        
-        // Basic validation
         if (data && typeof data === 'object' && 'teams' in data && 'groups' in data && 'matches' in data) {
           setImportedData(data);
           setShowImportConfirm(true);
         } else {
-          addToast("Invalid JSON format. The file does not appear to be a valid tournament backup.", 'error');
+          addToast("Invalid JSON format.", 'error');
         }
       } catch (error) {
-        console.error("Failed to parse JSON:", error);
-        addToast("Failed to read or parse the backup file. Please ensure it's a valid JSON file.", 'error');
+        addToast("Failed to read or parse the backup file.", 'error');
       } finally {
-          if(event.target) {
-            event.target.value = '';
-          }
+          if(event.target) event.target.value = '';
       }
     };
     reader.readAsText(file);
@@ -294,34 +283,22 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
     setImportedData(null);
   };
 
-  // Specific handler for legacy JSON format
-  const handleLegacyImportClick = () => {
-      legacyFileInputRef.current?.click();
-  }
+  const handleLegacyImportClick = () => legacyFileInputRef.current?.click();
 
   const handleLegacyFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = (e) => {
           try {
               const text = e.target?.result;
               if (typeof text !== 'string') throw new Error("Unreadable file");
               const data = JSON.parse(text);
-              
-              // Validate structure vaguely
-              if (!data.teams || !Array.isArray(data.teams) || !data.schedule) {
-                  throw new Error("Invalid Legacy JSON format");
-              }
-
-              // Store data temporarily and ask for confirmation
+              if (!data.teams || !Array.isArray(data.teams) || !data.schedule) throw new Error("Invalid Legacy JSON format");
               setLegacyImportData(data);
               setShowLegacyImportConfirm(true);
-
           } catch (error) {
-              console.error(error);
-              addToast('Failed to parse legacy file. Please check format.', 'error');
+              addToast('Failed to parse legacy file.', 'error');
           } finally {
               if (event.target) event.target.value = '';
           }
@@ -330,10 +307,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   }
 
   const handleConfirmLegacyImport = () => {
-      if (legacyImportData && importLegacyData) {
-          importLegacyData(legacyImportData);
-          // Success toast is handled in the hook
-      }
+      if (legacyImportData && importLegacyData) importLegacyData(legacyImportData);
       setShowLegacyImportConfirm(false);
       setLegacyImportData(null);
   };
@@ -363,16 +337,10 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                               </div>
                           </div>
                           <div className="flex gap-2">
-                              <Button 
-                                  onClick={() => resolveTeamClaim(team.id, true)} 
-                                  className="!py-1.5 !px-3 !text-xs bg-green-500 text-white hover:bg-green-600 border-none"
-                              >
+                              <Button onClick={() => resolveTeamClaim(team.id, true)} className="!py-1.5 !px-3 !text-xs bg-green-500 text-white hover:bg-green-600 border-none">
                                   <Check size={12} className="mr-1" /> Approve
                               </Button>
-                              <Button 
-                                  onClick={() => resolveTeamClaim(team.id, false)} 
-                                  className="!py-1.5 !px-3 !text-xs bg-red-500/20 text-red-400 hover:bg-red-500/40 border-red-500/30"
-                              >
+                              <Button onClick={() => resolveTeamClaim(team.id, false)} className="!py-1.5 !px-3 !text-xs bg-red-500/20 text-red-400 hover:bg-red-500/40 border-red-500/30">
                                   <XIcon size={12} className="mr-1" /> Reject
                               </Button>
                           </div>
@@ -382,50 +350,66 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
           </div>
       )}
 
-      <div className="flex justify-between items-center mb-4">
+      {/* HEADER WITH SEARCH AND ADD */}
+      <div className="flex flex-col gap-4 mb-6">
         <h3 className="text-xl font-bold text-brand-text">Manage Teams ({teams.length})</h3>
-        <Button onClick={handleAddClick}>
-          <Plus size={16} />
-          Add Team
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full">
+             <div className="relative flex-grow">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" size={16} />
+                <input
+                    type="text"
+                    placeholder="Search Team..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2.5 bg-brand-primary border border-brand-accent rounded-lg text-sm focus:ring-2 focus:ring-brand-vibrant outline-none"
+                />
+             </div>
+             <Button onClick={handleAddClick} className="w-full sm:w-auto flex justify-center items-center">
+                <Plus size={16} />
+                Add Team
+             </Button>
+        </div>
       </div>
 
-      <div className="space-y-2">
-        {teams.map(team => {
+      <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar pr-1">
+        {filteredTeams.length > 0 ? filteredTeams.map(team => {
           const currentGroup = groups.find(g => g.teams.some(t => t.id === team.id));
           return (
-            <div key={team.id} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-brand-primary p-3 rounded-md">
+            <div key={team.id} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-brand-primary p-3 rounded-xl border border-transparent hover:border-brand-accent transition-colors">
               <div className="flex items-center gap-3">
-                <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-8 h-8" />
+                <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-10 h-10 sm:w-8 sm:h-8" />
                 <div className="flex-grow min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-brand-text truncate">{team.name}</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                      <span className="font-semibold text-brand-text truncate text-sm sm:text-base">{team.name}</span>
                       {team.ownerEmail && (
-                          <div className="flex items-center gap-1.5 text-[10px] text-brand-light/60 bg-white/5 px-2 py-0.5 rounded-full border border-white/5 max-w-full" title={team.ownerEmail}>
-                             <Mail size={10} className="text-brand-vibrant shrink-0" />
-                             <span className="truncate max-w-[120px] sm:max-w-[200px]">{team.ownerEmail}</span>
+                          <div className="flex items-center gap-1 text-[10px] text-brand-light/60 bg-white/5 px-2 py-0.5 rounded max-w-fit">
+                             <Mail size={10} className="shrink-0" />
+                             <span className="truncate max-w-[150px]">{team.ownerEmail}</span>
                           </div>
                       )}
                   </div>
-                  {currentGroup && <p className="text-xs text-brand-light">Group {currentGroup.name.split(' ')[1]}</p>}
+                  <p className="text-xs text-brand-light">
+                      {team.manager ? `Mgr: ${team.manager}` : 'No Manager'} 
+                      {currentGroup && <span className="text-brand-vibrant font-bold ml-1">• Group {currentGroup.name.split(' ')[1]}</span>}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
-                <Button onClick={() => handleToggleSeed(team)} variant="secondary" className="p-2" title={team.isTopSeed ? "Unmark as Top Seed" : "Mark as Top Seed"}>
+              <div className="flex items-center justify-end gap-2 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t border-white/5 sm:border-none">
+                <Button onClick={() => handleToggleSeed(team)} variant="secondary" className="p-2 h-8 w-8" title={team.isTopSeed ? "Unmark as Top Seed" : "Mark as Top Seed"}>
                     <Star size={14} className={`transition-colors ${team.isTopSeed ? 'fill-yellow-400 text-yellow-400' : 'text-brand-light hover:text-yellow-300'}`} />
                 </Button>
                 {currentGroup && (
-                    <Button onClick={() => setMovingTeam(team)} variant="secondary" className="px-3 py-1.5" title="Move team to another group">
+                    <Button onClick={() => setMovingTeam(team)} variant="secondary" className="px-3 py-1.5 h-8 w-10" title="Move team to another group">
                         <ArrowRightLeft size={14} />
                     </Button>
                 )}
-                <Button onClick={() => handleEditClick(team)} variant="secondary" className="px-3 py-1.5">
+                <Button onClick={() => handleEditClick(team)} variant="secondary" className="px-3 py-1.5 h-8 w-10">
                   <Edit size={14} />
                 </Button>
                 <Button 
                   onClick={() => handleDeleteClick(team)} 
                   variant="secondary" 
-                  className="px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 disabled:bg-transparent disabled:text-gray-500"
+                  className="px-3 py-1.5 h-8 w-10 bg-red-500/10 text-red-400 hover:bg-red-500/20 border-red-500/30 disabled:opacity-30"
                   disabled={!!currentGroup}
                   title={currentGroup ? "Cannot delete a team in a group" : "Delete team"}
                 >
@@ -434,13 +418,17 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
               </div>
             </div>
           )
-        })}
+        }) : (
+            <div className="text-center py-8 text-brand-light italic bg-brand-secondary/30 rounded-lg">
+                {searchTerm ? 'No teams found matching your search.' : 'No teams added yet.'}
+            </div>
+        )}
       </div>
       
       {topSeedTeams.length > 0 && (
           <div className="border-t border-brand-accent mt-6 pt-6">
               <h3 className="text-xl font-bold text-brand-text mb-4">Top Seed Placement</h3>
-              <div className="bg-brand-primary p-4 rounded-md space-y-4">
+              <div className="bg-brand-primary p-4 rounded-xl space-y-4">
                 <div>
                     <label htmlFor="num-groups" className="block text-sm font-medium text-brand-light mb-1">Number of Groups</label>
                     <input
@@ -450,20 +438,20 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                         max="8"
                         value={numGroups}
                         onChange={(e) => setNumGroups(parseInt(e.target.value, 10) || 2)}
-                        className="w-24 p-2 bg-brand-secondary border border-brand-accent rounded-md text-brand-text"
+                        className="w-full sm:w-24 p-2 bg-brand-secondary border border-brand-accent rounded-md text-brand-text"
                     />
                 </div>
                 <div className="space-y-3">
                     {topSeedTeams.map(team => (
-                        <div key={team.id} className="flex items-center justify-between">
+                        <div key={team.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 bg-black/20 rounded">
                             <div className="flex items-center gap-2">
                                 <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                                <span className="font-semibold text-brand-text">{team.name}</span>
+                                <span className="font-semibold text-brand-text text-sm">{team.name}</span>
                             </div>
                             <select
                                 value={team.assignedGroup || ""}
                                 onChange={(e) => assignTopSeedToGroup(team.id, e.target.value)}
-                                className="p-2 bg-brand-secondary border border-brand-accent rounded-md text-brand-text"
+                                className="w-full sm:w-auto p-2 bg-brand-secondary border border-brand-accent rounded-md text-brand-text text-xs"
                             >
                                 <option value="">Select Group</option>
                                 {groupOptions.map(char => (
@@ -480,81 +468,37 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       <div className="border-t border-brand-accent mt-6 pt-6">
           <h3 className="text-xl font-bold text-brand-text mb-4">Tournament Controls</h3>
           <div className="space-y-4">
-              <div className="bg-brand-primary p-4 rounded-md">
-                  <p className="text-brand-light mb-3 text-sm">
-                      Download a JSON file containing all current tournament data (teams, groups, matches, etc.). Keep this file safe to restore your tournament later.
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
+               <div className="bg-brand-primary p-4 rounded-xl">
+                   <div className="flex flex-col sm:flex-row gap-2 flex-wrap">
                     <Button onClick={handleBackupData} variant="secondary" className="w-full sm:w-auto">
                         <Download size={16} />
-                        Backup Tournament Data
+                        Backup Data
                     </Button>
                     <Button onClick={handleRestoreClick} variant="secondary" className="w-full sm:w-auto">
                         <Upload size={16} />
-                        Restore from Backup
+                        Restore Data
                     </Button>
                     {importLegacyData && (
                         <Button onClick={handleLegacyImportClick} variant="secondary" className="w-full sm:w-auto bg-purple-900/30 text-purple-300 border-purple-500/30 hover:bg-purple-900/50">
                             <FileJson size={16} />
-                            Import Legacy S2 Data
+                            Import Legacy
                         </Button>
                     )}
-                    <input 
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        className="hidden"
-                        accept="application/json"
-                    />
-                    <input 
-                        type="file"
-                        ref={legacyFileInputRef}
-                        onChange={handleLegacyFileChange}
-                        className="hidden"
-                        accept="application/json"
-                    />
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="application/json" />
+                    <input type="file" ref={legacyFileInputRef} onChange={handleLegacyFileChange} className="hidden" accept="application/json" />
                   </div>
               </div>
-              <div className="bg-brand-primary p-4 rounded-md">
-                  <p className="text-brand-light mb-3 text-sm">
-                    Step 1: Randomly assign teams into groups. This will reset any existing groups, matches, and knockout data. You can configure top seeds before generating.
-                  </p>
-                  <Button onClick={handleGenerateClick} disabled={!canGenerateGroups} title={!canGenerateGroups ? 'Requires at least 2 teams.' : 'Generate Groups'} className="w-full sm:w-auto">
-                      <Users size={16} />
-                      Generate Groups
+               <div className="flex flex-col sm:flex-row gap-2">
+                  <Button onClick={handleGenerateClick} disabled={!canGenerateGroups} className="w-full sm:w-auto justify-center">
+                      <Users size={16} /> Generate Groups
+                  </Button>
+                  <Button onClick={handleGenerateMatchesClick} disabled={groups.length === 0 || matches.length > 0} className="w-full sm:w-auto justify-center">
+                      <Shuffle size={16} /> Generate Fixtures
                   </Button>
               </div>
-              <div className="bg-brand-primary p-4 rounded-md">
-                  <p className="text-brand-light mb-3 text-sm">
-                      Step 2: Once groups are set, generate all home-away match fixtures for the group stage. This will overwrite any existing fixtures.
-                  </p>
-                  <Button 
-                      onClick={handleGenerateMatchesClick}
-                      disabled={groups.length === 0 || matches.length > 0}
-                      title={
-                          groups.length === 0 
-                          ? 'Generate groups first.' 
-                          : matches.length > 0 
-                          ? 'Fixtures have already been generated.' 
-                          : 'Generate Fixtures'
-                      }
-                      className="w-full sm:w-auto"
-                  >
-                      <Shuffle size={16} />
-                      Generate Fixtures
-                  </Button>
-              </div>
-              
-              <div className="bg-red-50 border border-red-200 p-4 rounded-md">
-                  <p className="text-red-700 mb-3 text-sm">
-                      Start a completely new tournament. This will permanently delete all teams, groups, and match data. This action cannot be undone.
-                  </p>
-                  <Button 
-                      onClick={() => setShowResetConfirm(true)} 
-                      className="bg-red-600 text-white hover:bg-red-700 w-full sm:w-auto"
-                  >
-                      <RefreshCw size={16} />
-                      Reset Tournament
+              <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl">
+                  <Button onClick={() => setShowResetConfirm(true)} className="bg-red-600 text-white hover:bg-red-700 w-full sm:w-auto justify-center">
+                      <RefreshCw size={16} /> Reset Tournament
                   </Button>
               </div>
           </div>
@@ -575,7 +519,6 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
           />
       </div>
 
-
       {showForm && (
         <TeamForm
           team={editingTeam}
@@ -594,20 +537,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
         />
       )}
 
-      {showResetConfirm && (
-        <ResetConfirmationModal
-          onConfirm={handleResetConfirm}
-          onCancel={() => setShowResetConfirm(false)}
-        />
-      )}
-
-      {showGenerateConfirm && (
-        <GenerateGroupsConfirmationModal
-          onConfirm={handleGenerateConfirm}
-          onCancel={() => setShowGenerateConfirm(false)}
-        />
-      )}
-      
+      {showResetConfirm && <ResetConfirmationModal onConfirm={handleResetConfirm} onCancel={() => setShowResetConfirm(false)} />}
+      {showGenerateConfirm && <GenerateGroupsConfirmationModal onConfirm={handleGenerateConfirm} onCancel={() => setShowGenerateConfirm(false)} />}
       <ConfirmationModal
         isOpen={showGenerateMatchesConfirm}
         onClose={() => setShowGenerateMatchesConfirm(false)}
@@ -617,66 +548,9 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
         confirmText="Yes, Generate Fixtures"
         confirmButtonClass="bg-brand-vibrant text-white hover:bg-opacity-80"
       />
-
-      <ConfirmationModal
-        isOpen={!!teamToDelete}
-        onClose={() => setTeamToDelete(null)}
-        onConfirm={handleConfirmDelete}
-        title="Confirm Team Deletion"
-        message={
-            <p>
-                Are you sure you want to permanently delete the team{' '}
-                <strong>{teamToDelete?.name}</strong>? This action cannot be undone.
-            </p>
-        }
-        confirmText="Yes, Delete Team"
-        confirmButtonClass="bg-red-600 text-white hover:bg-red-700"
-      />
-      
-      <ConfirmationModal
-        isOpen={showImportConfirm}
-        onClose={() => {
-            setShowImportConfirm(false);
-            setImportedData(null);
-        }}
-        onConfirm={handleConfirmImport}
-        title="Confirm Data Restore"
-        message={
-            <p>
-                Are you sure you want to restore data from the selected backup file?
-                <strong> This will overwrite all current tournament data.</strong> This action cannot be undone.
-            </p>
-        }
-        confirmText="Yes, Restore Data"
-        confirmButtonClass="bg-brand-vibrant text-white hover:bg-opacity-80"
-      />
-
-      <ConfirmationModal
-        isOpen={showLegacyImportConfirm}
-        onClose={() => {
-            setShowLegacyImportConfirm(false);
-            setLegacyImportData(null);
-        }}
-        onConfirm={handleConfirmLegacyImport}
-        title="Confirm Legacy Data Import"
-        message={
-            <div>
-                <p className="mb-2">Successfully parsed legacy data file.</p>
-                <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-md text-sm text-brand-light mb-4">
-                    <p className="font-bold text-yellow-400 mb-1">Summary of data found:</p>
-                    <ul className="list-disc pl-4 space-y-1">
-                        <li>Teams: {legacyImportData?.teams?.length || 0}</li>
-                        <li>Matches: {legacyImportData?.schedule?.length || 0}</li>
-                    </ul>
-                </div>
-                <p className="text-red-400 font-bold text-sm">
-                    Warning: Importing this data will OVERWRITE all current teams, groups, and matches in the selected mode. This action is irreversible.
-                </p>
-            </div>
-        }
-        confirmText="Yes, Import & Save"
-        confirmButtonClass="bg-purple-600 text-white hover:bg-purple-700"
-      />
+      <ConfirmationModal isOpen={!!teamToDelete} onClose={() => setTeamToDelete(null)} onConfirm={handleConfirmDelete} title="Confirm Team Deletion" message={<p>Are you sure you want to permanently delete the team <strong>{teamToDelete?.name}</strong>?</p>} confirmText="Yes, Delete Team" confirmButtonClass="bg-red-600 text-white hover:bg-red-700" />
+      <ConfirmationModal isOpen={showImportConfirm} onClose={() => { setShowImportConfirm(false); setImportedData(null); }} onConfirm={handleConfirmImport} title="Confirm Data Restore" message="Overwrite all data?" confirmText="Yes, Restore Data" />
+      <ConfirmationModal isOpen={showLegacyImportConfirm} onClose={() => { setShowLegacyImportConfirm(false); setLegacyImportData(null); }} onConfirm={handleConfirmLegacyImport} title="Confirm Legacy Data Import" message="Overwrite data with legacy file?" confirmText="Yes, Import" />
     </Card>
   );
 };
