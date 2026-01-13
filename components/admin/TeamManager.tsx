@@ -1,11 +1,10 @@
 
-
 import React, { useState } from 'react';
 import type { Team, Group, Match, KnockoutStageRounds, TournamentState } from '../../types';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { GenerateGroupsConfirmationModal } from './GenerateGroupsConfirmationModal';
 import { useToast } from '../shared/Toast';
@@ -19,8 +18,8 @@ interface TeamManagerProps {
   groups: Group[];
   matches: Match[];
   knockoutStage: KnockoutStageRounds | null;
-  addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string) => void;
-  updateTeam: (teamId: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean) => void;
+  addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => void;
+  updateTeam: (teamId: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean, ownerEmail?: string) => void;
   deleteTeam: (teamId: string) => void;
   generateGroupStage: (config?: { numberOfGroups: number }) => { success: boolean; message?: string };
   assignTopSeedToGroup: (teamId: string, assignedGroup: string) => void;
@@ -87,16 +86,33 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   };
 
   const handleFormSave = async (
-    details: { name: string; manager?: string; socialMediaUrl?: string; whatsappNumber?: string; logoUrl: string; }
+    details: { name: string; manager?: string; socialMediaUrl?: string; whatsappNumber?: string; logoUrl: string; ownerEmail?: string; }
   ) => {
     setIsSavingTeam(true);
     try {
         if (editingTeam) {
-            updateTeam(editingTeam.id, details.name, details.logoUrl, details.manager, details.socialMediaUrl, details.whatsappNumber, editingTeam.isTopSeed);
+            updateTeam(
+                editingTeam.id, 
+                details.name, 
+                details.logoUrl, 
+                details.manager, 
+                details.socialMediaUrl, 
+                details.whatsappNumber, 
+                editingTeam.isTopSeed,
+                details.ownerEmail
+            );
             addToast('Team details updated!', 'success');
         } else {
             const newTeamId = `t${Date.now()}`;
-            addTeam(newTeamId, details.name, details.logoUrl, details.manager, details.socialMediaUrl, details.whatsappNumber);
+            addTeam(
+                newTeamId, 
+                details.name, 
+                details.logoUrl, 
+                details.manager, 
+                details.socialMediaUrl, 
+                details.whatsappNumber,
+                details.ownerEmail
+            );
             addToast('New team added successfully!', 'success');
         }
         setShowForm(false);
@@ -117,7 +133,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
         team.manager,
         team.socialMediaUrl,
         team.whatsappNumber,
-        !team.isTopSeed
+        !team.isTopSeed,
+        team.ownerEmail
     );
 };
   
@@ -288,9 +305,17 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
             <div key={team.id} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-brand-primary p-3 rounded-md">
               <div className="flex items-center gap-3">
                 <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-8 h-8" />
-                <div>
-                  <span className="font-semibold text-brand-text">{team.name}</span>
+                <div className="flex-grow min-w-0">
+                  <div className="flex items-center gap-2">
+                      <span className="font-semibold text-brand-text truncate">{team.name}</span>
+                      {team.ownerEmail && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-green-900/40 text-green-400 rounded flex items-center gap-1 border border-green-800">
+                             <Mail size={8} /> Linked
+                          </span>
+                      )}
+                  </div>
                   {currentGroup && <p className="text-xs text-brand-light">Group {currentGroup.name.split(' ')[1]}</p>}
+                  {team.ownerEmail && <p className="text-[10px] text-brand-light/50 truncate max-w-[200px]">{team.ownerEmail}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">

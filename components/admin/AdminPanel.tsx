@@ -26,8 +26,8 @@ interface AdminPanelProps {
   setMode: (mode: TournamentMode) => void;
   setRoundRobin: (isDouble: boolean) => void;
   updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => void;
-  addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string) => void;
-  updateTeam: (teamId: string, name: string, logoUrl: string, manager?: string | undefined, socialMediaUrl?: string | undefined, whatsappNumber?: string | undefined, isTopSeed?: boolean | undefined) => void;
+  addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => void;
+  updateTeam: (teamId: string, name: string, logoUrl: string, manager?: string | undefined, socialMediaUrl?: string | undefined, whatsappNumber?: string | undefined, isTopSeed?: boolean | undefined, ownerEmail?: string | undefined) => void;
   deleteTeam: (teamId: string) => void;
   generateKnockoutBracket: () => { success: boolean; message?: string };
   updateKnockoutMatch: (matchId: string, match: KnockoutMatch) => void;

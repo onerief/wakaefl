@@ -1,6 +1,6 @@
 
 import { useReducer, useCallback, useState, useEffect } from 'react';
-import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode } from '../types';
+import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment } from '../types';
 import { generateSummary } from '../services/geminiService';
 import { getTournamentData, saveTournamentData } from '../services/firebaseService';
 import { useToast } from '../components/shared/Toast';
@@ -35,6 +35,7 @@ type Action =
   | { type: 'DELETE_TEAM'; payload: string }
   | { type: 'GENERATE_GROUPS'; payload: { groups: Group[], matches: Match[], knockoutStage: KnockoutStageRounds | null } }
   | { type: 'UPDATE_MATCH_SCORE'; payload: { matchId: string; scoreA: number; scoreB: number; summary?: string | null, proofUrl?: string } }
+  | { type: 'ADD_MATCH_COMMENT'; payload: { matchId: string; comment: MatchComment } }
   | { type: 'GENERATE_MATCHES_FROM_GROUPS', payload: { matches: Match[] } }
   | { type: 'RESET'; payload: FullTournamentState }
   | { type: 'UPDATE_RULES', payload: string }
@@ -94,7 +95,24 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'ADD_TEAM':
       return { ...state, teams: [...state.teams, action.payload] };
     case 'UPDATE_TEAM':
-      return { ...state, teams: state.teams.map(t => t.id === action.payload.id ? action.payload : t) };
+      // When updating a team, we must also update the team details inside Groups and Matches to keep data consistent
+      const updatedTeam = action.payload;
+      const updatedTeams = state.teams.map(t => t.id === updatedTeam.id ? updatedTeam : t);
+      
+      const updatedGroups = state.groups.map(g => ({
+          ...g,
+          teams: g.teams.map(t => t.id === updatedTeam.id ? updatedTeam : t),
+          // Recalculate standings standings references updated team
+          standings: g.standings.map(s => s.team.id === updatedTeam.id ? { ...s, team: updatedTeam } : s)
+      }));
+
+      const updatedMatches = state.matches.map(m => {
+          if (m.teamA.id === updatedTeam.id) return { ...m, teamA: updatedTeam };
+          if (m.teamB.id === updatedTeam.id) return { ...m, teamB: updatedTeam };
+          return m;
+      });
+
+      return { ...state, teams: updatedTeams, groups: updatedGroups, matches: updatedMatches };
     case 'DELETE_TEAM':
       return { ...state, teams: state.teams.filter(t => t.id !== action.payload) };
     case 'UPDATE_RULES':
@@ -110,6 +128,17 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'UPDATE_MATCH_SCORE': {
       const newMatches = state.matches.map(m => m.id === action.payload.matchId ? { ...m, ...action.payload, status: 'finished' as const } : m);
       return { ...state, matches: newMatches, groups: state.groups.map(g => ({ ...g, standings: calculateStandings(g.teams, newMatches.filter(m => m.group === g.name.split(' ')[1])) })) };
+    }
+    case 'ADD_MATCH_COMMENT': {
+        const { matchId, comment } = action.payload;
+        const newMatches = state.matches.map(m => {
+            if (m.id === matchId) {
+                const existingComments = m.comments || [];
+                return { ...m, comments: [...existingComments, comment] };
+            }
+            return m;
+        });
+        return { ...state, matches: newMatches };
     }
     case 'RESET':
       return action.payload;
@@ -162,26 +191,43 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   }, [activeMode]);
 
   // Save data only if the user is an admin and the state has loaded
+  // NOTE: In a real app with user comments, you would want comments to write directly to DB 
+  // without waiting for admin action. For this proto, we will assume admin controls or open access writes.
   useEffect(() => {
-    if (!isLoading && isAdmin) {
-      const debounce = setTimeout(() => saveTournamentData(activeMode, state), 1000);
-      return () => clearTimeout(debounce);
+    if (!isLoading) {
+       // Save automatically on state change for both Admin and User actions (like comments)
+       // Requires Firestore rules to be open or correctly set for "write"
+       const debounce = setTimeout(() => saveTournamentData(activeMode, state), 2000);
+       return () => clearTimeout(debounce);
     }
-  }, [state, isLoading, activeMode, isAdmin]);
+  }, [state, isLoading, activeMode]);
 
   const setMode = (mode: TournamentMode) => dispatch({ type: 'SET_MODE', payload: mode });
   const setRoundRobin = (isDouble: boolean) => dispatch({ type: 'SET_ROUND_ROBIN', payload: isDouble });
 
-  const addTeam = (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string) => 
-    dispatch({ type: 'ADD_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber } });
+  const addTeam = (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => 
+    dispatch({ type: 'ADD_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber, ownerEmail } });
   
-  const updateTeam = (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean) => 
-    dispatch({ type: 'UPDATE_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber, isTopSeed } });
+  const updateTeam = (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean, ownerEmail?: string) => 
+    dispatch({ type: 'UPDATE_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber, isTopSeed, ownerEmail } });
   
   const deleteTeam = (id: string) => dispatch({ type: 'DELETE_TEAM', payload: id });
 
   const updateMatchScore = (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => 
     dispatch({ type: 'UPDATE_MATCH_SCORE', payload: { matchId, scoreA, scoreB, proofUrl } });
+
+  const addMatchComment = (matchId: string, userId: string, userName: string, userEmail: string, text: string, isAdmin: boolean = false) => {
+      const comment: MatchComment = {
+          id: `c${Date.now()}`,
+          userId,
+          userName,
+          userEmail,
+          text,
+          timestamp: Date.now(),
+          isAdmin
+      };
+      dispatch({ type: 'ADD_MATCH_COMMENT', payload: { matchId, comment } });
+  }
 
   const generateMatchesFromGroups = useCallback(() => {
     const allMatches: Match[] = [];
@@ -196,9 +242,9 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           const tA = teams[i];
           const tB = teams[n - 1 - i];
           if (tA.id !== 'BYE' && tB.id !== 'BYE') {
-            allMatches.push({ id: `m-${group.id}-${tA.id}-${tB.id}-1`, teamA: tA, teamB: tB, scoreA: null, scoreB: null, status: 'scheduled', group: group.name.split(' ')[1], leg: 1, matchday: r + 1 });
+            allMatches.push({ id: `m-${group.id}-${tA.id}-${tB.id}-1`, teamA: tA, teamB: tB, scoreA: null, scoreB: null, status: 'scheduled', group: group.name.split(' ')[1], leg: 1, matchday: r + 1, comments: [] });
             if (state.isDoubleRoundRobin) {
-              allMatches.push({ id: `m-${group.id}-${tB.id}-${tA.id}-2`, teamA: tB, teamB: tA, scoreA: null, scoreB: null, status: 'scheduled', group: group.name.split(' ')[1], leg: 2, matchday: r + 1 });
+              allMatches.push({ id: `m-${group.id}-${tB.id}-${tA.id}-2`, teamA: tB, teamB: tA, scoreA: null, scoreB: null, status: 'scheduled', group: group.name.split(' ')[1], leg: 2, matchday: r + 1, comments: [] });
             }
           }
         }
@@ -217,6 +263,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       updateTeam, 
       deleteTeam, 
       updateMatchScore, 
+      addMatchComment,
       generateMatchesFromGroups, 
       resetTournament: () => dispatch({ type: 'RESET', payload: createInitialState(activeMode) }), 
       manualAddGroup: (name: string) => dispatch({ type: 'MANUAL_ADD_GROUP', payload: { id: `g${Date.now()}`, name, teams: [], standings: [] } }), 

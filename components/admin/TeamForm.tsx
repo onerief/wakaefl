@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import type { Team } from '../../types';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { X, Copy, Check, UserCircle, Instagram, MessageCircle, Globe } from 'lucide-react';
+import { X, Copy, Check, UserCircle, Instagram, MessageCircle, Globe, Mail } from 'lucide-react';
 import { TeamLogo } from '../shared/TeamLogo';
 import { Spinner } from '../shared/Spinner';
 
@@ -16,6 +16,7 @@ interface TeamFormProps {
       socialMediaUrl?: string; 
       whatsappNumber?: string; 
       logoUrl: string;
+      ownerEmail?: string;
     }
   ) => void;
   onClose: () => void;
@@ -28,6 +29,7 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
   const [socialMediaUrl, setSocialMediaUrl] = useState(team?.socialMediaUrl ?? '');
   const [whatsappNumber, setWhatsappNumber] = useState(team?.whatsappNumber ?? '');
   const [logoUrl, setLogoUrl] = useState(team?.logoUrl ?? '');
+  const [ownerEmail, setOwnerEmail] = useState(team?.ownerEmail ?? '');
   const [copied, setCopied] = useState(false);
 
   const handleCopyId = () => {
@@ -47,7 +49,8 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
           manager: manager.trim(),
           socialMediaUrl: socialMediaUrl.trim(),
           whatsappNumber: whatsappNumber.trim(),
-          logoUrl: logoUrl.trim()
+          logoUrl: logoUrl.trim(),
+          ownerEmail: ownerEmail.trim()
         }
       );
     }
@@ -103,6 +106,25 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
                     placeholder="Masukkan Nama Tim..."
                     required
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="owner-email" className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                     <Mail size={10} /> Email Pemilik (Wajib untuk Akses Member)
+                  </label>
+                  <div className="relative">
+                       <input
+                        id="owner-email"
+                        type="email"
+                        value={ownerEmail}
+                        onChange={(e) => setOwnerEmail(e.target.value)}
+                        className="w-full p-3 bg-brand-primary border border-brand-accent rounded-xl text-brand-text text-sm focus:ring-2 focus:ring-brand-vibrant outline-none"
+                        placeholder="email.peserta@gmail.com"
+                      />
+                  </div>
+                  <p className="text-[10px] text-brand-light/60 mt-1">
+                      Masukkan email yang digunakan peserta saat mendaftar/login di website ini agar mereka bisa mengelola jadwalnya.
+                  </p>
                 </div>
 
                 <div>

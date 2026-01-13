@@ -8,6 +8,7 @@ export interface Team {
   whatsappNumber?: string;
   isTopSeed?: boolean;
   assignedGroup?: string;
+  ownerEmail?: string; // New: Link to registered user email
 }
 
 export interface Standing {
@@ -29,6 +30,16 @@ export interface Group {
 
 export type MatchStatus = 'scheduled' | 'live' | 'finished';
 
+export interface MatchComment {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  text: string;
+  timestamp: number;
+  isAdmin?: boolean;
+}
+
 export interface Match {
   id: string;
   teamA: Team;
@@ -41,6 +52,7 @@ export interface Match {
   proofUrl?: string;
   leg?: number;
   matchday?: number;
+  comments?: MatchComment[]; // New: Chat/Comments specific to this match
 }
 
 export interface KnockoutMatch {

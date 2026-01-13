@@ -8,6 +8,7 @@ import { RulesView } from './RulesView';
 import { BannerMarquee } from './BannerMarquee';
 import { MarqueeBanner } from './MarqueeBanner';
 import { Users, ListChecks, Trophy, BookOpen, Crown } from 'lucide-react';
+import type { User } from 'firebase/auth';
 
 interface PublicViewProps {
   groups: Group[];
@@ -16,6 +17,8 @@ interface PublicViewProps {
   rules: string;
   banners: string[];
   onSelectTeam: (team: Team) => void;
+  currentUser?: User | null;
+  onAddMatchComment?: (matchId: string, text: string) => void;
 }
 
 type PublicTab = 'groups' | 'fixtures' | 'knockout' | 'final' | 'rules';
@@ -58,7 +61,10 @@ const MobileTabButton: React.FC<{
     </button>
 );
 
-export const PublicView: React.FC<PublicViewProps> = ({ groups, matches, knockoutStage, rules, banners, onSelectTeam }) => {
+export const PublicView: React.FC<PublicViewProps> = ({ 
+    groups, matches, knockoutStage, rules, banners, onSelectTeam, 
+    currentUser, onAddMatchComment 
+}) => {
   const [activeTab, setActiveTab] = useState<PublicTab>('groups');
   const [selectedMatchdays, setSelectedMatchdays] = useState<Record<string, string>>({});
 
@@ -164,7 +170,13 @@ export const PublicView: React.FC<PublicViewProps> = ({ groups, matches, knockou
                                             schedule[activeScheduleKey]
                                                 .sort((a, b) => a.id.localeCompare(b.id))
                                                 .map(match => (
-                                                    <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} />
+                                                    <MatchCard 
+                                                        key={match.id} 
+                                                        match={match} 
+                                                        onSelectTeam={onSelectTeam}
+                                                        currentUser={currentUser}
+                                                        onAddComment={onAddMatchComment}
+                                                    />
                                                 ))
                                         ) : (
                                             <p className="text-brand-light text-center py-8 bg-black/20 rounded-lg">No matches for this selection.</p>

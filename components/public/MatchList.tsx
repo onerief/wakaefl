@@ -1,20 +1,45 @@
 
 import React, { useState } from 'react';
-import type { Match, Team } from '../../types';
+import type { Match, Team, MatchComment } from '../../types';
 import { Card } from '../shared/Card';
-import { MonitorPlay } from 'lucide-react';
+import { MonitorPlay, MessageSquare, Send, ChevronDown, ChevronUp, UserCircle } from 'lucide-react';
 import { ProofModal } from './ProofModal';
 import { TeamLogo } from '../shared/TeamLogo';
+import type { User } from 'firebase/auth';
 
 interface MatchCardProps {
     match: Match;
     onSelectTeam: (team: Team) => void;
+    currentUser?: User | null;
+    onAddComment?: (matchId: string, text: string) => void;
 }
 
-export const MatchCard: React.FC<MatchCardProps> = ({ match, onSelectTeam }) => {
+export const MatchCard: React.FC<MatchCardProps> = ({ match, onSelectTeam, currentUser, onAddComment }) => {
     const [showProof, setShowProof] = useState(false);
+    const [showComments, setShowComments] = useState(false);
+    const [newComment, setNewComment] = useState('');
 
     const isFinished = match.status === 'finished' && match.scoreA !== null && match.scoreB !== null;
+    
+    // Check if current user is participant or admin (if we had admin prop, but we can infer participant)
+    const isParticipant = currentUser && (
+        currentUser.email === match.teamA.ownerEmail || 
+        currentUser.email === match.teamB.ownerEmail
+    );
+    
+    // Allow viewing if participant or just everyone? Usually private schedule chat is for participants.
+    // Let's assume public can't see, only participants.
+    // OR: Public can see but only participants can write. Let's go with Public View, Participant Write.
+    const canComment = !!isParticipant && !!onAddComment;
+    const hasComments = match.comments && match.comments.length > 0;
+
+    const handleSubmitComment = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (newComment.trim() && onAddComment) {
+            onAddComment(match.id, newComment.trim());
+            setNewComment('');
+        }
+    }
 
     return (
         <>
@@ -25,7 +50,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, onSelectTeam }) => 
                         Group {match.group}{match.matchday && ` • Matchday ${match.matchday}`}
                     </span>
                     <div className="flex items-center gap-2">
-                        {match.proofUrl && (
+                         {match.proofUrl && (
                             <button
                                 onClick={(e) => {e.stopPropagation(); setShowProof(true);}}
                                 title="Watch Highlight/Proof"
@@ -82,6 +107,76 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, onSelectTeam }) => 
                             <span className="text-brand-vibrant font-bold not-italic mr-1">AI Summary:</span> 
                             "{match.summary}"
                         </p>
+                    </div>
+                )}
+                
+                {/* Comments Section Toggle */}
+                {(canComment || hasComments) && (
+                    <div className="border-t border-white/5">
+                        <button 
+                            onClick={() => setShowComments(!showComments)}
+                            className="w-full flex items-center justify-center gap-2 py-2 text-[10px] uppercase font-bold text-brand-light hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                            <MessageSquare size={12} />
+                            {hasComments ? `${match.comments?.length} Diskusi` : 'Diskusi Jadwal'}
+                            {showComments ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        </button>
+
+                        {/* Comments Body */}
+                        {showComments && (
+                            <div className="p-4 bg-black/20 border-t border-white/5 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                                {hasComments ? (
+                                    <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                        {match.comments?.map((comment) => (
+                                            <div key={comment.id} className={`flex gap-3 ${comment.userEmail === currentUser?.email ? 'flex-row-reverse' : ''}`}>
+                                                <div className="w-6 h-6 rounded-full bg-brand-vibrant/20 flex items-center justify-center flex-shrink-0 text-brand-vibrant">
+                                                    <UserCircle size={14} />
+                                                </div>
+                                                <div className={`flex flex-col max-w-[80%] ${comment.userEmail === currentUser?.email ? 'items-end' : 'items-start'}`}>
+                                                    <span className="text-[9px] text-brand-light/50 mb-0.5 px-1">
+                                                        {comment.userName} • {new Date(comment.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                    </span>
+                                                    <div className={`p-2 rounded-xl text-xs ${
+                                                        comment.userEmail === currentUser?.email 
+                                                            ? 'bg-brand-vibrant/20 text-white rounded-tr-none' 
+                                                            : 'bg-white/5 text-brand-light rounded-tl-none'
+                                                    }`}>
+                                                        {comment.text}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-4 text-xs text-brand-light/40 italic">
+                                        Belum ada diskusi.
+                                    </div>
+                                )}
+
+                                {canComment ? (
+                                    <form onSubmit={handleSubmitComment} className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={newComment}
+                                            onChange={(e) => setNewComment(e.target.value)}
+                                            placeholder="Tulis pesan ke lawan..."
+                                            className="flex-grow bg-brand-primary border border-brand-accent rounded-lg px-3 py-2 text-xs text-brand-text focus:outline-none focus:ring-1 focus:ring-brand-vibrant"
+                                        />
+                                        <button 
+                                            type="submit"
+                                            disabled={!newComment.trim()}
+                                            className="p-2 bg-brand-vibrant text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors"
+                                        >
+                                            <Send size={14} />
+                                        </button>
+                                    </form>
+                                ) : (
+                                    <div className="text-center text-[10px] text-brand-light/40 border-t border-white/5 pt-2">
+                                        Login dengan akun terdaftar untuk ikut diskusi.
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
             </Card>

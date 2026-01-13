@@ -86,6 +86,21 @@ function AppContent() {
       setView('home');
   }
 
+  const handleAddComment = (matchId: string, text: string) => {
+      if (!currentUser) {
+          addToast('Silakan login terlebih dahulu.', 'error');
+          return;
+      }
+      tournament.addMatchComment(
+          matchId, 
+          currentUser.uid, 
+          currentUser.displayName || currentUser.email || 'User', 
+          currentUser.email || '', 
+          text,
+          isAdminAuthenticated
+      );
+  }
+
   return (
     <div className="min-h-screen font-sans flex flex-col relative selection:bg-brand-vibrant selection:text-white overflow-x-hidden">
       {/* Dynamic Brand Background */}
@@ -144,6 +159,8 @@ function AppContent() {
                   rules={tournament.rules}
                   banners={tournament.banners}
                   onSelectTeam={setViewingTeam}
+                  currentUser={currentUser}
+                  onAddMatchComment={handleAddComment}
                 />
               )}
 
