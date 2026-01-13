@@ -93,7 +93,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       status, finalizeSeason, resumeSeason, startNewSeason,
       updateKnockoutMatch, rules, updateRules,
       banners, updateBanners, partners, updatePartners, initializeEmptyKnockoutStage,
-      generateKnockoutBracket, isRegistrationOpen, setRegistrationStatus,
+      generateKnockoutBracket, 
+      isRegistrationOpen = true, 
+      setRegistrationStatus,
       deleteKnockoutMatch, updateKnockoutMatchDetails, updateMatchSchedule
   } = props;
 
@@ -131,8 +133,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
 
   const toggleRegistration = () => {
       if (setRegistrationStatus) {
-          setRegistrationStatus(!isRegistrationOpen);
-          addToast(isRegistrationOpen ? 'Pendaftaran ditutup.' : 'Pendaftaran dibuka.', 'info');
+          const newState = !isRegistrationOpen;
+          setRegistrationStatus(newState);
+          addToast(newState ? 'Pendaftaran dibuka.' : 'Pendaftaran ditutup.', 'info');
+      } else {
+          addToast('Fungsi tidak tersedia.', 'error');
       }
   }
 
@@ -317,17 +322,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         return <RulesEditor rules={rules} onSave={updateRules} />;
       case 'settings':
         return (
-            <div className="space-y-6">
+            <div className="space-y-6 pb-12">
                  <h2 className="text-2xl font-black italic uppercase text-brand-text mb-4">Settings & Config</h2>
                 
                 {/* Registration Control Card */}
                 {setRegistrationStatus && (
-                    <Card className="border-brand-accent/50">
+                    <Card className="border-brand-accent/50 z-10 relative">
                         <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
                             <Users size={20} className="text-brand-vibrant" /> New Team Registration
                         </h3>
-                        <div className="flex items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5">
-                            <div>
+                        <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5 gap-4">
+                            <div className="text-center sm:text-left">
                                 <p className="font-bold text-white text-sm">Status Pendaftaran Publik</p>
                                 <p className="text-xs text-brand-light mt-1">
                                     {isRegistrationOpen 
@@ -337,14 +342,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                             </div>
                             <button 
                                 onClick={toggleRegistration}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-xs uppercase tracking-wider transition-all ${
-                                    isRegistrationOpen 
-                                    ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30' 
-                                    : 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
-                                }`}
+                                className={`
+                                    relative flex items-center gap-3 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg active:scale-95 touch-manipulation
+                                    ${isRegistrationOpen 
+                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30' 
+                                    : 'bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30'}
+                                `}
                             >
-                                {isRegistrationOpen ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
-                                {isRegistrationOpen ? 'Opened' : 'Closed'}
+                                {isRegistrationOpen ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
+                                <span>{isRegistrationOpen ? 'Opened' : 'Closed'}</span>
                             </button>
                         </div>
                     </Card>
@@ -439,7 +445,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   return (
     <div className="flex flex-col lg:flex-row gap-6 pb-4 lg:h-[calc(100vh-140px)]"> 
       {/* MOBILE NAVIGATION HEADER (Visible only on lg and below) */}
-      <div className="lg:hidden flex flex-col gap-3 sticky top-20 z-40 bg-brand-primary/95 backdrop-blur-xl p-2 rounded-2xl border border-white/10 shadow-2xl mb-4">
+      <div className="lg:hidden flex flex-col gap-3 relative z-40 bg-brand-primary/95 backdrop-blur-xl p-2 rounded-2xl border border-white/10 shadow-2xl mb-4">
           <MobileNativeSelect 
               value={mode}
               options={MODES}
