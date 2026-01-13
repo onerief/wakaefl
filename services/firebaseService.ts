@@ -79,15 +79,32 @@ export const uploadTeamLogo = async (file: File): Promise<string> => {
     const fileName = `logos/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
     const storageRef = ref(storage, fileName);
     
+    // Add metadata so the browser knows this is an image
+    const metadata = {
+        contentType: file.type || 'image/jpeg'
+    };
+    
     // Upload the file
-    const snapshot = await uploadBytes(storageRef, file);
+    const snapshot = await uploadBytes(storageRef, file, metadata);
     
     // Get the public URL
     const downloadURL = await getDownloadURL(snapshot.ref);
     return downloadURL;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error uploading logo:", error);
-    throw new Error("Gagal mengupload gambar.");
+    
+    // Handle specific Firebase Storage errors
+    if (error.code === 'storage/unauthorized') {
+        throw new Error("Izin ditolak: Anda harus login untuk mengupload gambar.");
+    } else if (error.code === 'storage/canceled') {
+        throw new Error("Upload dibatalkan.");
+    } else if (error.code === 'storage/retry-limit-exceeded') {
+        throw new Error("Gagal mengupload: Batas waktu terlampaui.");
+    } else if (error.code === 'storage/invalid-checksum') {
+        throw new Error("File rusak saat upload. Silakan coba lagi.");
+    }
+    
+    throw new Error("Gagal mengupload gambar. Silakan coba lagi.");
   }
 };
 

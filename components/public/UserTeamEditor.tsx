@@ -38,8 +38,8 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
           const downloadUrl = await uploadTeamLogo(file);
           setLogoUrl(downloadUrl);
           addToast('Logo berhasil diupload!', 'success');
-      } catch (error) {
-          addToast('Gagal mengupload logo.', 'error');
+      } catch (error: any) {
+          addToast(error.message || 'Gagal mengupload logo.', 'error');
           console.error(error);
       } finally {
           setIsUploading(false);
@@ -146,7 +146,7 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
                     value={whatsappNumber}
                     onChange={(e) => setWhatsappNumber(e.target.value)}
                     placeholder="08..."
-                    className="w-full pl-10 pr-4 py-3 bg-brand-primary border border-brand-accent rounded-xl text-sm text-brand-text focus:ring-2 focus:ring-brand-vibrant outline-none transition-all"
+                    className="w-full pl-10 pr-4 py-3 bg-brand-primary border border-brand-accent rounded-xl text-sm text-brand-text focus:ring-2 focus:ring-green-500 outline-none transition-all"
                 />
             </div>
         </div>

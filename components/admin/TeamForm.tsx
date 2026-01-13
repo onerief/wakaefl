@@ -60,8 +60,9 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
           const downloadUrl = await uploadTeamLogo(file);
           setLogoUrl(downloadUrl);
           addToast('Logo uploaded successfully!', 'success');
-      } catch (error) {
-          addToast('Failed to upload logo.', 'error');
+      } catch (error: any) {
+          // Use the specific error message from the service
+          addToast(error.message || 'Failed to upload logo.', 'error');
           console.error(error);
       } finally {
           setIsUploading(false);

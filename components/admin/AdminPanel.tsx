@@ -5,7 +5,7 @@ import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, LayoutGrid, Database, Zap, Shield, AlertCircle, PlayCircle, StopCircle, Archive } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap } from 'lucide-react';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { useToast } from '../shared/Toast';
 import { Card } from '../shared/Card';
@@ -50,7 +50,7 @@ interface AdminPanelProps {
   importLegacyData: (jsonData: any) => void;
   finalizeSeason: () => { success: boolean; message: string };
   resumeSeason: () => void;
-  startNewSeason: () => void; // New prop
+  startNewSeason: () => void; 
   resolveTeamClaim?: (teamId: string, approved: boolean) => void;
   isLoading?: boolean;
 }
@@ -69,9 +69,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const { 
       matches, updateMatchScore, teams, knockoutStage, groups, mode, setMode, 
       status, finalizeSeason, resumeSeason, startNewSeason,
-      isDoubleRoundRobin, setRoundRobin, updateKnockoutMatch, rules, updateRules,
+      updateKnockoutMatch, rules, updateRules,
       banners, updateBanners, partners, updatePartners, initializeEmptyKnockoutStage,
-      setTournamentState, generateKnockoutBracket
+      generateKnockoutBracket
   } = props;
 
   const handleAddKnockoutMatch = (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => {
@@ -111,16 +111,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       case 'group-fixtures':
         if (matches.length === 0) {
           return (
-            <div className="text-center bg-brand-secondary p-8 rounded-lg border border-brand-accent border-dashed mt-4">
+            <div className="flex flex-col items-center justify-center h-64 text-center bg-brand-secondary/20 rounded-2xl border border-dashed border-white/10">
+              <ListChecks size={48} className="text-brand-light/20 mb-4" />
               <h3 className="text-xl font-bold text-brand-text mb-2">No Matches Generated</h3>
-              <p className="text-brand-light">Go to the 'Teams' tab to generate the fixtures for {mode.toUpperCase()}.</p>
+              <p className="text-brand-light">Go to the 'Teams' tab to generate fixtures.</p>
             </div>
           );
         }
         
         return (
-          <div className="space-y-6 mt-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-6">
+            <h2 className="text-2xl font-black italic uppercase text-brand-text mb-4">Fixtures & Results</h2>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 {groups.map(group => {
                     const groupLetter = group.name.split(' ')[1];
                     const groupMatches = matches.filter(m => m.group === groupLetter);
@@ -144,25 +146,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                     const activeScheduleKey = selectedMatchdays[stateKey] || (scheduleKeys.length > 0 ? scheduleKeys[0] : '');
 
                     return (
-                        <div key={`${group.id}-fixtures`} className="bg-brand-secondary p-4 rounded-lg border border-white/5 shadow-xl">
-                            <div className="flex justify-between items-center mb-4">
-                                <h4 className="text-xl font-bold text-brand-vibrant italic uppercase tracking-tighter">{group.name}</h4>
+                        <div key={`${group.id}-fixtures`} className="bg-brand-secondary/30 p-4 rounded-xl border border-white/5 shadow-lg">
+                            <div className="flex justify-between items-center mb-4 pb-2 border-b border-white/5">
+                                <h4 className="text-lg font-bold text-brand-vibrant uppercase tracking-tight">{group.name}</h4>
                                  {scheduleKeys.length > 1 && (
                                      <select
                                         value={activeScheduleKey}
                                         onChange={(e) => setSelectedMatchdays(prev => ({ ...prev, [stateKey]: e.target.value }))}
-                                        className="p-2 bg-brand-primary border border-brand-accent rounded-md text-brand-text text-sm"
+                                        className="p-1.5 bg-brand-primary border border-brand-accent rounded text-brand-text text-xs font-medium focus:ring-1 focus:ring-brand-vibrant outline-none"
                                     >
                                         {scheduleKeys.map(key => <option key={key} value={key}>{key}</option>)}
                                     </select>
                                 )}
                             </div>
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                                  {activeScheduleKey && schedule[activeScheduleKey] ? (
                                     schedule[activeScheduleKey].sort((a, b) => a.id.localeCompare(b.id)).map(match => (
                                         <MatchEditor key={match.id} match={match} onUpdateScore={updateMatchScore} onGenerateSummary={async () => ''} onEditSchedule={() => {}} />
                                     ))
-                                ) : <p className="text-brand-light text-center py-4">No matches for this selection.</p>}
+                                ) : <p className="text-brand-light text-center py-4 text-sm">No matches.</p>}
                             </div>
                         </div>
                     );
@@ -173,20 +175,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       case 'knockout':
         if (mode === 'league') {
             return (
-                <div className="text-center bg-brand-secondary/30 p-12 rounded-2xl border border-brand-accent border-dashed mt-4">
-                    <Zap size={48} className="mx-auto text-brand-light/30 mb-4" />
+                <div className="flex flex-col items-center justify-center h-full p-12 text-center bg-brand-secondary/20 rounded-2xl border border-dashed border-white/10">
+                    <Zap size={48} className="text-brand-light/20 mb-4" />
                     <h3 className="text-xl font-bold text-brand-text mb-2">Knockout Restricted</h3>
-                    <p className="text-brand-light">Knockout stage is only available in <strong>WAKACL</strong> or <strong>2 Wilayah</strong> mode.</p>
+                    <p className="text-brand-light">Switch to <strong>WAKACL</strong> or <strong>2 Wilayah</strong> mode.</p>
                 </div>
             )
         }
         return (
-          <div className="mt-4">
+          <div className="space-y-6">
+             <h2 className="text-2xl font-black italic uppercase text-brand-text mb-4">Knockout Stage</h2>
             {!knockoutStage || Object.values(knockoutStage).every((r: any) => r.length === 0) ? (
-              <div className="text-center bg-brand-secondary p-8 rounded-lg border border-brand-accent border-dashed">
-                <h3 className="text-xl font-bold text-brand-text mb-2">The Knockout Stage Awaits</h3>
-                <p className="text-brand-light mb-4">Finish the group stage to generate.</p>
-                <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <div className="flex flex-col items-center justify-center p-12 text-center bg-brand-secondary/20 rounded-2xl border border-dashed border-white/10">
+                <Trophy size={48} className="text-brand-light/20 mb-4" />
+                <h3 className="text-xl font-bold text-brand-text mb-2">Ready to Rumble?</h3>
+                <p className="text-brand-light mb-6">Generate the bracket once group stages are complete.</p>
+                <div className="flex flex-col sm:flex-row gap-4">
                   <Button onClick={() => setShowGenerateBracketConfirm(true)}>
                     Auto-Generate Bracket
                   </Button>
@@ -198,17 +202,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
             ) : (
               <div className="space-y-8">
                 {(Object.keys(knockoutStage) as Array<keyof KnockoutStageRounds>).map((roundName) => (
-                  <div key={roundName}>
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg sm:text-2xl font-bold text-brand-vibrant">{roundName}</h3>
-                      <Button onClick={() => setIsAddingMatch(roundName)} variant="secondary" className="!px-3 !py-1.5 text-xs"><Plus size={14} /> Add</Button>
+                  <Card key={roundName} className="border-white/5">
+                    <div className="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
+                      <h3 className="text-lg font-bold text-brand-vibrant uppercase tracking-wider">{roundName}</h3>
+                      <Button onClick={() => setIsAddingMatch(roundName)} variant="secondary" className="!px-3 !py-1 text-xs h-8"><Plus size={12} /> Add Match</Button>
                     </div>
-                    <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {knockoutStage[roundName].map((match: KnockoutMatch) => (
                          <KnockoutMatchEditor key={match.id} match={match} onUpdateScore={(id, data) => updateKnockoutMatch(id, { ...match, ...data })} onEdit={() => {}} onDelete={() => props.deleteKnockoutMatch(match.id)} />
                       ))}
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
             )}
@@ -222,26 +226,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           </div>
         );
       case 'teams':
-        return <div className="mt-4"><TeamManager {...props} onGenerationSuccess={() => setActiveTab('group-fixtures')} /></div>;
+        return <TeamManager {...props} onGenerationSuccess={() => setActiveTab('group-fixtures')} />;
       case 'rules':
-        return <div className="mt-4"><RulesEditor rules={rules} onSave={updateRules} /></div>;
+        return <RulesEditor rules={rules} onSave={updateRules} />;
       case 'settings':
         return (
-            <div className="space-y-8 mt-4">
-                <div className="bg-brand-secondary/30 p-6 rounded-xl border border-brand-accent">
-                    <h3 className="text-xl font-bold text-brand-text mb-4">Season Control</h3>
+            <div className="space-y-6">
+                 <h2 className="text-2xl font-black italic uppercase text-brand-text mb-4">Settings & Config</h2>
+                <Card className="border-brand-accent/50">
+                    <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
+                        <Settings size={20} className="text-brand-vibrant" /> Season Status
+                    </h3>
                     <div className="flex flex-col gap-4">
-                        <div className="p-3 bg-black/20 rounded-lg">
-                            <p className="font-semibold text-white flex items-center gap-2">
-                                Status: 
+                        <div className="p-4 bg-black/20 rounded-xl border border-white/5">
+                            <p className="font-semibold text-white flex items-center gap-2 text-sm">
+                                Current Status: 
                                 <span className={`px-2 py-0.5 rounded text-xs uppercase font-black tracking-wider ${status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                                     {status}
                                 </span>
                             </p>
-                            <p className="text-[10px] text-brand-light mt-1 leading-relaxed">
+                            <p className="text-xs text-brand-light mt-1">
                                 {status === 'active' 
-                                    ? "Season is ongoing. Matches open for scoring." 
-                                    : "Season finalized. Winner recorded in Hall of Fame."}
+                                    ? "Season is currently active." 
+                                    : "Season is completed. Data is read-only."}
                             </p>
                         </div>
                         {status === 'active' ? (
@@ -251,7 +258,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                         ) : (
                             <div className="flex flex-col sm:flex-row gap-2">
                                 <Button onClick={resumeSeason} variant="secondary" className="w-full justify-center">
-                                    <PlayCircle size={16} /> Resume/Edit
+                                    <PlayCircle size={16} /> Resume Season
                                 </Button>
                                 <Button onClick={() => setShowStartNewSeasonConfirm(true)} className="bg-blue-600 hover:bg-blue-700 text-white border-none w-full justify-center">
                                     <Archive size={16} /> Start New Season
@@ -259,7 +266,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                             </div>
                         )}
                     </div>
-                </div>
+                </Card>
                 <BannerSettings banners={banners} onUpdateBanners={updateBanners} />
                 <PartnerSettings partners={partners} onUpdatePartners={updatePartners} />
             </div>
@@ -269,81 +276,84 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     }
   }
 
+  // Helper for Sidebar Buttons
+  const NavButton = ({ tab, icon: Icon, label }: { tab: AdminTab, icon: any, label: string }) => (
+      <button
+        onClick={() => setActiveTab(tab)}
+        className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-200 flex items-center gap-3 font-bold text-sm ${
+            activeTab === tab 
+            ? 'bg-brand-vibrant text-white shadow-lg shadow-brand-vibrant/20' 
+            : 'text-brand-light hover:bg-white/5 hover:text-white'
+        }`}
+      >
+          <Icon size={18} className={activeTab === tab ? 'text-white' : 'text-brand-light opacity-70'} />
+          {label}
+      </button>
+  );
+
+  const ModeButton = ({ m, label, colorClass, borderClass }: { m: TournamentMode, label: string, colorClass: string, borderClass: string }) => (
+    <button
+        onClick={() => setMode(m)}
+        className={`w-full text-left px-4 py-2.5 rounded-lg transition-all border flex items-center justify-between group ${
+            mode === m 
+            ? `${colorClass} ${borderClass} shadow-md` 
+            : 'bg-black/20 border-transparent text-brand-light hover:bg-white/5 hover:text-white'
+        }`}
+    >
+        <span className="text-xs font-black uppercase tracking-wider">{label}</span>
+        {mode === m && <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>}
+    </button>
+  );
+
   return (
-    <div className="pb-24">
-      {/* Header & Title */}
-      <div className="flex items-center gap-3 mb-6">
-          <Shield className="text-brand-vibrant w-8 h-8" />
-          <h2 className="text-2xl sm:text-3xl font-black italic uppercase text-brand-text">Admin Panel</h2>
-      </div>
-
-      {/* Database Switcher - Horizontal Scroll on Mobile */}
-      <Card className="mb-6 !p-3 bg-brand-vibrant/5 border-brand-vibrant/20 border-dashed">
-          <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-3 px-1">
-                  <div className="w-8 h-8 rounded-lg bg-brand-vibrant/20 flex items-center justify-center text-brand-vibrant shrink-0">
-                      <Database size={16} />
-                  </div>
-                  <div className="min-w-0">
-                      <h2 className="text-sm font-black text-white italic uppercase leading-none">Database</h2>
-                      <p className="text-[10px] text-brand-light font-bold uppercase tracking-widest truncate">
-                          Mode: <span className="text-white">{mode.replace('_', ' ')}</span>
-                      </p>
-                  </div>
-              </div>
-              
-              <div className="flex gap-2 overflow-x-auto pb-2 -mx-3 px-3 sm:mx-0 sm:px-0 sm:pb-0 no-scrollbar">
-                  <button 
-                    onClick={() => setMode('league')}
-                    className={`flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${mode === 'league' ? 'bg-brand-vibrant text-brand-primary border-brand-vibrant' : 'bg-black/40 text-brand-light border-white/5 hover:bg-white/5'}`}
-                  >
-                      Liga Reguler
-                  </button>
-                  <button 
-                    onClick={() => setMode('two_leagues')}
-                    className={`flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${mode === 'two_leagues' ? 'bg-purple-600 text-white border-purple-500' : 'bg-black/40 text-brand-light border-white/5 hover:bg-white/5'}`}
-                  >
-                      Liga 2 Wilayah
-                  </button>
-                  <button 
-                    onClick={() => setMode('wakacl')}
-                    className={`flex-shrink-0 whitespace-nowrap px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${mode === 'wakacl' ? 'bg-brand-special text-brand-primary border-brand-special' : 'bg-black/40 text-brand-light border-white/5 hover:bg-white/5'}`}
-                  >
-                      WAKACL Hub
-                  </button>
-              </div>
-          </div>
-      </Card>
-
-      {/* Navigation Tabs - Horizontal Scroll on Mobile */}
-      <div className="sticky top-[64px] z-40 bg-brand-primary/95 backdrop-blur-md py-2 border-b border-white/5 -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent sm:static sm:border-none">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar sm:flex-wrap">
-          <button onClick={() => setActiveTab('teams')} className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'teams' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'bg-brand-secondary/50 text-brand-light hover:text-white border border-white/5'}`}>
-              <Users size={14} /> Teams
-          </button>
-          <button onClick={() => setActiveTab('group-fixtures')} className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'group-fixtures' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'bg-brand-secondary/50 text-brand-light hover:text-white border border-white/5'}`}>
-              <ListChecks size={14} /> Fixtures
-          </button>
-          <button 
-              onClick={() => setActiveTab('knockout')} 
-              disabled={mode === 'league'}
-              className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'knockout' ? 'bg-brand-special text-brand-primary shadow-lg' : 'bg-brand-secondary/50 text-brand-light hover:text-white border border-white/5 disabled:opacity-30 disabled:cursor-not-allowed'} ${mode === 'league' ? 'hidden' : ''}`}
-          >
-              <Trophy size={14} /> Knockout
-          </button>
-          <button onClick={() => setActiveTab('rules')} className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'rules' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'bg-brand-secondary/50 text-brand-light hover:text-white border border-white/5'}`}>
-              <BookOpen size={14} /> Rules
-          </button>
-          <button onClick={() => setActiveTab('settings')} className={`flex-shrink-0 px-4 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'settings' ? 'bg-brand-vibrant text-brand-primary shadow-lg' : 'bg-brand-secondary/50 text-brand-light hover:text-white border border-white/5'}`}>
-              <Settings size={14} /> Settings
-          </button>
-        </div>
-      </div>
-
-      <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 min-h-[50vh]">
-        {renderContent()}
-      </div>
+    <div className="flex flex-col lg:flex-row gap-6 pb-4 lg:h-[calc(100vh-140px)]"> 
+    {/* Set fixed height on desktop to allow inner scroll */}
       
+      {/* SIDEBAR NAVIGATION */}
+      <aside className="w-full lg:w-72 flex-shrink-0 space-y-6">
+          
+          {/* Database Switcher */}
+          <div className="bg-brand-secondary/40 backdrop-blur-sm border border-white/10 rounded-2xl p-4 shadow-xl">
+             <div className="flex items-center gap-2 mb-4 px-1">
+                 <Database size={16} className="text-brand-light" />
+                 <h3 className="text-xs font-black text-brand-light uppercase tracking-widest">Select Database</h3>
+             </div>
+             <div className="space-y-2">
+                 <ModeButton m="league" label="Liga Reguler" colorClass="bg-blue-600 text-white" borderClass="border-blue-500" />
+                 <ModeButton m="two_leagues" label="2 Wilayah" colorClass="bg-purple-600 text-white" borderClass="border-purple-500" />
+                 <ModeButton m="wakacl" label="WAKACL" colorClass="bg-yellow-600 text-white" borderClass="border-yellow-500" />
+             </div>
+          </div>
+
+          {/* Menu Tabs */}
+          <nav className="bg-brand-secondary/40 backdrop-blur-sm border border-white/10 rounded-2xl p-2 shadow-xl flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible no-scrollbar">
+              <NavButton tab="teams" icon={Users} label="Teams Management" />
+              <NavButton tab="group-fixtures" icon={ListChecks} label="Fixtures & Results" />
+              <NavButton tab="knockout" icon={Trophy} label="Knockout Stage" />
+              <NavButton tab="rules" icon={BookOpen} label="Rules" />
+              <NavButton tab="settings" icon={Settings} label="Settings" />
+          </nav>
+          
+          <div className="hidden lg:block bg-gradient-to-br from-brand-vibrant/20 to-transparent p-6 rounded-2xl border border-white/5 text-center">
+             <LayoutDashboard size={32} className="mx-auto text-brand-vibrant mb-2 opacity-50" />
+             <p className="text-[10px] text-brand-light uppercase tracking-widest font-bold">Admin Control Center</p>
+          </div>
+      </aside>
+
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 bg-brand-secondary/20 backdrop-blur-sm border border-white/5 rounded-[2rem] shadow-2xl relative overflow-hidden flex flex-col min-h-[500px]">
+        {/* Background Decor */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-vibrant/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+        
+        {/* Content Render - Wrapped in Scrollable Div */}
+        <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
+             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 lg:pb-0">
+                {renderContent()}
+             </div>
+        </div>
+      </main>
+
+      {/* Modals */}
       <ConfirmationModal
         isOpen={showFinalizeConfirm}
         onClose={() => setShowFinalizeConfirm(false)}

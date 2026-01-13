@@ -196,7 +196,7 @@ function AppContent() {
                 <AdminPanel 
                   {...tournament} 
                   mode={activeMode} 
-                  setMode={(m) => { setActiveMode(m); setView(m as View); }} // Force view update correctly
+                  setMode={setActiveMode} // Fixed: Just update the mode, keep view as 'admin'
                 />
               )}
             </>

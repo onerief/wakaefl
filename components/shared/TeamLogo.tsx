@@ -25,13 +25,14 @@ export const TeamLogo: React.FC<TeamLogoProps> = ({ logoUrl, teamName, className
     return (
       <div className={`${className} relative flex-shrink-0 flex items-center justify-center rounded-full bg-white overflow-hidden shadow-[0_0_10px_rgba(255,255,255,0.1)] border border-gray-200`}>
          <img 
+            key={effectiveLogoUrl} // Force React to recreate the img element when URL changes
             src={effectiveLogoUrl} 
             alt={`${teamName} logo`} 
             className="w-full h-full object-contain p-0.5"
             onError={() => {
                 // Only log warning if it's a real URL that failed
                 if (effectiveLogoUrl) {
-                    console.warn(`TeamLogo: Failed to load image for ${teamName}`);
+                    console.warn(`TeamLogo: Failed to load image for ${teamName} at ${effectiveLogoUrl}`);
                 }
                 setHasError(true);
             }}
