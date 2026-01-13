@@ -65,16 +65,19 @@ function AppContent() {
     return () => unsubscribe();
   }, [view]);
 
-  // Fetch global stats whenever view changes to home or partners are updated
+  // Fetch global stats whenever view changes to home or partners/teams update
   useEffect(() => {
-      // Small delay to allow Firebase write to propagate if just added
-      const timer = setTimeout(() => {
-          getGlobalStats().then(stats => {
-              setGlobalStats(stats);
+      // Use local state override for immediate feedback without waiting for DB sync
+      const fetchStats = async () => {
+          const stats = await getGlobalStats(activeMode, {
+              teams: tournament.teams,
+              partners: tournament.partners
           });
-      }, 500);
-      return () => clearTimeout(timer);
-  }, [view, tournament.partners]); 
+          setGlobalStats(stats);
+      };
+      
+      fetchStats();
+  }, [view, tournament.partners, tournament.teams, activeMode]); 
 
   const handleAdminViewRequest = () => {
     if (isAdminAuthenticated) {

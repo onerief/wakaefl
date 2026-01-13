@@ -5,7 +5,7 @@ import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ToggleLeft, ToggleRight, ChevronDown, Check, Menu } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ChevronDown, Check, Menu, Lock, Unlock } from 'lucide-react';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { useToast } from '../shared/Toast';
 import { Card } from '../shared/Card';
@@ -131,13 +131,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       setShowStartNewSeasonConfirm(false);
   }
 
-  const toggleRegistration = () => {
+  const handleSetRegistration = (status: boolean) => {
       if (setRegistrationStatus) {
-          const newState = !isRegistrationOpen;
-          setRegistrationStatus(newState);
-          addToast(newState ? 'Pendaftaran dibuka (Online).' : 'Pendaftaran ditutup (Offline).', 'info');
-      } else {
-          addToast('Fungsi tidak tersedia.', 'error');
+          setRegistrationStatus(status);
+          addToast(status ? 'Pendaftaran dibuka.' : 'Pendaftaran ditutup.', 'info');
       }
   }
 
@@ -331,28 +328,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                         <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
                             <Users size={20} className="text-brand-vibrant" /> New Team Registration
                         </h3>
-                        <div className="flex flex-col sm:flex-row items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5 gap-4">
-                            <div className="text-center sm:text-left">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5 gap-4">
+                            <div className="text-center sm:text-left flex-grow">
                                 <p className="font-bold text-white text-sm">Status Pendaftaran Publik</p>
                                 <p className="text-xs text-brand-light mt-1">
                                     {isRegistrationOpen 
-                                        ? "Aktif. Tombol 'Daftar Tim Baru' terlihat di halaman depan." 
-                                        : "Nonaktif. Tombol pendaftaran disembunyikan."}
+                                        ? "Tombol 'Daftar Tim Baru' terlihat di halaman depan." 
+                                        : "Pendaftaran disembunyikan dari publik."}
                                 </p>
                             </div>
-                            <button 
-                                onClick={toggleRegistration}
-                                type="button"
-                                className={`
-                                    relative flex items-center gap-3 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg active:scale-95 touch-manipulation
-                                    ${isRegistrationOpen 
-                                    ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30' 
-                                    : 'bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30'}
-                                `}
-                            >
-                                {isRegistrationOpen ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
-                                <span>{isRegistrationOpen ? 'Opened' : 'Closed'}</span>
-                            </button>
+                            
+                            {/* Segmented Control / Switch */}
+                            <div className="flex bg-black/40 p-1 rounded-xl border border-white/10 shrink-0">
+                                <button
+                                    onClick={() => handleSetRegistration(true)}
+                                    className={`
+                                        flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all
+                                        ${isRegistrationOpen 
+                                            ? 'bg-green-600 text-white shadow-lg' 
+                                            : 'text-brand-light hover:text-white hover:bg-white/5'}
+                                    `}
+                                >
+                                    <Unlock size={14} /> Open
+                                </button>
+                                <button
+                                    onClick={() => handleSetRegistration(false)}
+                                    className={`
+                                        flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all
+                                        ${!isRegistrationOpen 
+                                            ? 'bg-red-600 text-white shadow-lg' 
+                                            : 'text-brand-light hover:text-white hover:bg-white/5'}
+                                    `}
+                                >
+                                    <Lock size={14} /> Closed
+                                </button>
+                            </div>
                         </div>
                     </Card>
                 )}

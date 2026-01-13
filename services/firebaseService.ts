@@ -220,16 +220,27 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
   }
 };
 
-export const getGlobalStats = async (): Promise<{ teamCount: number; partnerCount: number }> => {
+// Modified to accept optional current state overrides to avoid race conditions with DB
+export const getGlobalStats = async (
+    overrideMode?: TournamentMode, 
+    overrideData?: { teams: Team[], partners: Partner[] }
+): Promise<{ teamCount: number; partnerCount: number }> => {
   try {
     const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
     const uniqueTeams = new Set<string>();
     const uniquePartners = new Set<string>();
 
-    const promises = modes.map(mode => getTournamentData(mode));
+    const promises = modes.map(mode => {
+        // If this is the mode we are currently editing locally, don't fetch from DB, use local data later
+        if (mode === overrideMode && overrideData) {
+            return Promise.resolve(null);
+        }
+        return getTournamentData(mode);
+    });
+
     const results = await Promise.all(promises);
 
-    results.forEach(data => {
+    results.forEach((data) => {
       if (data) {
         if (data.teams && Array.isArray(data.teams)) {
           data.teams.forEach((t: Team) => uniqueTeams.add(t.id));
@@ -239,6 +250,12 @@ export const getGlobalStats = async (): Promise<{ teamCount: number; partnerCoun
         }
       }
     });
+
+    // Add local override data
+    if (overrideData) {
+        overrideData.teams.forEach(t => uniqueTeams.add(t.id));
+        overrideData.partners.forEach(p => uniquePartners.add(p.id));
+    }
 
     return {
       teamCount: uniqueTeams.size,
