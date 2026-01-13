@@ -206,7 +206,6 @@ function AppContent() {
             teams={tournament.teams}
             onClose={() => setShowUserProfile(false)}
             onLogout={handleLogout}
-            onRequestClaim={tournament.requestTeamClaim}
           />
       )}
       

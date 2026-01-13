@@ -5,7 +5,8 @@ import {
   doc, 
   setDoc, 
   getDoc, 
-  enableIndexedDbPersistence 
+  enableIndexedDbPersistence,
+  runTransaction
 } from "firebase/firestore";
 import { 
   getAuth, 
@@ -88,6 +89,50 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
     if (error.code === 'permission-denied') return null;
     console.error(`Firestore: Failed to get ${mode} data`, error);
     return null;
+  }
+};
+
+export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: string, userEmail: string) => {
+  const tournamentDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+  try {
+    await runTransaction(firestore, async (transaction) => {
+      const docSnap = await transaction.get(tournamentDocRef);
+      if (!docSnap.exists()) {
+        throw new Error("Data turnamen tidak ditemukan.");
+      }
+      
+      const data = docSnap.data() as TournamentState;
+      const teams = data.teams || [];
+      
+      // Check if team exists
+      const teamIndex = teams.findIndex(t => t.id === teamId);
+      if (teamIndex === -1) throw new Error("Tim tidak ditemukan.");
+      
+      const team = teams[teamIndex];
+      if (team.ownerEmail) throw new Error("Tim ini sudah memiliki manager.");
+      
+      // Optional: Check if user already owns a team in this mode
+      const existingTeam = teams.find(t => t.ownerEmail === userEmail);
+      if (existingTeam) throw new Error(`Anda sudah menjadi manager tim ${existingTeam.name} di mode ini.`);
+      
+      // Optional: Check if user already has a pending request
+      const existingRequest = teams.find(t => t.requestedOwnerEmail === userEmail);
+      if (existingRequest && existingRequest.id !== teamId) {
+        throw new Error(`Anda masih memiliki request pending untuk tim ${existingRequest.name}.`);
+      }
+
+      // Update specific team
+      const updatedTeams = [...teams];
+      updatedTeams[teamIndex] = {
+        ...team,
+        requestedOwnerEmail: userEmail
+      };
+      
+      transaction.update(tournamentDocRef, { teams: updatedTeams });
+    });
+  } catch (e) {
+    console.error("Claim Transaction failed: ", e);
+    throw e;
   }
 };
 
