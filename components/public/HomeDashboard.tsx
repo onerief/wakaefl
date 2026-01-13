@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Trophy, ListOrdered, ChevronRight, Gamepad2, Users, Star, Crown, Globe, PlusCircle, Lock } from 'lucide-react';
+import { Trophy, ListOrdered, ChevronRight, Gamepad2, Users, Star, Crown, Globe, PlusCircle } from 'lucide-react';
 import { Card } from '../shared/Card';
 import { TournamentMode } from '../../types';
 import { BannerMarquee } from './BannerMarquee';
@@ -55,9 +55,9 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, team
                 <span className="text-[10px] font-bold text-brand-light uppercase tracking-widest">Partners</span>
              </div>
              
-             {/* Registration Button */}
-             <div className="w-full sm:w-auto mt-4 sm:mt-0 sm:ml-8">
-                 {isRegistrationOpen ? (
+             {/* Registration Button - Completely hidden if closed */}
+             {isRegistrationOpen && (
+                 <div className="w-full sm:w-auto mt-4 sm:mt-0 sm:ml-8">
                      <button 
                         onClick={onRegisterTeam}
                         className="group relative flex items-center gap-3 px-6 py-3 bg-white text-brand-primary rounded-xl font-bold uppercase tracking-wider shadow-lg hover:shadow-white/20 transition-all hover:scale-105 active:scale-95"
@@ -66,16 +66,8 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, team
                          <PlusCircle size={20} className="relative z-10 text-brand-vibrant" />
                          <span className="relative z-10">Daftar Tim Baru</span>
                      </button>
-                 ) : (
-                     <button 
-                        disabled
-                        className="flex items-center gap-3 px-6 py-3 bg-white/5 border border-white/10 text-brand-light rounded-xl font-bold uppercase tracking-wider cursor-not-allowed opacity-70"
-                     >
-                         <Lock size={20} className="text-brand-light/50" />
-                         <span>Pendaftaran Ditutup</span>
-                     </button>
-                 )}
-             </div>
+                 </div>
+             )}
           </div>
         </div>
       </div>
