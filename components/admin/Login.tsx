@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
@@ -48,7 +47,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[110] backdrop-blur-sm">
       <Card className="w-full max-w-md relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-brand-text transition-colors" aria-label="Close login modal">
           <X size={24} />

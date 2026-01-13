@@ -63,7 +63,16 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
            <span className="text-[10px] font-bold text-brand-vibrant bg-brand-vibrant/10 px-2 py-0.5 rounded-full">
             MD {match.matchday}
           </span>
-          <span className="text-[10px] font-bold text-brand-light opacity-50 uppercase">Leg {match.leg}</span>
+          <div className="flex gap-2 items-center">
+              <span className="text-[10px] font-bold text-brand-light opacity-50 uppercase">Leg {match.leg}</span>
+              <button 
+                onClick={() => onEditSchedule(match)} 
+                className="text-brand-light hover:text-white transition-colors" 
+                title="Edit Match Schedule"
+              >
+                  <Pencil size={12} />
+              </button>
+          </div>
       </div>
      
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 gap-y-3">

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { CheckCircle, XCircle, Info, X } from 'lucide-react';
 
@@ -54,7 +55,7 @@ const IndividualToast: React.FC<{ toast: ToastMessage, onDismiss: (id: number) =
 
     return (
         <div 
-            className={`flex items-center gap-4 w-full max-w-sm p-4 text-brand-text bg-brand-secondary rounded-lg shadow-lg border-l-4 ${TOAST_COLORS[toast.type]} transition-all duration-300 ease-in-out transform ${isExiting ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'}`}
+            className={`pointer-events-auto flex items-center gap-4 w-full max-w-sm p-4 text-brand-text bg-brand-secondary rounded-lg shadow-lg border-l-4 ${TOAST_COLORS[toast.type]} transition-all duration-300 ease-in-out transform ${isExiting ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'}`}
             role="alert"
         >
             <div>{ICONS[toast.type]}</div>
@@ -81,7 +82,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      <div className="fixed top-24 right-4 z-[100] space-y-3">
+      <div className="fixed top-24 right-4 z-[120] space-y-3 pointer-events-none">
         {toasts.map((toast) => (
           <IndividualToast key={toast.id} toast={toast} onDismiss={removeToast} />
         ))}

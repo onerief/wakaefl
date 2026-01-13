@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import type { KnockoutStageRounds, Team } from '../../types';
 import { Card } from '../shared/Card';
@@ -66,7 +67,7 @@ export const KnockoutMatchForm: React.FC<KnockoutMatchFormProps> = ({ round, tea
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] backdrop-blur-sm">
       <Card className="w-full max-w-2xl relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-brand-text transition-colors" aria-label="Close form">
           <X size={24} />

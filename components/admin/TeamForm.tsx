@@ -86,7 +86,7 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm p-4 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] backdrop-blur-sm p-4 overflow-y-auto">
       <Card className="w-full max-w-lg relative my-auto !p-0 overflow-hidden !rounded-[2rem]">
         <div className="bg-brand-secondary/50 p-6 border-b border-white/5 flex justify-between items-center">
             <h2 className="text-2xl font-black text-white italic uppercase tracking-tighter">

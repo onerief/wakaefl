@@ -5,7 +5,7 @@ import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ToggleLeft, ToggleRight, ChevronDown, Check } from 'lucide-react';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { useToast } from '../shared/Toast';
 import { Card } from '../shared/Card';
@@ -14,6 +14,8 @@ import { BannerSettings } from './BannerSettings';
 import { PartnerSettings } from './PartnerSettings';
 import { GenerateBracketConfirmationModal } from './GenerateBracketConfirmationModal';
 import { ConfirmationModal } from './ConfirmationModal';
+import { MatchScheduleEditor } from './MatchScheduleEditor';
+import { KnockoutMatchScheduleEditor } from './KnockoutMatchScheduleEditor';
 
 interface AdminPanelProps {
   teams: Team[];
@@ -36,7 +38,7 @@ interface AdminPanelProps {
   updateKnockoutMatch: (matchId: string, match: KnockoutMatch) => void;
   initializeEmptyKnockoutStage: () => void;
   addKnockoutMatch: (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => void;
-  deleteKnockoutMatch: (matchId: string) => void;
+  deleteKnockoutMatch?: (matchId: string) => void;
   resetTournament: () => void;
   updateRules: (rules: string) => void;
   updateBanners: (banners: string[]) => void;
@@ -53,15 +55,28 @@ interface AdminPanelProps {
   startNewSeason: () => void; 
   resolveTeamClaim?: (teamId: string, approved: boolean) => void;
   isLoading?: boolean;
-  isRegistrationOpen?: boolean; // New prop
-  setRegistrationStatus?: (isOpen: boolean) => void; // New prop
+  isRegistrationOpen?: boolean; 
+  setRegistrationStatus?: (isOpen: boolean) => void;
+  updateKnockoutMatchDetails?: (matchId: string, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => void;
+  updateMatchSchedule?: (matchId: string, teamAId: string, teamBId: string) => void;
 }
 
 type AdminTab = 'group-fixtures' | 'knockout' | 'teams' | 'rules' | 'settings';
 
+const ADMIN_TABS: { id: AdminTab; label: string; icon: any }[] = [
+    { id: 'teams', label: 'Teams Management', icon: Users },
+    { id: 'group-fixtures', label: 'Fixtures & Results', icon: ListChecks },
+    { id: 'knockout', label: 'Knockout Stage', icon: Trophy },
+    { id: 'rules', label: 'Rules', icon: BookOpen },
+    { id: 'settings', label: 'Settings', icon: Settings },
+];
+
 export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('teams');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAddingMatch, setIsAddingMatch] = useState<keyof KnockoutStageRounds | null>(null);
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+  const [editingKnockoutMatch, setEditingKnockoutMatch] = useState<KnockoutMatch | null>(null);
   const [selectedMatchdays, setSelectedMatchdays] = useState<Record<string, string>>({});
   const [showGenerateBracketConfirm, setShowGenerateBracketConfirm] = useState(false);
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
@@ -73,7 +88,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       status, finalizeSeason, resumeSeason, startNewSeason,
       updateKnockoutMatch, rules, updateRules,
       banners, updateBanners, partners, updatePartners, initializeEmptyKnockoutStage,
-      generateKnockoutBracket, isRegistrationOpen, setRegistrationStatus
+      generateKnockoutBracket, isRegistrationOpen, setRegistrationStatus,
+      deleteKnockoutMatch, updateKnockoutMatchDetails, updateMatchSchedule
   } = props;
 
   const handleAddKnockoutMatch = (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => {
@@ -114,6 +130,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           addToast(isRegistrationOpen ? 'Pendaftaran ditutup.' : 'Pendaftaran dibuka.', 'info');
       }
   }
+
+  const handleEditMatchSchedule = (matchId: string, teamAId: string, teamBId: string) => {
+      if (updateMatchSchedule) {
+          updateMatchSchedule(matchId, teamAId, teamBId);
+          addToast('Match schedule updated.', 'success');
+          setEditingMatch(null);
+      }
+  }
+
+  const handleEditKnockoutMatchDetails = (matchId: string, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => {
+      if (updateKnockoutMatchDetails) {
+          updateKnockoutMatchDetails(matchId, teamAId, teamBId, placeholderA, placeholderB);
+          addToast('Knockout match details updated.', 'success');
+          setEditingKnockoutMatch(null);
+      }
+  }
+
+  const handleDeleteKnockoutMatch = (id: string) => {
+      if (deleteKnockoutMatch) {
+          deleteKnockoutMatch(id);
+          addToast('Match deleted.', 'success');
+      } else {
+          addToast('Delete function not available.', 'error');
+      }
+  }
+
+  const activeTabInfo = ADMIN_TABS.find(t => t.id === activeTab) || ADMIN_TABS[0];
+  const ActiveIcon = activeTabInfo.icon;
 
   const renderContent = () => {
     switch(activeTab) {
@@ -171,7 +215,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                             <div className="space-y-3">
                                  {activeScheduleKey && schedule[activeScheduleKey] ? (
                                     schedule[activeScheduleKey].sort((a, b) => a.id.localeCompare(b.id)).map(match => (
-                                        <MatchEditor key={match.id} match={match} onUpdateScore={updateMatchScore} onGenerateSummary={async () => ''} onEditSchedule={() => {}} />
+                                        <MatchEditor 
+                                            key={match.id} 
+                                            match={match} 
+                                            onUpdateScore={updateMatchScore} 
+                                            onGenerateSummary={async () => ''} 
+                                            onEditSchedule={setEditingMatch} 
+                                        />
                                     ))
                                 ) : <p className="text-brand-light text-center py-4 text-sm">No matches.</p>}
                             </div>
@@ -179,6 +229,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                     );
                 })}
             </div>
+            {editingMatch && (
+                <MatchScheduleEditor 
+                    match={editingMatch}
+                    teams={teams}
+                    onSave={handleEditMatchSchedule}
+                    onClose={() => setEditingMatch(null)}
+                />
+            )}
           </div>
         );
       case 'knockout':
@@ -218,7 +276,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {knockoutStage[roundName].map((match: KnockoutMatch) => (
-                         <KnockoutMatchEditor key={match.id} match={match} onUpdateScore={(id, data) => updateKnockoutMatch(id, { ...match, ...data })} onEdit={() => {}} onDelete={() => props.deleteKnockoutMatch(match.id)} />
+                         <KnockoutMatchEditor 
+                            key={match.id} 
+                            match={match} 
+                            onUpdateScore={(id, data) => updateKnockoutMatch(id, { ...match, ...data })} 
+                            onEdit={setEditingKnockoutMatch} 
+                            onDelete={() => handleDeleteKnockoutMatch(match.id)} 
+                        />
                       ))}
                     </div>
                   </Card>
@@ -226,6 +290,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               </div>
             )}
              {isAddingMatch && <KnockoutMatchForm round={isAddingMatch} teams={teams} onSave={handleAddKnockoutMatch} onClose={() => setIsAddingMatch(null)} />}
+             {editingKnockoutMatch && (
+                 <KnockoutMatchScheduleEditor 
+                    match={editingKnockoutMatch}
+                    teams={teams}
+                    onSave={handleEditKnockoutMatchDetails}
+                    onClose={() => setEditingKnockoutMatch(null)}
+                 />
+             )}
              {showGenerateBracketConfirm && (
                  <GenerateBracketConfirmationModal 
                     onConfirm={handleGenerateBracket} 
@@ -316,21 +388,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     }
   }
 
-  // Helper for Sidebar Buttons
-  const NavButton = ({ tab, icon: Icon, label }: { tab: AdminTab, icon: any, label: string }) => (
-      <button
-        onClick={() => setActiveTab(tab)}
-        className={`w-full text-left px-4 py-3 rounded-xl transition-all duration-200 flex items-center gap-3 font-bold text-sm ${
-            activeTab === tab 
-            ? 'bg-brand-vibrant text-white shadow-lg shadow-brand-vibrant/20' 
-            : 'text-brand-light hover:bg-white/5 hover:text-white'
-        }`}
-      >
-          <Icon size={18} className={activeTab === tab ? 'text-white' : 'text-brand-light opacity-70'} />
-          {label}
-      </button>
-  );
-
   const ModeButton = ({ m, label, colorClass, borderClass }: { m: TournamentMode, label: string, colorClass: string, borderClass: string }) => (
     <button
         onClick={() => setMode(m)}
@@ -350,7 +407,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     {/* Set fixed height on desktop to allow inner scroll */}
       
       {/* SIDEBAR NAVIGATION */}
-      <aside className="w-full lg:w-72 flex-shrink-0 space-y-6">
+      <aside className="w-full lg:w-72 flex-shrink-0 space-y-6 relative z-30">
           
           {/* Database Switcher */}
           <div className="bg-brand-secondary/40 backdrop-blur-sm border border-white/10 rounded-2xl p-4 shadow-xl">
@@ -365,14 +422,50 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
              </div>
           </div>
 
-          {/* Menu Tabs */}
-          <nav className="bg-brand-secondary/40 backdrop-blur-sm border border-white/10 rounded-2xl p-2 shadow-xl flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible no-scrollbar">
-              <NavButton tab="teams" icon={Users} label="Teams Management" />
-              <NavButton tab="group-fixtures" icon={ListChecks} label="Fixtures & Results" />
-              <NavButton tab="knockout" icon={Trophy} label="Knockout Stage" />
-              <NavButton tab="rules" icon={BookOpen} label="Rules" />
-              <NavButton tab="settings" icon={Settings} label="Settings" />
-          </nav>
+          {/* Menu Dropdown */}
+          <div className="bg-brand-secondary/40 backdrop-blur-sm border border-white/10 rounded-2xl p-2 shadow-xl">
+              <div className="relative">
+                  <button 
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    className="w-full flex items-center justify-between bg-brand-vibrant text-white px-4 py-3 rounded-xl shadow-lg transition-all hover:bg-brand-vibrant/90 font-bold text-sm"
+                  >
+                      <div className="flex items-center gap-3">
+                          <ActiveIcon size={18} />
+                          {activeTabInfo.label}
+                      </div>
+                      <ChevronDown size={16} className={`transition-transform duration-300 ${isMenuOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Dropdown Options */}
+                  {isMenuOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-2 bg-brand-secondary border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200">
+                          {ADMIN_TABS.map((tab) => {
+                              const IsActive = activeTab === tab.id;
+                              return (
+                                  <button
+                                    key={tab.id}
+                                    onClick={() => {
+                                        setActiveTab(tab.id);
+                                        setIsMenuOpen(false);
+                                    }}
+                                    className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors border-b border-white/5 last:border-none ${
+                                        IsActive 
+                                        ? 'bg-brand-vibrant/10 text-brand-vibrant' 
+                                        : 'text-brand-light hover:bg-white/5 hover:text-white'
+                                    }`}
+                                  >
+                                      <div className="flex items-center gap-3">
+                                          <tab.icon size={16} />
+                                          {tab.label}
+                                      </div>
+                                      {IsActive && <Check size={14} />}
+                                  </button>
+                              )
+                          })}
+                      </div>
+                  )}
+              </div>
+          </div>
           
           <div className="hidden lg:block bg-gradient-to-br from-brand-vibrant/20 to-transparent p-6 rounded-2xl border border-white/5 text-center">
              <LayoutDashboard size={32} className="mx-auto text-brand-vibrant mb-2 opacity-50" />

@@ -51,6 +51,7 @@ type Action =
   | { type: 'ADD_KNOCKOUT_MATCH'; payload: { round: keyof KnockoutStageRounds, match: KnockoutMatch } }
   | { type: 'DELETE_KNOCKOUT_MATCH'; payload: string }
   | { type: 'UPDATE_KNOCKOUT_MATCH_DETAILS'; payload: { matchId: string; teamAId: string | null; teamBId: string | null; placeholderA: string; placeholderB: string } }
+  | { type: 'UPDATE_MATCH_SCHEDULE'; payload: { matchId: string; teamAId: string; teamBId: string } }
   | { type: 'MANUAL_ADD_GROUP'; payload: Group }
   | { type: 'MANUAL_DELETE_GROUP'; payload: string }
   | { type: 'MANUAL_ADD_TEAM_TO_GROUP'; payload: { teamId: string; groupId: string } }
@@ -198,6 +199,87 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
       const { round } = action.payload;
       const newKnockout = { ...state.knockoutStage, [round]: state.knockoutStage[round].map(m => m.id === action.payload.id ? action.payload : m) };
       return { ...state, knockoutStage: newKnockout };
+    }
+    case 'DELETE_KNOCKOUT_MATCH': {
+        if (!state.knockoutStage) return state;
+        const round = Object.keys(state.knockoutStage).find(r => 
+            state.knockoutStage![r as keyof KnockoutStageRounds].some(m => m.id === action.payload)
+        ) as keyof KnockoutStageRounds | undefined;
+        
+        if (!round) return state;
+        
+        return {
+            ...state,
+            knockoutStage: {
+                ...state.knockoutStage,
+                [round]: state.knockoutStage[round].filter(m => m.id !== action.payload)
+            }
+        };
+    }
+    case 'UPDATE_KNOCKOUT_MATCH_DETAILS': {
+        if (!state.knockoutStage) return state;
+        const { matchId, teamAId, teamBId, placeholderA, placeholderB } = action.payload;
+        
+        const round = Object.keys(state.knockoutStage).find(r => 
+            state.knockoutStage![r as keyof KnockoutStageRounds].some(m => m.id === matchId)
+        ) as keyof KnockoutStageRounds | undefined;
+
+        if (!round) return state;
+
+        const updatedMatches = state.knockoutStage[round].map(m => {
+            if (m.id !== matchId) return m;
+            return {
+                ...m,
+                teamA: teamAId ? (state.teams.find(t => t.id === teamAId) || null) : null,
+                teamB: teamBId ? (state.teams.find(t => t.id === teamBId) || null) : null,
+                placeholderA,
+                placeholderB,
+                scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null // Reset scores when teams change
+            };
+        });
+
+        return {
+            ...state,
+            knockoutStage: {
+                ...state.knockoutStage,
+                [round]: updatedMatches
+            }
+        };
+    }
+    case 'UPDATE_MATCH_SCHEDULE': {
+        const { matchId, teamAId, teamBId } = action.payload;
+        const newMatches = state.matches.map(m => {
+            if (m.id === matchId) {
+                return {
+                    ...m,
+                    teamA: state.teams.find(t => t.id === teamAId) || m.teamA,
+                    teamB: state.teams.find(t => t.id === teamBId) || m.teamB,
+                    scoreA: null,
+                    scoreB: null,
+                    status: 'scheduled' as const // Reset status
+                };
+            }
+            return m;
+        });
+        
+        // Need to recalculate standings for the group this match belongs to
+        const match = state.matches.find(m => m.id === matchId);
+        if (!match) return { ...state, matches: newMatches };
+
+        const groupName = `Group ${match.group}`; // Assuming naming convention "Group A"
+        const group = state.groups.find(g => g.name === groupName); // Try simple match first
+        
+        // More robust group finding if names vary
+        const targetGroups = state.groups.map(g => {
+             // Re-calculate standings for all groups to be safe or just the affected one if identified
+             const groupMatches = newMatches.filter(m => m.group === g.name.split(' ')[1]);
+             return {
+                 ...g,
+                 standings: calculateStandings(g.teams, groupMatches)
+             };
+        });
+
+        return { ...state, matches: newMatches, groups: targetGroups };
     }
     case 'MANUAL_ADD_GROUP':
       return { ...state, groups: [...state.groups, action.payload] };
@@ -614,6 +696,9 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       },
       requestTeamClaim: (teamId: string, userEmail: string) => dispatch({ type: 'REQUEST_TEAM_CLAIM', payload: { teamId, userEmail } }),
       resolveTeamClaim: (teamId: string, approved: boolean) => dispatch({ type: 'RESOLVE_TEAM_CLAIM', payload: { teamId, approved } }),
-      setRegistrationStatus: (isOpen: boolean) => dispatch({ type: 'SET_REGISTRATION_STATUS', payload: isOpen })
+      setRegistrationStatus: (isOpen: boolean) => dispatch({ type: 'SET_REGISTRATION_STATUS', payload: isOpen }),
+      deleteKnockoutMatch: (id: string) => dispatch({ type: 'DELETE_KNOCKOUT_MATCH', payload: id }),
+      updateKnockoutMatchDetails: (matchId: string, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => dispatch({ type: 'UPDATE_KNOCKOUT_MATCH_DETAILS', payload: { matchId, teamAId, teamBId, placeholderA, placeholderB } }),
+      updateMatchSchedule: (matchId: string, teamAId: string, teamBId: string) => dispatch({ type: 'UPDATE_MATCH_SCHEDULE', payload: { matchId, teamAId, teamBId } })
   };
 };
