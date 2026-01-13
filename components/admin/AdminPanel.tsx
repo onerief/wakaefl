@@ -94,7 +94,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       updateKnockoutMatch, rules, updateRules,
       banners, updateBanners, partners, updatePartners, initializeEmptyKnockoutStage,
       generateKnockoutBracket, 
-      isRegistrationOpen = true, 
+      isRegistrationOpen, 
       setRegistrationStatus,
       deleteKnockoutMatch, updateKnockoutMatchDetails, updateMatchSchedule
   } = props;
@@ -135,7 +135,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       if (setRegistrationStatus) {
           const newState = !isRegistrationOpen;
           setRegistrationStatus(newState);
-          addToast(newState ? 'Pendaftaran dibuka.' : 'Pendaftaran ditutup.', 'info');
+          addToast(newState ? 'Pendaftaran dibuka (Online).' : 'Pendaftaran ditutup (Offline).', 'info');
       } else {
           addToast('Fungsi tidak tersedia.', 'error');
       }
@@ -342,6 +342,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                             </div>
                             <button 
                                 onClick={toggleRegistration}
+                                type="button"
                                 className={`
                                     relative flex items-center gap-3 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all shadow-lg active:scale-95 touch-manipulation
                                     ${isRegistrationOpen 

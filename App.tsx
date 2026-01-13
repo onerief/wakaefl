@@ -65,12 +65,16 @@ function AppContent() {
     return () => unsubscribe();
   }, [view]);
 
-  // Fetch global stats on mount to show correct numbers on Home Dashboard regardless of activeMode
+  // Fetch global stats whenever view changes to home or partners are updated
   useEffect(() => {
-      getGlobalStats().then(stats => {
-          setGlobalStats(stats);
-      });
-  }, []); // Run once on mount
+      // Small delay to allow Firebase write to propagate if just added
+      const timer = setTimeout(() => {
+          getGlobalStats().then(stats => {
+              setGlobalStats(stats);
+          });
+      }, 500);
+      return () => clearTimeout(timer);
+  }, [view, tournament.partners]); 
 
   const handleAdminViewRequest = () => {
     if (isAdminAuthenticated) {
