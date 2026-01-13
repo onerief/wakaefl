@@ -52,7 +52,9 @@ type Action =
   | { type: 'MANUAL_ADD_TEAM_TO_GROUP'; payload: { teamId: string; groupId: string } }
   | { type: 'MANUAL_REMOVE_TEAM_FROM_GROUP'; payload: { teamId: string; groupId: string } }
   | { type: 'MOVE_TEAM'; payload: { teamId: string, sourceGroupId: string, destGroupId: string } }
-  | { type: 'IMPORT_LEGACY_JSON'; payload: FullTournamentState };
+  | { type: 'IMPORT_LEGACY_JSON'; payload: FullTournamentState }
+  | { type: 'REQUEST_TEAM_CLAIM'; payload: { teamId: string; userEmail: string } }
+  | { type: 'RESOLVE_TEAM_CLAIM'; payload: { teamId: string; approved: boolean } };
 
 const calculateStandings = (teams: Team[], matches: Match[]): Standing[] => {
   const standings: { [key: string]: Standing } = teams.reduce((acc, team) => {
@@ -167,6 +169,46 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
       return { ...state, groups: state.groups.map(g => g.id === action.payload.groupId ? { ...g, teams: g.teams.filter(t => t.id !== action.payload.teamId), standings: calculateStandings(g.teams.filter(t => t.id !== action.payload.teamId), state.matches.filter(m => m.group === g.name.split(' ')[1])) } : g) };
     case 'IMPORT_LEGACY_JSON':
       return { ...action.payload };
+    case 'REQUEST_TEAM_CLAIM': {
+        const { teamId, userEmail } = action.payload;
+        // Unset requestedOwnerEmail for this user from any other teams first to prevent multi-requests? 
+        // For simplicity, just update the target team.
+        const updatedTeams = state.teams.map(t => 
+            t.id === teamId ? { ...t, requestedOwnerEmail: userEmail } : t
+        );
+        return { ...state, teams: updatedTeams };
+    }
+    case 'RESOLVE_TEAM_CLAIM': {
+        const { teamId, approved } = action.payload;
+        const updatedTeams = state.teams.map(t => {
+            if (t.id === teamId) {
+                if (approved) {
+                    return { ...t, ownerEmail: t.requestedOwnerEmail, requestedOwnerEmail: undefined };
+                } else {
+                    return { ...t, requestedOwnerEmail: undefined };
+                }
+            }
+            return t;
+        });
+        
+        // Also update groups and matches where this team exists
+        const updatedTeam = updatedTeams.find(t => t.id === teamId);
+        if (!updatedTeam) return state;
+
+        const updatedGroups = state.groups.map(g => ({
+            ...g,
+            teams: g.teams.map(t => t.id === teamId ? updatedTeam : t),
+            standings: g.standings.map(s => s.team.id === teamId ? { ...s, team: updatedTeam } : s)
+        }));
+
+        const updatedMatches = state.matches.map(m => {
+            if (m.teamA.id === teamId) return { ...m, teamA: updatedTeam };
+            if (m.teamB.id === teamId) return { ...m, teamB: updatedTeam };
+            return m;
+        });
+
+        return { ...state, teams: updatedTeams, groups: updatedGroups, matches: updatedMatches };
+    }
     default:
       return state;
   }
@@ -495,6 +537,8 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
               scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null
           };
           dispatch({ type: 'ADD_KNOCKOUT_MATCH', payload: { round, match } });
-      }
+      },
+      requestTeamClaim: (teamId: string, userEmail: string) => dispatch({ type: 'REQUEST_TEAM_CLAIM', payload: { teamId, userEmail } }),
+      resolveTeamClaim: (teamId: string, approved: boolean) => dispatch({ type: 'RESOLVE_TEAM_CLAIM', payload: { teamId, approved } })
   };
 };

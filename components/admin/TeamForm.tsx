@@ -110,12 +110,13 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
 
                 <div>
                   <label htmlFor="owner-email" className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5 flex items-center gap-2">
-                     <Mail size={10} /> Email Pemilik (Wajib untuk Akses Member)
+                     <Mail size={12} className="text-brand-vibrant" /> Email Pemilik (Wajib untuk Akses Member)
                   </label>
                   <div className="relative">
                        <input
                         id="owner-email"
                         type="email"
+                        autoComplete="email"
                         value={ownerEmail}
                         onChange={(e) => setOwnerEmail(e.target.value)}
                         className="w-full p-3 bg-brand-primary border border-brand-accent rounded-xl text-brand-text text-sm focus:ring-2 focus:ring-brand-vibrant outline-none"
@@ -123,7 +124,7 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
                       />
                   </div>
                   <p className="text-[10px] text-brand-light/60 mt-1">
-                      Masukkan email yang digunakan peserta saat mendaftar/login di website ini agar mereka bisa mengelola jadwalnya.
+                      Email ini akan menghubungkan akun user yang terdaftar dengan tim ini, memungkinkan mereka mengatur jadwal.
                   </p>
                 </div>
 

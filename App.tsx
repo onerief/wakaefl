@@ -9,6 +9,7 @@ import { Login } from './components/admin/Login';
 import { UserAuthModal } from './components/auth/UserAuthModal';
 import { ToastProvider } from './components/shared/Toast';
 import { TeamProfileModal } from './components/public/TeamProfileModal';
+import { UserProfileModal } from './components/public/UserProfileModal';
 import { onAuthChange, signOutUser } from './services/firebaseService';
 import { useToast } from './components/shared/Toast';
 import { Spinner } from './components/shared/Spinner';
@@ -33,6 +34,7 @@ function AppContent() {
   // Modals
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [showUserAuth, setShowUserAuth] = useState(false);
+  const [showUserProfile, setShowUserProfile] = useState(false);
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
   
   const tournament = useTournament(activeMode, isAdminAuthenticated);
@@ -84,6 +86,7 @@ function AppContent() {
       await signOutUser();
       addToast('Anda telah keluar.', 'info');
       setView('home');
+      setShowUserProfile(false);
   }
 
   const handleAddComment = (matchId: string, text: string) => {
@@ -132,6 +135,7 @@ function AppContent() {
         currentUser={currentUser}
         onUserAuthRequest={() => setShowUserAuth(true)}
         onUserLogout={handleLogout}
+        onShowProfile={() => setShowUserProfile(true)}
       />
       
       <main className="container mx-auto p-4 md:p-8 flex-grow relative z-20">
@@ -192,6 +196,17 @@ function AppContent() {
           <UserAuthModal 
             onClose={() => setShowUserAuth(false)}
             onSuccess={() => setShowUserAuth(false)}
+          />
+      )}
+
+      {/* User Profile / Team Claim Modal */}
+      {showUserProfile && currentUser && (
+          <UserProfileModal 
+            currentUser={currentUser}
+            teams={tournament.teams}
+            onClose={() => setShowUserProfile(false)}
+            onLogout={handleLogout}
+            onRequestClaim={tournament.requestTeamClaim}
           />
       )}
       

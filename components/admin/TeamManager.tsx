@@ -4,7 +4,7 @@ import type { Team, Group, Match, KnockoutStageRounds, TournamentState } from '.
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson } from 'lucide-react';
+import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { GenerateGroupsConfirmationModal } from './GenerateGroupsConfirmationModal';
 import { useToast } from '../shared/Toast';
@@ -32,8 +32,10 @@ interface TeamManagerProps {
   manualRemoveTeamFromGroup: (teamId: string, groupId: string) => void;
   generateMatchesFromGroups: () => void;
   setTournamentState: (state: TournamentState) => void;
-  importLegacyData?: (jsonData: any) => void; // New optional prop
+  importLegacyData?: (jsonData: any) => void; 
   rules: string;
+  // New props for claim resolution
+  resolveTeamClaim?: (teamId: string, approved: boolean) => void;
 }
 
 export const TeamManager: React.FC<TeamManagerProps> = (props) => {
@@ -41,7 +43,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
     teams, groups, matches, knockoutStage, addTeam, updateTeam, deleteTeam, 
     generateGroupStage, onGenerationSuccess, resetTournament, moveTeamToGroup, 
     assignTopSeedToGroup, manualAddGroup, manualDeleteGroup, manualAddTeamToGroup, 
-    manualRemoveTeamFromGroup, generateMatchesFromGroups, setTournamentState, importLegacyData, rules
+    manualRemoveTeamFromGroup, generateMatchesFromGroups, setTournamentState, importLegacyData, rules,
+    resolveTeamClaim
   } = props;
   const [showForm, setShowForm] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
@@ -317,9 +320,47 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const canGenerateGroups = teams.length >= 2;
   const topSeedTeams = teams.filter(t => t.isTopSeed);
   const groupOptions = Array.from({ length: numGroups }, (_, i) => String.fromCharCode(65 + i));
+  const claimRequests = teams.filter(t => t.requestedOwnerEmail);
 
   return (
     <Card>
+      {/* CLAIM REQUESTS SECTION */}
+      {claimRequests.length > 0 && resolveTeamClaim && (
+          <div className="mb-8 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+              <h4 className="text-sm font-black text-yellow-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <ShieldAlert size={16} />
+                  Pending Claim Requests ({claimRequests.length})
+              </h4>
+              <div className="space-y-3">
+                  {claimRequests.map(team => (
+                      <div key={team.id} className="flex flex-col sm:flex-row justify-between items-center bg-black/30 p-3 rounded-lg border border-yellow-500/20">
+                          <div className="flex items-center gap-3 mb-2 sm:mb-0">
+                              <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-8 h-8" />
+                              <div className="flex flex-col">
+                                  <span className="font-bold text-white text-sm">{team.name}</span>
+                                  <span className="text-[10px] text-brand-light">Requested by: <span className="text-yellow-200">{team.requestedOwnerEmail}</span></span>
+                              </div>
+                          </div>
+                          <div className="flex gap-2">
+                              <Button 
+                                  onClick={() => resolveTeamClaim(team.id, true)} 
+                                  className="!py-1.5 !px-3 !text-xs bg-green-500 text-white hover:bg-green-600 border-none"
+                              >
+                                  <Check size={12} className="mr-1" /> Approve
+                              </Button>
+                              <Button 
+                                  onClick={() => resolveTeamClaim(team.id, false)} 
+                                  className="!py-1.5 !px-3 !text-xs bg-red-500/20 text-red-400 hover:bg-red-500/40 border-red-500/30"
+                              >
+                                  <XIcon size={12} className="mr-1" /> Reject
+                              </Button>
+                          </div>
+                      </div>
+                  ))}
+              </div>
+          </div>
+      )}
+
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-xl font-bold text-brand-text">Manage Teams ({teams.length})</h3>
         <Button onClick={handleAddClick}>
@@ -336,16 +377,16 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
               <div className="flex items-center gap-3">
                 <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-8 h-8" />
                 <div className="flex-grow min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-brand-text truncate">{team.name}</span>
                       {team.ownerEmail && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-green-900/40 text-green-400 rounded flex items-center gap-1 border border-green-800">
-                             <Mail size={8} /> Linked
-                          </span>
+                          <div className="flex items-center gap-1.5 text-[10px] text-brand-light/60 bg-white/5 px-2 py-0.5 rounded-full border border-white/5 max-w-full" title={team.ownerEmail}>
+                             <Mail size={10} className="text-brand-vibrant shrink-0" />
+                             <span className="truncate max-w-[120px] sm:max-w-[200px]">{team.ownerEmail}</span>
+                          </div>
                       )}
                   </div>
                   {currentGroup && <p className="text-xs text-brand-light">Group {currentGroup.name.split(' ')[1]}</p>}
-                  {team.ownerEmail && <p className="text-[10px] text-brand-light/50 truncate max-w-[200px]">{team.ownerEmail}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">

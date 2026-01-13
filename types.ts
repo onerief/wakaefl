@@ -8,7 +8,8 @@ export interface Team {
   whatsappNumber?: string;
   isTopSeed?: boolean;
   assignedGroup?: string;
-  ownerEmail?: string; // New: Link to registered user email
+  ownerEmail?: string; // Link to registered user email
+  requestedOwnerEmail?: string; // New: Email of user requesting to claim this team
 }
 
 export interface Standing {

@@ -1,8 +1,9 @@
 
-import React from 'react';
-import type { View } from '../types';
+import React, { useState } from 'react';
+import type { View, Team } from '../types';
 import { Shield, LogOut, Zap, Home, User as UserIcon, LogIn } from 'lucide-react';
 import type { User } from 'firebase/auth';
+import { UserProfileModal } from './public/UserProfileModal';
 
 interface HeaderProps {
   currentView: View;
@@ -13,6 +14,11 @@ interface HeaderProps {
   currentUser: User | null;
   onUserAuthRequest: () => void;
   onUserLogout: () => void;
+  // Passed implicitly via parent props spreading if managed in App, 
+  // but explicit props are safer here. We need tournament data access for the profile modal.
+  // To avoid prop drilling hell, let's keep the modal triggering here but manage state in parent or pass handlers.
+  // Actually, easiest is to let Parent handle the "Show Profile" state.
+  onShowProfile?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -23,7 +29,8 @@ export const Header: React.FC<HeaderProps> = ({
     onLogout, // Admin Logout
     currentUser,
     onUserAuthRequest,
-    onUserLogout
+    onUserLogout,
+    onShowProfile
 }) => {
   return (
     <header className="sticky top-0 z-50 bg-brand-primary/80 backdrop-blur-md border-b border-white/5 shadow-2xl">
@@ -97,8 +104,11 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="w-px h-6 bg-white/10 mx-1"></div>
           
           {currentUser ? (
-              <div className="flex items-center gap-2 pl-2">
-                   <div className="flex items-center gap-2 px-3 py-1.5 bg-brand-vibrant/10 rounded-full border border-brand-vibrant/20">
+              <button 
+                onClick={onShowProfile}
+                className="flex items-center gap-2 px-1 pl-2 py-1 hover:bg-white/5 rounded-full transition-colors group"
+              >
+                   <div className="flex items-center gap-2 px-3 py-1.5 bg-brand-vibrant/10 rounded-full border border-brand-vibrant/20 group-hover:bg-brand-vibrant/20 transition-colors">
                       {currentUser.photoURL ? (
                           <img src={currentUser.photoURL} alt="Profile" className="w-5 h-5 rounded-full ring-1 ring-brand-vibrant" />
                       ) : (
@@ -108,14 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
                         {currentUser.displayName || currentUser.email?.split('@')[0] || 'Member'}
                       </span>
                    </div>
-                   <button
-                    onClick={onUserLogout}
-                    className="w-9 h-9 flex items-center justify-center rounded-full text-brand-light hover:bg-red-500/20 hover:text-red-400 transition-colors"
-                    title="Logout"
-                    >
-                    <LogOut size={16} />
-                    </button>
-              </div>
+              </button>
           ) : (
              <button
                 onClick={onUserAuthRequest}
@@ -138,9 +141,9 @@ export const Header: React.FC<HeaderProps> = ({
             
             {/* User Mobile Auth */}
              {currentUser ? (
-                <button onClick={onUserLogout} className="p-2 rounded-lg text-brand-light hover:text-red-400">
+                <button onClick={onShowProfile} className="p-2 rounded-lg text-brand-light hover:text-brand-vibrant">
                      {currentUser.photoURL ? (
-                          <img src={currentUser.photoURL} alt="Profile" className="w-6 h-6 rounded-full" />
+                          <img src={currentUser.photoURL} alt="Profile" className="w-6 h-6 rounded-full ring-1 ring-brand-vibrant/50" />
                       ) : (
                           <UserIcon size={20} />
                       )}
