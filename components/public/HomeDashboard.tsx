@@ -14,9 +14,17 @@ interface HomeDashboardProps {
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, teamCount, partnerCount, banners }) => {
   return (
-    <div className="space-y-12 py-8 animate-in fade-in duration-700">
+    <div className="space-y-8 py-4 animate-in fade-in duration-700">
+      
+      {/* Banner Marquee Section (Moved to Top) */}
+      {banners && banners.length > 0 && (
+          <div className="w-full">
+              <BannerMarquee banners={banners} />
+          </div>
+      )}
+
       {/* Hero Section */}
-      <div className="relative rounded-[2.5rem] overflow-hidden bg-gradient-to-br from-brand-secondary to-brand-primary p-8 md:p-16 border border-white/5 shadow-2xl">
+      <div className="relative rounded-[2.5rem] overflow-hidden bg-gradient-to-br from-brand-secondary to-brand-primary p-8 md:p-12 border border-white/5 shadow-2xl">
         <div className="absolute inset-0 opacity-10 bg-[url('https://media.rawpixel.com/image_800/cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDIyLTA1L3AtNDY3LXBvbC00MzQ2LWwtMS1hLWpvYjkzNC5qcGc.jpg')] bg-cover bg-center mix-blend-overlay"></div>
         <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-brand-vibrant/20 blur-[120px] rounded-full"></div>
         
@@ -25,35 +33,28 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, team
             <Star size={14} className="text-brand-special fill-brand-special" />
             <span className="text-xs font-black text-brand-special uppercase tracking-widest">The Ultimate eFootball Hub</span>
           </div>
-          <h1 className="text-5xl md:text-7xl font-black text-white italic uppercase tracking-tighter leading-none mb-6">
+          {/* Resized Title */}
+          <h1 className="text-3xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-none mb-6">
             WAY KANAN <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-vibrant via-brand-special to-brand-vibrant">eFootball Mobile</span>
           </h1>
-          <p className="text-brand-light text-lg mb-8 max-w-md">
+          <p className="text-brand-light text-sm md:text-base mb-8 max-w-md">
             Kelola liga reguler atau turnamen Champions League Way Kanan dengan sistem otomatis yang profesional dan real-time.
           </p>
           
           <div className="flex gap-8">
              <div className="flex flex-col">
-                <span className="text-3xl font-black text-white">{teamCount}</span>
+                <span className="text-2xl md:text-3xl font-black text-white">{teamCount}</span>
                 <span className="text-[10px] font-bold text-brand-light uppercase tracking-widest">Teams Joined</span>
              </div>
              <div className="h-10 w-px bg-white/10"></div>
              <div className="flex flex-col">
-                <span className="text-3xl font-black text-white">{partnerCount}</span>
+                <span className="text-2xl md:text-3xl font-black text-white">{partnerCount}</span>
                 <span className="text-[10px] font-bold text-brand-light uppercase tracking-widest">Partners</span>
              </div>
           </div>
         </div>
       </div>
-
-      {/* Banner Marquee Section (Added below Hero) */}
-      {banners && banners.length > 0 && (
-          <div className="py-4">
-              <h3 className="text-sm font-black text-brand-light uppercase tracking-widest mb-4 ml-2">Official Sponsors & Events</h3>
-              <BannerMarquee banners={banners} />
-          </div>
-      )}
 
       {/* Mode Selection Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
