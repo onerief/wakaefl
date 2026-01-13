@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield } from 'lucide-react';
 
 interface TeamLogoProps {
@@ -9,8 +9,13 @@ interface TeamLogoProps {
 }
 
 export const TeamLogo: React.FC<TeamLogoProps> = ({ logoUrl, teamName, className = 'w-8 h-8' }) => {
-  const [hasError, setHasError] = React.useState(false);
+  const [hasError, setHasError] = useState(false);
   
+  // Reset error state when logoUrl changes to allow retry/new image loading
+  useEffect(() => {
+    setHasError(false);
+  }, [logoUrl]);
+
   const isUrl = logoUrl && (logoUrl.startsWith('http') || logoUrl.startsWith('blob:') || logoUrl.startsWith('data:'));
   const effectiveLogoUrl = logoUrl && !hasError 
     ? (isUrl ? logoUrl : `/logo/${logoUrl}`) 
@@ -23,7 +28,13 @@ export const TeamLogo: React.FC<TeamLogoProps> = ({ logoUrl, teamName, className
             src={effectiveLogoUrl} 
             alt={`${teamName} logo`} 
             className="w-full h-full object-contain p-0.5"
-            onError={() => setHasError(true)}
+            onError={() => {
+                // Only log warning if it's a real URL that failed
+                if (effectiveLogoUrl) {
+                    console.warn(`TeamLogo: Failed to load image for ${teamName}`);
+                }
+                setHasError(true);
+            }}
             loading="lazy"
           />
       </div>
