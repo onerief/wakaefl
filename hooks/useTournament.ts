@@ -19,7 +19,12 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
 Group Stage:
 - Format: Round-robin.
 - Poin: Menang = 3, Seri = 1, Kalah = 0.
-- Tie-breaker: 1. Head-to-head, 2. Selisih gol, 3. Gol dicetak.`,
+- Tie-breaker: 1. Head-to-head, 2. Selisih gol, 3. Gol dicetak.
+
+Kontak Panitia:
+- WA: 089646800884
+- IG: @waykanan_efootball
+- Email: kanyepocof@gmail.com`,
   banners: [],
   partners: [],
   mode: mode,

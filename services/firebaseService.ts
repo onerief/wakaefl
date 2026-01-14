@@ -68,46 +68,57 @@ const REGISTRATIONS_COLLECTION = 'registrations';
 
 /**
  * Recursively cleans data for Firestore storage.
- * - Removes undefined values
- * - Removes functions
- * - Prevents circular reference crashes
- * - Preserves Firestore-supported non-plain objects (like Timestamp)
+ * - Removes undefined values and functions
+ * - Prevents circular reference crashes using a stack-based traversal
+ * - Preserves Firestore-supported non-plain objects (like Timestamp or Date)
+ * - Converts unknown class instances (like internal library objects) to strings to break potential hidden cycles
  */
-const sanitizeData = (data: any, seen = new WeakSet()): any => {
+const sanitizeData = (data: any, stack = new Set()): any => {
   if (data === null || typeof data !== 'object') {
     return data;
   }
 
-  // Handle circular references
-  if (seen.has(data)) {
+  // Cycle detection: Check if we've seen this exact object instance in our current recursion stack
+  if (stack.has(data)) {
+    console.warn('sanitizeData: Circular reference detected and broken.');
     return undefined;
   }
 
   if (Array.isArray(data)) {
-    seen.add(data);
-    return data.map(item => sanitizeData(item, seen)).filter(i => i !== undefined);
+    stack.add(data);
+    const result = data.map(item => sanitizeData(item, stack)).filter(i => i !== undefined);
+    stack.delete(data);
+    return result;
   }
 
   // Only recurse into plain objects. 
-  // Firestore handles its own internal classes (like Timestamp) correctly if passed as-is.
-  if (Object.prototype.toString.call(data) === '[object Object]') {
-    seen.add(data);
-    return Object.keys(data).reduce((acc: any, key: string) => {
+  // We check proto to avoid recursing into library-specific class instances (like DocumentReference)
+  const isPlainObject = Object.prototype.toString.call(data) === '[object Object]' && 
+                        (Object.getPrototypeOf(data) === Object.prototype || Object.getPrototypeOf(data) === null);
+
+  if (isPlainObject) {
+    stack.add(data);
+    const result = Object.keys(data).reduce((acc: any, key: string) => {
       const value = data[key];
-      // Skip undefined and functions
       if (value !== undefined && typeof value !== 'function') {
-        const sanitizedValue = sanitizeData(value, seen);
+        const sanitizedValue = sanitizeData(value, stack);
         if (sanitizedValue !== undefined) {
           acc[key] = sanitizedValue;
         }
       }
       return acc;
     }, {});
+    stack.delete(data);
+    return result;
   }
 
-  // For non-plain objects (class instances, etc.), return as-is
-  // and let Firestore's internal serializer handle it or throw if unsupported.
-  return data;
+  // Allow specific Firestore-supported non-plain types
+  if (data instanceof Date) return data;
+  if (typeof data.toMillis === 'function') return data; // Potential Firestore Timestamp
+
+  // For any other non-plain object (like a DocumentReference or a User instance),
+  // return it as a string to ensure we don't carry internal library cycles into our clean state.
+  return String(data);
 };
 
 // --- Registration Functions ---

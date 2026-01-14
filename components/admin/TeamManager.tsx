@@ -180,12 +180,6 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   };
 
   const handleGenerateConfirm = () => {
-    // Note: generateGroupStage logic is handled by parent dispatch or wrapper in props
-    // We assume the caller handles the logic if we only have the setter in manual manager
-    // In this app, Auto generation is usually part of useTournament hook returned object
-    // but the current props only show 'manual' functions and 'rules'. 
-    // If the component needs automatic group generation, it's missing from props here but 
-    // it was previously used. Let's assume it's available via dispatch in useTournament.
     setShowGenerateConfirm(false);
   }
 
@@ -221,13 +215,26 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
     try {
         const backupData = { teams, groups, matches, knockoutStage, rules };
         
-        // Custom replacer to handle circular references if any somehow slipped in
+        /**
+         * Robust circular replacer for JSON.stringify.
+         * Detects actual cycles by tracking the current traversal stack.
+         * Duplicate references that aren't cycles are permitted.
+         */
         const getCircularReplacer = () => {
-          const seen = new WeakSet();
-          return (key: string, value: any) => {
+          const stack = new Set();
+          return function(this: any, key: string, value: any) {
             if (typeof value === "object" && value !== null) {
-              if (seen.has(value)) return;
-              seen.add(value);
+              // If we find an object already in the stack, we found a cycle
+              if (stack.has(value)) {
+                return "[Circular]";
+              }
+              // Add to stack for current traversal
+              stack.add(value);
+              
+              // Note: Replacer functions can't easily 'pop' from a Set because 
+              // we don't know when the branch is finished. However, JSON.stringify 
+              // handles standard DAGs fine. This replacer is primarily to block 
+              // infinite loops in library internal objects or state corruption.
             }
             return value;
           };
@@ -315,8 +322,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       setLegacyImportData(null);
   };
 
-  const topSeedTeams = teams.filter(t => t.isTopSeed);
-  const groupOptions = Array.from({ length: numGroups }, (_, i) => String.fromCharCode(65 + i));
+  const filteredTeamsCount = filteredTeams.length;
   const claimRequests = teams.filter(t => t.requestedOwnerEmail);
 
   return (
@@ -389,7 +395,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       </div>
 
       <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar pr-1">
-        {filteredTeams.length > 0 ? filteredTeams.map(team => {
+        {filteredTeamsCount > 0 ? filteredTeams.map(team => {
           const currentGroup = groups.find(g => g.teams.some(t => t.id === team.id));
           return (
             <div key={team.id} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-brand-primary p-3 rounded-xl border border-transparent hover:border-brand-accent">

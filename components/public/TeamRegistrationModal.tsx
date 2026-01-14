@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { X, Upload, UserCircle, MessageCircle, Instagram, Loader, Send, Trophy, ChevronDown } from 'lucide-react';
+import { X, Upload, UserCircle, MessageCircle, Instagram, Loader, Send, Trophy, ChevronDown, Phone } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { uploadTeamLogo, submitNewTeamRegistration } from '../../services/firebaseService';
 import { TeamLogo } from '../shared/TeamLogo';
@@ -205,8 +205,12 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                 </div>
                                 
                                 <div className="p-3 bg-brand-vibrant/10 border border-brand-vibrant/20 rounded-lg">
-                                    <p className="text-[10px] text-brand-light">
-                                        <strong className="text-brand-vibrant">Info:</strong> Pendaftaran ini akan dikirim ke Admin untuk ditinjau. Setelah disetujui, Anda otomatis menjadi pemilik tim ini.
+                                    <p className="text-[10px] text-brand-light flex items-start gap-2">
+                                        <Phone size={12} className="text-brand-vibrant mt-0.5" />
+                                        <span>
+                                            Butuh bantuan pendaftaran? Hubungi Admin (WA: <strong>089646800884</strong>). 
+                                            Pendaftaran akan ditinjau Admin sebelum disetujui.
+                                        </span>
                                     </p>
                                 </div>
                             </div>

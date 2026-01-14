@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Shield, Instagram, Twitter, MessageCircle, Gamepad2, Trophy, Monitor, Lock } from 'lucide-react';
+import { Shield, Instagram, Twitter, MessageCircle, Gamepad2, Trophy, Monitor, Lock, Mail, Phone } from 'lucide-react';
 import type { Partner } from '../types';
 
 interface FooterProps {
@@ -44,7 +44,7 @@ export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin }) => {
                     ))
                 ) : (
                     <>
-                        {/* Default Placeholders if no partners added - now in full color accent colors */}
+                        {/* Default Placeholders if no partners added */}
                          <div className="flex items-center gap-2 group cursor-default transition-all">
                             <Gamepad2 size={28} className="text-brand-vibrant fill-brand-vibrant/10 transition-colors" />
                             <span className="font-black text-2xl text-brand-text tracking-tighter italic group-hover:text-white transition-colors">eFootball™</span>
@@ -105,20 +105,36 @@ export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin }) => {
 
           {/* Connect */}
           <div className="flex flex-col items-center md:items-end text-center md:text-right">
-             <h4 className="font-bold text-brand-text mb-6 uppercase tracking-wider text-xs border-b border-brand-vibrant/50 pb-2">Community</h4>
+             <h4 className="font-bold text-brand-text mb-6 uppercase tracking-wider text-xs border-b border-brand-vibrant/50 pb-2">Community & Social</h4>
              <div className="flex gap-4 mb-4">
-                <a href="#" className="p-2.5 bg-white/5 rounded-xl hover:bg-brand-vibrant hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-brand-vibrant">
+                <a 
+                    href="https://www.instagram.com/waykanan_efootball?igsh=MXh6Y3dzdXdpMmtqbA==" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="p-2.5 bg-white/5 rounded-xl hover:bg-brand-vibrant hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-brand-vibrant"
+                    title="Instagram Official"
+                >
                     <Instagram size={20} />
                 </a>
-                 <a href="#" className="p-2.5 bg-white/5 rounded-xl hover:bg-brand-vibrant hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-brand-vibrant">
-                    <Twitter size={20} />
-                </a>
-                 <a href="#" className="p-2.5 bg-white/5 rounded-xl hover:bg-brand-vibrant hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-brand-vibrant">
+                 <a 
+                    href="https://wa.me/6289646800884" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="p-2.5 bg-white/5 rounded-xl hover:bg-green-500 hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-green-500"
+                    title="WhatsApp Admin"
+                >
                     <MessageCircle size={20} />
+                </a>
+                 <a 
+                    href="mailto:kanyepocof@gmail.com" 
+                    className="p-2.5 bg-white/5 rounded-xl hover:bg-brand-special hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-brand-special"
+                    title="Email Support"
+                >
+                    <Mail size={20} />
                 </a>
              </div>
              <p className="text-brand-light/60 text-xs">
-                Have questions? <a href="#" className="text-brand-vibrant hover:underline">Contact Support</a>
+                Ada pertanyaan? <a href="https://wa.me/6289646800884" target="_blank" rel="noopener noreferrer" className="text-brand-vibrant hover:underline">Hubungi Admin di WhatsApp</a>
              </p>
           </div>
         </div>
