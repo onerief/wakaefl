@@ -106,6 +106,7 @@ export interface SeasonHistory {
   champion: Team;
   runnerUp?: Team;
   dateCompleted: number;
+  mode?: TournamentMode; // New: Track which mode this champion won in
 }
 
 export interface TournamentState {

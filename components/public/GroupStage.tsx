@@ -5,8 +5,6 @@ import { StandingsTable } from './StandingsTable';
 import { Download } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 
-// Dynamically import html2canvas from window since it's added via script tag/importmap
-// or declare it to satisfy TS if using the importmap approach from index.html
 declare const html2canvas: any;
 
 interface GroupStageProps {
@@ -16,8 +14,6 @@ interface GroupStageProps {
 
 export const GroupStage: React.FC<GroupStageProps> = ({ groups, onSelectTeam }) => {
   const { addToast } = useToast();
-  
-  // Create refs for each group container to capture
   const groupRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
 
   const handleExport = async (groupId: string, groupName: string) => {
@@ -25,46 +21,46 @@ export const GroupStage: React.FC<GroupStageProps> = ({ groups, onSelectTeam }) 
       if (!element) return;
 
       try {
-          addToast('Generating image...', 'info');
-          // Assuming html2canvas is available globally via the script tag in index.html
-          // Use window.html2canvas or dynamic import if using the shim
+          addToast('Mempersiapkan gambar...', 'info');
           const canvas = await import('html2canvas').then(mod => mod.default(element, {
-              backgroundColor: '#0f172a', // brand-secondary
-              scale: 2, // Retinas display quality
+              backgroundColor: '#020617', // brand-primary
+              scale: 2,
               logging: false,
               useCORS: true
           }));
           
           const link = document.createElement('a');
-          link.download = `Standings-${groupName}-${new Date().toISOString().split('T')[0]}.png`;
+          link.download = `Standings-${groupName}-${new Date().toLocaleDateString()}.png`;
           link.href = canvas.toDataURL('image/png');
           link.click();
-          addToast('Image downloaded!', 'success');
+          addToast('Gambar berhasil diunduh!', 'success');
       } catch (error) {
           console.error("Export failed", error);
-          addToast('Failed to export image.', 'error');
+          addToast('Gagal mengekspor gambar.', 'error');
       }
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
       {groups.map((group) => (
         <div 
             key={group.id} 
             ref={el => groupRefs.current[group.id] = el}
-            className="bg-brand-secondary p-3 sm:p-4 rounded-xl shadow-xl relative group-card border border-white/5"
+            className="bg-brand-secondary/40 p-4 sm:p-6 rounded-[2rem] shadow-2xl relative border border-white/5 flex flex-col"
         >
-          <div className="flex justify-between items-center mb-3 sm:mb-4 px-1">
-              <h3 className="text-lg sm:text-xl font-bold text-brand-vibrant">{group.name}</h3>
+          <div className="flex justify-between items-center mb-4 px-1">
+              <h3 className="text-xl sm:text-2xl font-black italic text-brand-vibrant uppercase tracking-tight">{group.name}</h3>
               <button 
                 onClick={() => handleExport(group.id, group.name)}
-                className="text-brand-light hover:text-white p-1.5 sm:p-2 rounded-full hover:bg-white/5 transition-colors"
-                title="Download as Image"
+                className="text-brand-light hover:text-white p-2 rounded-xl bg-white/5 hover:bg-brand-vibrant/20 transition-all shadow-lg"
+                title="Download Standings Image"
               >
-                  <Download size={16} className="sm:w-5 sm:h-5" />
+                  <Download size={18} />
               </button>
           </div>
-          <StandingsTable standings={group.standings} onSelectTeam={onSelectTeam} />
+          <div className="flex-grow">
+            <StandingsTable standings={group.standings} onSelectTeam={onSelectTeam} />
+          </div>
         </div>
       ))}
     </div>

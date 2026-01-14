@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
-import type { Team, Match, KnockoutStageRounds, KnockoutMatch, Group, TournamentState, Partner, TournamentMode, TournamentStatus } from '../../types';
+import type { Team, Match, KnockoutStageRounds, KnockoutMatch, Group, TournamentState, Partner, TournamentMode, TournamentStatus, SeasonHistory } from '../../types';
 import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ChevronDown, Check, Menu, Lock, Unlock } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ChevronDown, Check, Menu, Lock, Unlock, Crown } from 'lucide-react';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { useToast } from '../shared/Toast';
 import { Card } from '../shared/Card';
@@ -13,6 +13,7 @@ import { RulesEditor } from './RulesEditor';
 import { BannerSettings } from './BannerSettings';
 import { PartnerSettings } from './PartnerSettings';
 import { BrandingSettings } from './BrandingSettings';
+import { HistoryManager } from './HistoryManager';
 import { GenerateBracketConfirmationModal } from './GenerateBracketConfirmationModal';
 import { ConfirmationModal } from './ConfirmationModal';
 import { MatchScheduleEditor } from './MatchScheduleEditor';
@@ -28,6 +29,7 @@ interface AdminPanelProps {
   partners: Partner[];
   mode: TournamentMode;
   status: TournamentStatus;
+  history: SeasonHistory[];
   isDoubleRoundRobin: boolean;
   setMode: (mode: TournamentMode) => void;
   setRoundRobin: (isDouble: boolean) => void;
@@ -54,6 +56,8 @@ interface AdminPanelProps {
   finalizeSeason: () => { success: boolean; message: string };
   resumeSeason: () => void;
   startNewSeason: () => void; 
+  addHistoryEntry: (entry: SeasonHistory) => void;
+  deleteHistoryEntry: (id: string) => void;
   resolveTeamClaim?: (teamId: string, approved: boolean) => void;
   isLoading?: boolean;
   isRegistrationOpen?: boolean; 
@@ -64,12 +68,13 @@ interface AdminPanelProps {
   updateHeaderLogo?: (url: string) => void;
 }
 
-type AdminTab = 'group-fixtures' | 'knockout' | 'teams' | 'rules' | 'settings';
+type AdminTab = 'group-fixtures' | 'knockout' | 'teams' | 'history' | 'rules' | 'settings';
 
 const ADMIN_TABS: { id: AdminTab; label: string; icon: any }[] = [
     { id: 'teams', label: 'Teams Management', icon: Users },
     { id: 'group-fixtures', label: 'Fixtures & Results', icon: ListChecks },
     { id: 'knockout', label: 'Knockout Stage', icon: Trophy },
+    { id: 'history', label: 'Hall of Fame', icon: Crown },
     { id: 'rules', label: 'Rules', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
 ];
@@ -100,7 +105,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       isRegistrationOpen, 
       setRegistrationStatus,
       deleteKnockoutMatch, updateKnockoutMatchDetails, updateMatchSchedule,
-      headerLogoUrl, updateHeaderLogo
+      headerLogoUrl, updateHeaderLogo, history, addHistoryEntry, deleteHistoryEntry
   } = props;
 
   const handleAddKnockoutMatch = (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => {
@@ -319,6 +324,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         );
       case 'teams':
         return <TeamManager {...props} onGenerationSuccess={() => setActiveTab('group-fixtures')} />;
+      case 'history':
+        return <HistoryManager history={history} teams={teams} onAddEntry={addHistoryEntry} onDeleteEntry={deleteHistoryEntry} />;
       case 'rules':
         return <RulesEditor rules={rules} onSave={updateRules} />;
       case 'settings':
@@ -333,7 +340,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                     />
                 )}
 
-                {/* Registration Control Card */}
                 {setRegistrationStatus && (
                     <Card className="border-brand-accent/50 z-10 relative">
                         <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
@@ -348,8 +354,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                                         : "Pendaftaran disembunyikan dari publik."}
                                 </p>
                             </div>
-                            
-                            {/* Segmented Control / Switch */}
                             <div className="flex bg-black/40 p-1 rounded-xl border border-white/10 shrink-0">
                                 <button
                                     onClick={() => handleSetRegistration(true)}
@@ -390,11 +394,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                                     {status}
                                 </span>
                             </p>
-                            <p className="text-xs text-brand-light mt-1">
-                                {status === 'active' 
-                                    ? "Season is currently active." 
-                                    : "Season is completed. Data is read-only."}
-                            </p>
                         </div>
                         {status === 'active' ? (
                             <Button onClick={() => setShowFinalizeConfirm(true)} className="bg-yellow-600 text-white hover:bg-yellow-700 border-none w-full justify-center">
@@ -421,7 +420,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     }
   }
 
-  // Mobile Native Select Overlay Component
   const MobileNativeSelect = ({ 
       value, 
       options, 
@@ -448,8 +446,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               </div>
           </div>
           <ChevronDown size={20} className="text-brand-light" />
-          
-          {/* Invisible Native Select */}
           <select 
               value={value}
               onChange={(e) => onChange(e.target.value)}
@@ -466,7 +462,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 pb-4 lg:h-[calc(100vh-140px)]"> 
-      {/* MOBILE NAVIGATION HEADER (Visible only on lg and below) */}
       <div className="lg:hidden flex flex-col gap-3 relative z-40 bg-brand-primary/95 backdrop-blur-xl p-2 rounded-2xl border border-white/10 shadow-2xl mb-4">
           <MobileNativeSelect 
               value={mode}
@@ -484,9 +479,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           />
       </div>
 
-      {/* DESKTOP SIDEBAR (Hidden on mobile) */}
       <aside className="hidden lg:block w-72 flex-shrink-0 space-y-6 relative z-30">
-          {/* Database Switcher */}
           <div className="bg-brand-secondary/40 backdrop-blur-sm border border-white/10 rounded-2xl p-4 shadow-xl">
              <div className="flex items-center gap-2 mb-4 px-1">
                  <Database size={16} className="text-brand-light" />
@@ -510,7 +503,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
              </div>
           </div>
 
-          {/* Menu Items */}
           <div className="bg-brand-secondary/40 backdrop-blur-sm border border-white/10 rounded-2xl p-2 shadow-xl">
               <div className="flex flex-col gap-1">
                   {ADMIN_TABS.map((tab) => {
@@ -535,19 +527,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                   })}
               </div>
           </div>
-          
-          <div className="bg-gradient-to-br from-brand-vibrant/20 to-transparent p-6 rounded-2xl border border-white/5 text-center">
-             <LayoutDashboard size={32} className="mx-auto text-brand-vibrant mb-2 opacity-50" />
-             <p className="text-[10px] text-brand-light uppercase tracking-widest font-bold">Admin Control Center</p>
-          </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
       <main className="flex-1 bg-brand-secondary/20 backdrop-blur-sm border border-white/5 rounded-[2rem] shadow-2xl relative overflow-hidden flex flex-col min-h-[500px]">
-        {/* Background Decor */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-vibrant/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-        
-        {/* Content Render - Wrapped in Scrollable Div */}
         <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 lg:pb-0">
                 {renderContent()}
@@ -555,13 +537,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         </div>
       </main>
 
-      {/* Modals */}
       <ConfirmationModal
         isOpen={showFinalizeConfirm}
         onClose={() => setShowFinalizeConfirm(false)}
         onConfirm={handleFinalizeSeason}
         title="Finalize Season"
-        message="Are you sure you want to end the current season? The current leader/champion will be recorded in the Hall of Fame history."
+        message="Are you sure? This will record the current champion in history."
         confirmText="Yes, End Season"
         confirmButtonClass="bg-yellow-600 text-white hover:bg-yellow-700"
       />
@@ -571,12 +552,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         onClose={() => setShowStartNewSeasonConfirm(false)}
         onConfirm={handleStartNewSeason}
         title="Start New Season"
-        message={
-            <div className="text-sm">
-                <p className="mb-2">This will <strong>clear all current teams, matches, and groups</strong> to prepare for a fresh season.</p>
-                <p>Your Hall of Fame history, partners, and rules will be preserved. Are you sure?</p>
-            </div>
-        }
+        message="Clear current data for a fresh season?"
         confirmText="Yes, Start Fresh"
         confirmButtonClass="bg-blue-600 text-white hover:bg-blue-700"
       />

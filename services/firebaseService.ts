@@ -48,7 +48,7 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const firestore = getFirestore(app);
 const auth = getAuth(app);
-const storage = getStorage(app); // Initialize Storage
+const storage = getStorage(app); 
 const googleProvider = new GoogleAuthProvider();
 
 // Enable offline persistence
@@ -66,18 +66,47 @@ const TOURNAMENT_COLLECTION = 'tournament';
 const GLOBAL_CHAT_COLLECTION = 'global_chat';
 const REGISTRATIONS_COLLECTION = 'registrations';
 
-const sanitizeData = (data: any): any => {
+/**
+ * Recursively cleans data for Firestore storage.
+ * - Removes undefined values
+ * - Removes functions
+ * - Prevents circular reference crashes
+ * - Preserves Firestore-supported non-plain objects (like Timestamp)
+ */
+const sanitizeData = (data: any, seen = new WeakSet()): any => {
+  if (data === null || typeof data !== 'object') {
+    return data;
+  }
+
+  // Handle circular references
+  if (seen.has(data)) {
+    return undefined;
+  }
+
   if (Array.isArray(data)) {
-    return data.map(sanitizeData);
-  } else if (data !== null && typeof data === 'object') {
+    seen.add(data);
+    return data.map(item => sanitizeData(item, seen)).filter(i => i !== undefined);
+  }
+
+  // Only recurse into plain objects. 
+  // Firestore handles its own internal classes (like Timestamp) correctly if passed as-is.
+  if (Object.prototype.toString.call(data) === '[object Object]') {
+    seen.add(data);
     return Object.keys(data).reduce((acc: any, key: string) => {
       const value = data[key];
-      if (value !== undefined) {
-        acc[key] = sanitizeData(value);
+      // Skip undefined and functions
+      if (value !== undefined && typeof value !== 'function') {
+        const sanitizedValue = sanitizeData(value, seen);
+        if (sanitizedValue !== undefined) {
+          acc[key] = sanitizedValue;
+        }
       }
       return acc;
     }, {});
   }
+
+  // For non-plain objects (class instances, etc.), return as-is
+  // and let Firestore's internal serializer handle it or throw if unsupported.
   return data;
 };
 
@@ -133,7 +162,6 @@ export const subscribeToGlobalChat = (callback: (messages: ChatMessage[]) => voi
         snapshot.forEach((doc) => {
             messages.push({ id: doc.id, ...doc.data() } as ChatMessage);
         });
-        // Return reversed so oldest is at top for chat UI
         callback(messages.reverse());
     });
 };
@@ -159,35 +187,19 @@ export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: b
 // --- Storage Functions ---
 export const uploadTeamLogo = async (file: File): Promise<string> => {
   try {
-    // Create a unique filename: logos/<timestamp>_<filename>
     const fileName = `logos/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
     const storageRef = ref(storage, fileName);
-    
-    // Add metadata so the browser knows this is an image
-    const metadata = {
-        contentType: file.type || 'image/jpeg'
-    };
-    
-    // Upload the file
+    const metadata = { contentType: file.type || 'image/jpeg' };
     const snapshot = await uploadBytes(storageRef, file, metadata);
-    
-    // Get the public URL
     const downloadURL = await getDownloadURL(snapshot.ref);
     return downloadURL;
   } catch (error: any) {
     console.error("Error uploading logo:", error);
-    
-    // Handle specific Firebase Storage errors
     if (error.code === 'storage/unauthorized') {
         throw new Error("Izin ditolak: Anda harus login untuk mengupload gambar.");
     } else if (error.code === 'storage/canceled') {
         throw new Error("Upload dibatalkan.");
-    } else if (error.code === 'storage/retry-limit-exceeded') {
-        throw new Error("Gagal mengupload: Batas waktu terlampaui.");
-    } else if (error.code === 'storage/invalid-checksum') {
-        throw new Error("File rusak saat upload. Silakan coba lagi.");
     }
-    
     throw new Error("Gagal mengupload gambar. Silakan coba lagi.");
   }
 };
@@ -220,7 +232,6 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
   }
 };
 
-// Modified to accept optional current state overrides to avoid race conditions with DB
 export const getGlobalStats = async (
     overrideMode?: TournamentMode, 
     overrideData?: { teams: Team[], partners: Partner[] }
@@ -231,7 +242,6 @@ export const getGlobalStats = async (
     const uniquePartners = new Set<string>();
 
     const promises = modes.map(mode => {
-        // If this is the mode we are currently editing locally, don't fetch from DB, use local data later
         if (mode === overrideMode && overrideData) {
             return Promise.resolve(null);
         }
@@ -251,16 +261,12 @@ export const getGlobalStats = async (
       }
     });
 
-    // Add local override data
     if (overrideData) {
         overrideData.teams.forEach(t => uniqueTeams.add(t.id));
         overrideData.partners.forEach(p => uniquePartners.add(p.id));
     }
 
-    return {
-      teamCount: uniqueTeams.size,
-      partnerCount: uniquePartners.size
-    };
+    return { teamCount: uniqueTeams.size, partnerCount: uniquePartners.size };
   } catch (error) {
     console.error("Failed to get global stats:", error);
     return { teamCount: 0, partnerCount: 0 };
@@ -272,37 +278,18 @@ export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: strin
   try {
     await runTransaction(firestore, async (transaction) => {
       const docSnap = await transaction.get(tournamentDocRef);
-      if (!docSnap.exists()) {
-        throw new Error("Data turnamen tidak ditemukan.");
-      }
+      if (!docSnap.exists()) throw new Error("Data turnamen tidak ditemukan.");
       
       const data = docSnap.data() as TournamentState;
       const teams = data.teams || [];
-      
-      // Check if team exists
       const teamIndex = teams.findIndex(t => t.id === teamId);
       if (teamIndex === -1) throw new Error("Tim tidak ditemukan.");
       
       const team = teams[teamIndex];
       if (team.ownerEmail) throw new Error("Tim ini sudah memiliki manager.");
       
-      // Optional: Check if user already owns a team in this mode
-      const existingTeam = teams.find(t => t.ownerEmail === userEmail);
-      if (existingTeam) throw new Error(`Anda sudah menjadi manager tim ${existingTeam.name} di mode ini.`);
-      
-      // Optional: Check if user already has a pending request
-      const existingRequest = teams.find(t => t.requestedOwnerEmail === userEmail);
-      if (existingRequest && existingRequest.id !== teamId) {
-        throw new Error(`Anda masih memiliki request pending untuk tim ${existingRequest.name}.`);
-      }
-
-      // Update specific team
       const updatedTeams = [...teams];
-      updatedTeams[teamIndex] = {
-        ...team,
-        requestedOwnerEmail: userEmail
-      };
-      
+      updatedTeams[teamIndex] = { ...team, requestedOwnerEmail: userEmail };
       transaction.update(tournamentDocRef, { teams: updatedTeams });
     });
   } catch (e) {
@@ -314,24 +301,17 @@ export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: strin
 export const getUserTeams = async (userEmail: string): Promise<{ mode: TournamentMode, team: Team }[]> => {
     const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
     const userTeams: { mode: TournamentMode, team: Team }[] = [];
-
     try {
         const promises = modes.map(async (mode) => {
             const data = await getTournamentData(mode);
             if (data && data.teams) {
                 const myTeam = data.teams.find(t => t.ownerEmail === userEmail);
-                if (myTeam) {
-                    return { mode, team: myTeam };
-                }
+                if (myTeam) return { mode, team: myTeam };
             }
             return null;
         });
-
         const results = await Promise.all(promises);
-        results.forEach(res => {
-            if (res) userTeams.push(res);
-        });
-
+        results.forEach(res => { if (res) userTeams.push(res); });
         return userTeams;
     } catch (error) {
         console.error("Error fetching user teams:", error);
@@ -345,11 +325,9 @@ export const updateUserTeamData = async (mode: TournamentMode, teamId: string, u
         await runTransaction(firestore, async (transaction) => {
             const docSnap = await transaction.get(tournamentDocRef);
             if (!docSnap.exists()) throw new Error("Data not found");
-
             const data = docSnap.data() as TournamentState;
             const teams = data.teams;
             const teamIndex = teams.findIndex(t => t.id === teamId);
-
             if (teamIndex === -1) throw new Error("Team not found");
 
             const updatedTeam = { ...teams[teamIndex], ...updates };

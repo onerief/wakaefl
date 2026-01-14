@@ -3,15 +3,28 @@ import React from 'react';
 import type { SeasonHistory, Team, TournamentMode, TournamentStatus } from '../../types';
 import { Card } from '../shared/Card';
 import { TeamLogo } from '../shared/TeamLogo';
-import { Trophy, Crown, Medal, ArrowLeft } from 'lucide-react';
+import { Trophy, Crown, Medal, ArrowLeft, Globe, ListOrdered, Shield } from 'lucide-react';
 
 interface HallOfFameProps {
   history: SeasonHistory[];
   currentStatus: TournamentStatus;
   mode: TournamentMode;
-  currentLeader?: Team | null; // Current standings leader or finalist
+  currentLeader?: Team | null; 
   onBack: () => void;
 }
+
+const ModeBadge = ({ mode }: { mode?: TournamentMode }) => {
+    switch (mode) {
+        case 'league':
+            return <span className="flex items-center gap-1 text-[9px] font-black text-blue-400 uppercase tracking-widest bg-blue-400/10 px-2 py-0.5 rounded border border-blue-400/20"><ListOrdered size={10} /> Liga</span>;
+        case 'two_leagues':
+            return <span className="flex items-center gap-1 text-[9px] font-black text-purple-400 uppercase tracking-widest bg-purple-400/10 px-2 py-0.5 rounded border border-purple-400/20"><Globe size={10} /> 2 Region</span>;
+        case 'wakacl':
+            return <span className="flex items-center gap-1 text-[9px] font-black text-yellow-500 uppercase tracking-widest bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20"><Shield size={10} /> WAKACL</span>;
+        default:
+            return null;
+    }
+};
 
 export const HallOfFame: React.FC<HallOfFameProps> = ({ history, currentStatus, mode, currentLeader, onBack }) => {
   const activeSeasonTitle = mode === 'league' ? 'Liga Reguler' : mode === 'wakacl' ? 'WAKACL' : 'Liga 2 Wilayah';
@@ -30,7 +43,7 @@ export const HallOfFame: React.FC<HallOfFameProps> = ({ history, currentStatus, 
                  Hall of Fame
              </h1>
              <p className="text-yellow-100/60 text-lg max-w-xl">
-                 Menghormati para legenda dan juara abadi {activeSeasonTitle} Way Kanan eFootball.
+                 Menghormati para legenda dan juara abadi komunitas eFootball Way Kanan.
              </p>
          </div>
       </div>
@@ -44,34 +57,38 @@ export const HallOfFame: React.FC<HallOfFameProps> = ({ history, currentStatus, 
                   
                   <h2 className="text-2xl font-black text-yellow-500 uppercase tracking-widest mb-8 flex items-center gap-3">
                       <Crown size={28} />
-                      {currentStatus === 'completed' && history.length > 0 ? "Reigning Champion" : "Current Season Leader"}
+                      {history.length > 0 ? "Latest Champion" : "Current Season Leader"}
                   </h2>
 
-                  {(currentStatus === 'completed' && history.length > 0) ? (
-                      // Display Last Season Champion
+                  {history.length > 0 ? (
+                      // Display Global Last Champion
                       <div className="flex flex-col md:flex-row items-center gap-8 md:gap-16">
                            <div className="relative">
                                <div className="absolute -inset-4 bg-yellow-500/20 blur-xl rounded-full animate-pulse-slow"></div>
-                               <TeamLogo logoUrl={history[history.length - 1].champion.logoUrl} teamName={history[history.length - 1].champion.name} className="w-40 h-40 md:w-56 md:h-56 shadow-2xl relative z-10" />
+                               <TeamLogo logoUrl={history[0].champion.logoUrl} teamName={history[0].champion.name} className="w-40 h-40 md:w-56 md:h-56 shadow-2xl relative z-10" />
                                <Crown size={48} className="absolute -top-6 -right-6 text-yellow-400 fill-yellow-400 drop-shadow-lg animate-bounce z-20" />
                            </div>
                            <div className="text-center md:text-left z-10">
-                               <span className="text-yellow-200/50 text-xl font-bold uppercase tracking-[0.2em]">{history[history.length - 1].seasonName}</span>
+                               <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-2">
+                                   <span className="text-yellow-200/50 text-xl font-bold uppercase tracking-[0.2em]">{history[0].seasonName}</span>
+                                   <ModeBadge mode={history[0].mode} />
+                               </div>
                                <h3 className="text-4xl md:text-6xl font-black text-white italic tracking-tighter my-2 drop-shadow-md">
-                                   {history[history.length - 1].champion.name}
+                                   {history[0].champion.name}
                                </h3>
-                               <p className="text-brand-light text-lg">Manager: <span className="text-white font-bold">{history[history.length - 1].champion.manager || 'Unknown'}</span></p>
+                               <p className="text-brand-light text-lg">Manager: <span className="text-white font-bold">{history[0].champion.manager || 'Unknown'}</span></p>
                            </div>
                       </div>
                   ) : currentLeader ? (
-                      // Display Current Leader (Active Season)
                       <div className="flex flex-col md:flex-row items-center gap-8 md:gap-16">
                            <div className="relative">
                                <div className="absolute -inset-4 bg-brand-vibrant/20 blur-xl rounded-full"></div>
                                <TeamLogo logoUrl={currentLeader.logoUrl} teamName={currentLeader.name} className="w-40 h-40 md:w-56 md:h-56 shadow-2xl relative z-10" />
                            </div>
                            <div className="text-center md:text-left z-10">
-                               <span className="text-brand-vibrant text-xl font-bold uppercase tracking-[0.2em]">Season in Progress</span>
+                               <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-2">
+                                   <span className="text-brand-vibrant text-xl font-bold uppercase tracking-[0.2em]">Live: {activeSeasonTitle}</span>
+                               </div>
                                <h3 className="text-4xl md:text-6xl font-black text-white italic tracking-tighter my-2">
                                    {currentLeader.name}
                                </h3>
@@ -86,15 +103,15 @@ export const HallOfFame: React.FC<HallOfFameProps> = ({ history, currentStatus, 
               </Card>
           </div>
 
-          {/* History List */}
+          {/* Combined History List */}
           <div className="lg:col-span-2">
                <h3 className="text-2xl font-black text-white italic uppercase mb-6 pl-4 border-l-4 border-brand-vibrant">
-                   Season History
+                   All Seasons History
                </h3>
                
                {history.length > 0 ? (
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       {[...history].reverse().map((season) => (
+                       {history.map((season) => (
                            <div key={season.seasonId} className="bg-brand-secondary/40 border border-white/5 rounded-2xl p-4 flex items-center justify-between hover:bg-white/5 transition-colors group">
                                <div className="flex items-center gap-4">
                                    <div className="flex flex-col items-center justify-center w-12 text-yellow-500">
@@ -104,7 +121,10 @@ export const HallOfFame: React.FC<HallOfFameProps> = ({ history, currentStatus, 
                                    <TeamLogo logoUrl={season.champion.logoUrl} teamName={season.champion.name} className="w-16 h-16" />
                                    <div>
                                        <h4 className="text-lg font-bold text-white group-hover:text-yellow-400 transition-colors">{season.champion.name}</h4>
-                                       <p className="text-xs text-brand-light">{season.seasonName}</p>
+                                       <div className="flex items-center gap-2 mt-1">
+                                           <p className="text-[10px] text-brand-light uppercase">{season.seasonName}</p>
+                                           <ModeBadge mode={season.mode} />
+                                       </div>
                                    </div>
                                </div>
                                {season.runnerUp && (

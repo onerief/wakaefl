@@ -26,8 +26,8 @@ Group Stage:
   isDoubleRoundRobin: true,
   status: 'active',
   history: [],
-  isRegistrationOpen: true, // Default open for new setup
-  headerLogoUrl: '', // Default empty
+  isRegistrationOpen: true, 
+  headerLogoUrl: '', 
 });
 
 type Action =
@@ -64,7 +64,9 @@ type Action =
   | { type: 'FINALIZE_SEASON'; payload: SeasonHistory }
   | { type: 'SET_STATUS'; payload: 'active' | 'completed' }
   | { type: 'SET_REGISTRATION_STATUS'; payload: boolean }
-  | { type: 'UPDATE_HEADER_LOGO'; payload: string };
+  | { type: 'UPDATE_HEADER_LOGO'; payload: string }
+  | { type: 'ADD_HISTORY_ENTRY'; payload: SeasonHistory }
+  | { type: 'DELETE_HISTORY_ENTRY'; payload: string };
 
 const calculateStandings = (teams: Team[], matches: Match[]): Standing[] => {
   const standings: { [key: string]: Standing } = teams.reduce((acc, team) => {
@@ -72,7 +74,6 @@ const calculateStandings = (teams: Team[], matches: Match[]): Standing[] => {
     return acc;
   }, {} as { [key: string]: Standing });
 
-  // Process Stats
   matches.forEach(match => {
     if (match.status !== 'finished' || match.scoreA === null || match.scoreB === null) return;
     const { teamA, teamB, scoreA, scoreB } = match;
@@ -92,26 +93,15 @@ const calculateStandings = (teams: Team[], matches: Match[]): Standing[] => {
     }
   });
   
-  // Calculate Form (Last 5 matches based on ID or matchday)
-  // Sort matches to ensure order (using ID as simplistic timestamp if dates absent)
   const sortedMatches = [...matches].sort((a, b) => a.id.localeCompare(b.id));
-
   teams.forEach(team => {
       if (!standings[team.id]) return;
-      
-      const teamMatches = sortedMatches.filter(m => 
-          m.status === 'finished' && 
-          (m.teamA.id === team.id || m.teamB.id === team.id)
-      );
-
-      // Take last 5
+      const teamMatches = sortedMatches.filter(m => m.status === 'finished' && (m.teamA.id === team.id || m.teamB.id === team.id));
       const recentMatches = teamMatches.slice(-5);
-      
       standings[team.id].form = recentMatches.map(m => {
           const isTeamA = m.teamA.id === team.id;
           const scoreSelf = isTeamA ? m.scoreA! : m.scoreB!;
           const scoreOpp = isTeamA ? m.scoreB! : m.scoreA!;
-          
           if (scoreSelf > scoreOpp) return 'W';
           if (scoreSelf === scoreOpp) return 'D';
           return 'L';
@@ -125,6 +115,32 @@ const calculateStandings = (teams: Team[], matches: Match[]): Standing[] => {
   });
 };
 
+const determineKnockoutWinner = (match: KnockoutMatch): string | null => {
+    if (!match.teamA || !match.teamB) return null;
+    const isFinal = match.round === 'Final';
+    const sA1 = match.scoreA1;
+    const sB1 = match.scoreB1;
+    const sA2 = match.scoreA2;
+    const sB2 = match.scoreB2;
+    if (isFinal) {
+        if (sA1 === null || sB1 === null) return null;
+        if (sA1 > sB1) return match.teamA.id;
+        if (sB1 > sA1) return match.teamB.id;
+        return null;
+    } else {
+        if (sA1 === null || sB1 === null || sA2 === null || sB2 === null) return null;
+        const aggA = sA1 + sA2;
+        const aggB = sB1 + sB2;
+        if (aggA > aggB) return match.teamA.id;
+        if (aggB > aggA) return match.teamB.id;
+        const awayA = sA2;
+        const awayB = sB1;
+        if (awayA > awayB) return match.teamA.id;
+        if (awayB > awayA) return match.teamB.id;
+        return null;
+    }
+};
+
 const tournamentReducer = (state: FullTournamentState, action: Action): FullTournamentState => {
   switch (action.type) {
     case 'SET_STATE':
@@ -136,23 +152,18 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'ADD_TEAM':
       return { ...state, teams: [...state.teams, action.payload] };
     case 'UPDATE_TEAM':
-      // When updating a team, we must also update the team details inside Groups and Matches to keep data consistent
       const updatedTeam = action.payload;
       const updatedTeams = state.teams.map(t => t.id === updatedTeam.id ? updatedTeam : t);
-      
       const updatedGroups = state.groups.map(g => ({
           ...g,
           teams: g.teams.map(t => t.id === updatedTeam.id ? updatedTeam : t),
-          // Recalculate standings standings references updated team
           standings: g.standings.map(s => s.team.id === updatedTeam.id ? { ...s, team: updatedTeam } : s)
       }));
-
       const updatedMatches = state.matches.map(m => {
           if (m.teamA.id === updatedTeam.id) return { ...m, teamA: updatedTeam };
           if (m.teamB.id === updatedTeam.id) return { ...m, teamB: updatedTeam };
           return m;
       });
-
       return { ...state, teams: updatedTeams, groups: updatedGroups, matches: updatedMatches };
     case 'DELETE_TEAM':
       return { ...state, teams: state.teams.filter(t => t.id !== action.payload) };
@@ -188,11 +199,11 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'START_NEW_SEASON':
         return {
             ...createInitialState(state.mode),
-            history: state.history, // PRESERVE HISTORY
-            partners: state.partners, // PRESERVE PARTNERS
-            banners: state.banners, // PRESERVE BANNERS
-            rules: state.rules, // PRESERVE RULES
-            headerLogoUrl: state.headerLogoUrl, // PRESERVE LOGO
+            history: state.history,
+            partners: state.partners,
+            banners: state.banners,
+            rules: state.rules,
+            headerLogoUrl: state.headerLogoUrl,
             status: 'active'
         };
     case 'INITIALIZE_EMPTY_KNOCKOUT':
@@ -200,7 +211,9 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'UPDATE_KNOCKOUT_MATCH': {
       if (!state.knockoutStage) return state;
       const { round } = action.payload;
-      const newKnockout = { ...state.knockoutStage, [round]: state.knockoutStage[round].map(m => m.id === action.payload.id ? action.payload : m) };
+      const updatedMatch = { ...action.payload };
+      updatedMatch.winnerId = determineKnockoutWinner(updatedMatch);
+      const newKnockout = { ...state.knockoutStage, [round]: state.knockoutStage[round].map(m => m.id === updatedMatch.id ? updatedMatch : m) };
       return { ...state, knockoutStage: newKnockout };
     }
     case 'DELETE_KNOCKOUT_MATCH': {
@@ -208,46 +221,27 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
         const round = Object.keys(state.knockoutStage).find(r => 
             state.knockoutStage![r as keyof KnockoutStageRounds].some(m => m.id === action.payload)
         ) as keyof KnockoutStageRounds | undefined;
-        
         if (!round) return state;
-        
-        return {
-            ...state,
-            knockoutStage: {
-                ...state.knockoutStage,
-                [round]: state.knockoutStage[round].filter(m => m.id !== action.payload)
-            }
-        };
+        return { ...state, knockoutStage: { ...state.knockoutStage, [round]: state.knockoutStage[round].filter(m => m.id !== action.payload) } };
     }
     case 'UPDATE_KNOCKOUT_MATCH_DETAILS': {
         if (!state.knockoutStage) return state;
         const { matchId, teamAId, teamBId, placeholderA, placeholderB } = action.payload;
-        
         const round = Object.keys(state.knockoutStage).find(r => 
             state.knockoutStage![r as keyof KnockoutStageRounds].some(m => m.id === matchId)
         ) as keyof KnockoutStageRounds | undefined;
-
         if (!round) return state;
-
         const updatedMatches = state.knockoutStage[round].map(m => {
             if (m.id !== matchId) return m;
             return {
                 ...m,
                 teamA: teamAId ? (state.teams.find(t => t.id === teamAId) || null) : null,
                 teamB: teamBId ? (state.teams.find(t => t.id === teamBId) || null) : null,
-                placeholderA,
-                placeholderB,
-                scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null // Reset scores when teams change
+                placeholderA, placeholderB,
+                scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null
             };
         });
-
-        return {
-            ...state,
-            knockoutStage: {
-                ...state.knockoutStage,
-                [round]: updatedMatches
-            }
-        };
+        return { ...state, knockoutStage: { ...state.knockoutStage, [round]: updatedMatches } };
     }
     case 'UPDATE_MATCH_SCHEDULE': {
         const { matchId, teamAId, teamBId } = action.payload;
@@ -257,31 +251,15 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
                     ...m,
                     teamA: state.teams.find(t => t.id === teamAId) || m.teamA,
                     teamB: state.teams.find(t => t.id === teamBId) || m.teamB,
-                    scoreA: null,
-                    scoreB: null,
-                    status: 'scheduled' as const // Reset status
+                    scoreA: null, scoreB: null, status: 'scheduled' as const
                 };
             }
             return m;
         });
-        
-        // Need to recalculate standings for the group this match belongs to
-        const match = state.matches.find(m => m.id === matchId);
-        if (!match) return { ...state, matches: newMatches };
-
-        const groupName = `Group ${match.group}`; // Assuming naming convention "Group A"
-        const group = state.groups.find(g => g.name === groupName); // Try simple match first
-        
-        // More robust group finding if names vary
         const targetGroups = state.groups.map(g => {
-             // Re-calculate standings for all groups to be safe or just the affected one if identified
              const groupMatches = newMatches.filter(m => m.group === g.name.split(' ')[1]);
-             return {
-                 ...g,
-                 standings: calculateStandings(g.teams, groupMatches)
-             };
+             return { ...g, standings: calculateStandings(g.teams, groupMatches) };
         });
-
         return { ...state, matches: newMatches, groups: targetGroups };
     }
     case 'MANUAL_ADD_GROUP':
@@ -299,54 +277,43 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
       return { ...action.payload };
     case 'REQUEST_TEAM_CLAIM': {
         const { teamId, userEmail } = action.payload;
-        const updatedTeams = state.teams.map(t => 
-            t.id === teamId ? { ...t, requestedOwnerEmail: userEmail } : t
-        );
-        return { ...state, teams: updatedTeams };
+        return { ...state, teams: state.teams.map(t => t.id === teamId ? { ...t, requestedOwnerEmail: userEmail } : t) };
     }
     case 'RESOLVE_TEAM_CLAIM': {
         const { teamId, approved } = action.payload;
         const updatedTeams = state.teams.map(t => {
             if (t.id === teamId) {
-                if (approved) {
-                    return { ...t, ownerEmail: t.requestedOwnerEmail, requestedOwnerEmail: undefined };
-                } else {
-                    return { ...t, requestedOwnerEmail: undefined };
-                }
+                if (approved) return { ...t, ownerEmail: t.requestedOwnerEmail, requestedOwnerEmail: undefined };
+                else return { ...t, requestedOwnerEmail: undefined };
             }
             return t;
         });
-        
-        // Also update groups and matches where this team exists
         const updatedTeam = updatedTeams.find(t => t.id === teamId);
         if (!updatedTeam) return state;
-
         const updatedGroups = state.groups.map(g => ({
             ...g,
             teams: g.teams.map(t => t.id === teamId ? updatedTeam : t),
             standings: g.standings.map(s => s.team.id === teamId ? { ...s, team: updatedTeam } : s)
         }));
-
         const updatedMatches = state.matches.map(m => {
             if (m.teamA.id === teamId) return { ...m, teamA: updatedTeam };
             if (m.teamB.id === teamId) return { ...m, teamB: updatedTeam };
             return m;
         });
-
         return { ...state, teams: updatedTeams, groups: updatedGroups, matches: updatedMatches };
     }
     case 'FINALIZE_SEASON':
-        return {
-            ...state,
-            status: 'completed',
-            history: [...state.history, action.payload]
-        };
+        return { ...state, status: 'completed', history: [...state.history, action.payload] };
     case 'SET_STATUS':
         return { ...state, status: action.payload };
     case 'SET_REGISTRATION_STATUS':
         return { ...state, isRegistrationOpen: action.payload };
     case 'UPDATE_HEADER_LOGO':
         return { ...state, headerLogoUrl: action.payload };
+    case 'ADD_HISTORY_ENTRY':
+        return { ...state, history: [action.payload, ...state.history] };
+    case 'DELETE_HISTORY_ENTRY':
+        return { ...state, history: state.history.filter(h => h.seasonId !== action.payload) };
     default:
       return state;
   }
@@ -357,22 +324,18 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   const [isLoading, setIsLoading] = useState(true);
   const { addToast } = useToast();
 
-  // Load data when activeMode changes
   useEffect(() => {
     setIsLoading(true);
     dispatch({ type: 'RESET', payload: createInitialState(activeMode) });
-
     getTournamentData(activeMode).then(data => {
       if (data) {
-        // Ensure legacy data gets the flag if missing
         const safeData = { 
             ...data, 
-            isRegistrationOpen: data.isRegistrationOpen ?? true,
-            headerLogoUrl: data.headerLogoUrl || ''
+            isRegistrationOpen: data.isRegistrationOpen ?? true, 
+            headerLogoUrl: data.headerLogoUrl || '',
+            history: data.history || []
         };
         dispatch({ type: 'SET_STATE', payload: safeData });
-      } else {
-        // Default state
       }
       setIsLoading(false);
     }).catch(err => {
@@ -390,28 +353,12 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
 
   const setMode = (mode: TournamentMode) => dispatch({ type: 'SET_MODE', payload: mode });
   const setRoundRobin = (isDouble: boolean) => dispatch({ type: 'SET_ROUND_ROBIN', payload: isDouble });
-
-  const addTeam = (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => 
-    dispatch({ type: 'ADD_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber, ownerEmail } });
-  
-  const updateTeam = (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean, ownerEmail?: string) => 
-    dispatch({ type: 'UPDATE_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber, isTopSeed, ownerEmail } });
-  
+  const addTeam = (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => dispatch({ type: 'ADD_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber, ownerEmail } });
+  const updateTeam = (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean, ownerEmail?: string) => dispatch({ type: 'UPDATE_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber, isTopSeed, ownerEmail } });
   const deleteTeam = (id: string) => dispatch({ type: 'DELETE_TEAM', payload: id });
-
-  const updateMatchScore = (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => 
-    dispatch({ type: 'UPDATE_MATCH_SCORE', payload: { matchId, scoreA, scoreB, proofUrl } });
-
+  const updateMatchScore = (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => dispatch({ type: 'UPDATE_MATCH_SCORE', payload: { matchId, scoreA, scoreB, proofUrl } });
   const addMatchComment = (matchId: string, userId: string, userName: string, userEmail: string, text: string, isAdmin: boolean = false) => {
-      const comment: MatchComment = {
-          id: `c${Date.now()}`,
-          userId,
-          userName,
-          userEmail,
-          text,
-          timestamp: Date.now(),
-          isAdmin
-      };
+      const comment: MatchComment = { id: `c${Date.now()}`, userId, userName, userEmail, text, timestamp: Date.now(), isAdmin };
       dispatch({ type: 'ADD_MATCH_COMMENT', payload: { matchId, comment } });
   }
 
@@ -421,7 +368,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       const teams = [...group.teams];
       if (teams.length < 2) return;
       if (teams.length % 2 !== 0) teams.push({ id: 'BYE', name: 'BYE' });
-
       const n = teams.length;
       for (let r = 0; r < n - 1; r++) {
         for (let i = 0; i < n / 2; i++) {
@@ -444,56 +390,22 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       if (state.mode === 'two_leagues') {
           const groupA = state.groups[0]; 
           const groupB = state.groups[1]; 
-
-          if (!groupA || !groupB) {
-              return { success: false, message: "Groups not found for 2-League format." };
-          }
-
+          if (!groupA || !groupB) return { success: false, message: "Groups not found for 2-League format." };
           const standingsA = [...groupA.standings].sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
           const standingsB = [...groupB.standings].sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
-
-          if (standingsA.length < 2 || standingsB.length < 2) {
-              return { success: false, message: "Not enough teams in groups to form Semi-Finals." };
-          }
-
+          if (standingsA.length < 2 || standingsB.length < 2) return { success: false, message: "Not enough teams in groups to form Semi-Finals." };
           const a1 = standingsA[0].team;
           const a2 = standingsA[1].team;
           const b1 = standingsB[0].team;
           const b2 = standingsB[1].team;
-
           const sfMatches: KnockoutMatch[] = [
-              {
-                  id: 'sf-1', round: 'Semi-finals', matchNumber: 1,
-                  teamA: a1, teamB: b2,
-                  scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
-                  winnerId: null, nextMatchId: 'final', placeholderA: 'Winner A1/B2', placeholderB: 'Winner B1/A2'
-              },
-              {
-                  id: 'sf-2', round: 'Semi-finals', matchNumber: 2,
-                  teamA: b1, teamB: a2,
-                  scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
-                  winnerId: null, nextMatchId: 'final', placeholderA: 'Winner A1/B2', placeholderB: 'Winner B1/A2'
-              }
+              { id: 'sf-1', round: 'Semi-finals', matchNumber: 1, teamA: a1, teamB: b2, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'final', placeholderA: 'Winner A1/B2', placeholderB: 'Winner B1/A2' },
+              { id: 'sf-2', round: 'Semi-finals', matchNumber: 2, teamA: b1, teamB: a2, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'final', placeholderA: 'Winner A1/B2', placeholderB: 'Winner B1/A2' }
           ];
-
-          const finalMatch: KnockoutMatch = {
-              id: 'final', round: 'Final', matchNumber: 3,
-              teamA: null, teamB: null, 
-              scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
-              winnerId: null, nextMatchId: null,
-              placeholderA: 'Winner SF1', placeholderB: 'Winner SF2'
-          };
-
-          const newKnockoutStage: KnockoutStageRounds = {
-              'Round of 16': [],
-              'Quarter-finals': [],
-              'Semi-finals': sfMatches,
-              'Final': [finalMatch]
-          };
-
+          const finalMatch: KnockoutMatch = { id: 'final', round: 'Final', matchNumber: 3, teamA: null, teamB: null, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null, placeholderA: 'Winner SF1', placeholderB: 'Winner SF2' };
+          const newKnockoutStage: KnockoutStageRounds = { 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': sfMatches, 'Final': [finalMatch] };
           dispatch({ type: 'GENERATE_KNOCKOUT_BRACKET', payload: { knockoutStage: newKnockoutStage } });
           return { success: true };
-
       } else {
            return { success: false, message: "Knockout generation only implemented for Two Leagues mode currently." };
       }
@@ -502,21 +414,15 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   const finalizeSeason = () => {
     let champion: Team | null = null;
     let runnerUp: Team | undefined;
-
-    // Determine champion based on mode
     if (state.mode === 'league') {
-        // League mode: Top of the single group standings
         if (state.groups.length > 0) {
-            // Assume single group for league mode usually, or flatten standings
-            const allStandings = state.groups.flatMap(g => g.standings)
-                .sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
+            const allStandings = state.groups.flatMap(g => g.standings).sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
             if (allStandings.length > 0) {
                 champion = allStandings[0].team;
                 if (allStandings.length > 1) runnerUp = allStandings[1].team;
             }
         }
     } else {
-        // WAKACL or Two Leagues: Winner of Final Knockout Match
         const finalMatch = state.knockoutStage?.['Final']?.[0];
         if (finalMatch && finalMatch.winnerId) {
              champion = state.teams.find(t => t.id === finalMatch.winnerId) || null;
@@ -525,159 +431,28 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
              }
         }
     }
-
     if (champion) {
         const historyEntry: SeasonHistory = {
             seasonId: `s-${Date.now()}`,
             seasonName: `Season ${state.history.length + 1} (${new Date().toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })})`,
             champion: champion,
             runnerUp: runnerUp,
-            dateCompleted: Date.now()
+            dateCompleted: Date.now(),
+            mode: state.mode 
         };
         dispatch({ type: 'FINALIZE_SEASON', payload: historyEntry });
         return { success: true, message: `Season ended! Champion: ${champion.name}` };
     } else {
-        // If no champion found (e.g. forgot to set final score), prompt user
         dispatch({ type: 'SET_STATUS', payload: 'completed' });
-        return { success: false, message: "Season ended, but NO champion was detected. Did you set the Final Match winner?" };
+        return { success: false, message: "Musim berakhir, tapi JUARA tidak terdeteksi." };
     }
   };
 
-  const importLegacyData = useCallback((jsonData: any) => {
-      try {
-          const newTeams: Team[] = [];
-          const nerakaTeams: Team[] = [];
-          const surgaTeams: Team[] = [];
-          const groupMatches: Match[] = [];
-          const knockoutStage: KnockoutStageRounds = {
-              'Round of 16': [],
-              'Quarter-finals': [],
-              'Semi-finals': [],
-              'Final': []
-          };
-
-          jsonData.teams.forEach((t: any, index: number) => {
-              const team: Team = {
-                  id: `t-${index}-${t.name.replace(/\s+/g, '').toLowerCase()}`,
-                  name: t.name,
-                  logoUrl: t.logoUrl,
-                  manager: t.player,
-                  socialMediaUrl: t.socialMedia,
-                  whatsappNumber: t.whatsapp,
-                  ownerEmail: ''
-              };
-              newTeams.push(team);
-              if (t.league === "Neraka") nerakaTeams.push(team);
-              if (t.league === "Surga") surgaTeams.push(team);
-          });
-
-          const groups: Group[] = [
-              { id: 'g-neraka', name: 'Grup Neraka', teams: nerakaTeams, standings: [] },
-              { id: 'g-surga', name: 'Grup Surga', teams: surgaTeams, standings: [] }
-          ];
-
-          jsonData.schedule.forEach((s: any, index: number) => {
-              const teamA = newTeams.find(t => t.name === s.home);
-              const teamB = newTeams.find(t => t.name === s.away);
-
-              if (teamA && teamB) {
-                  if (s.stage === 'Regular') {
-                      const groupName = nerakaTeams.find(t => t.id === teamA.id) ? 'Neraka' : 'Surga';
-                      const match: Match = {
-                          id: `m-${index}`,
-                          teamA,
-                          teamB,
-                          scoreA: s.homeScore,
-                          scoreB: s.awayScore,
-                          status: s.status === 'Finished' ? 'finished' : 'scheduled',
-                          group: groupName,
-                          matchday: s.babak,
-                          proofUrl: s.proofLink,
-                          comments: []
-                      };
-                      groupMatches.push(match);
-                  } else if (s.stage === 'Semi-Final') {
-                      const existingMatchIndex = knockoutStage['Semi-finals'].findIndex(m => 
-                        (m.teamA?.id === teamA.id && m.teamB?.id === teamB.id) || 
-                        (m.teamA?.id === teamB.id && m.teamB?.id === teamA.id)
-                      );
-
-                      if (existingMatchIndex === -1) {
-                          knockoutStage['Semi-finals'].push({
-                              id: `sf-${index}`,
-                              round: 'Semi-finals',
-                              matchNumber: knockoutStage['Semi-finals'].length + 1,
-                              teamA: teamA,
-                              teamB: teamB,
-                              scoreA1: s.homeScore,
-                              scoreB1: s.awayScore,
-                              scoreA2: null, scoreB2: null,
-                              winnerId: null, nextMatchId: null, placeholderA: '', placeholderB: ''
-                          });
-                      } else {
-                          const m = knockoutStage['Semi-finals'][existingMatchIndex];
-                          if (m.teamA?.id === teamB.id) { 
-                              m.scoreB2 = s.homeScore;
-                              m.scoreA2 = s.awayScore; 
-                          }
-                      }
-                  } else if (s.stage === 'Final') {
-                      knockoutStage['Final'].push({
-                          id: `final-${index}`,
-                          round: 'Final',
-                          matchNumber: 1,
-                          teamA, teamB,
-                          scoreA1: s.homeScore, scoreB1: s.awayScore,
-                          scoreA2: null, scoreB2: null,
-                          winnerId: null, nextMatchId: null, placeholderA: '', placeholderB: ''
-                      });
-                  }
-              }
-          });
-
-          groups.forEach(g => {
-              g.standings = calculateStandings(g.teams, groupMatches.filter(m => m.group === g.name.split(' ')[1]));
-          });
-
-          const importedState: FullTournamentState = {
-              teams: newTeams,
-              groups: groups,
-              matches: groupMatches,
-              knockoutStage: knockoutStage,
-              rules: jsonData.rules || state.rules,
-              banners: [jsonData.promoBannerUrl, jsonData.giftBannerUrl].filter(Boolean),
-              partners: jsonData.sponsors || [],
-              mode: 'two_leagues',
-              isDoubleRoundRobin: true,
-              status: 'active',
-              history: [],
-              isRegistrationOpen: true,
-              headerLogoUrl: ''
-          };
-
-          dispatch({ type: 'IMPORT_LEGACY_JSON', payload: importedState });
-          addToast('Legacy data imported successfully!', 'success');
-
-      } catch (e) {
-          console.error("Import failed", e);
-          addToast('Failed to import legacy data. Check console.', 'error');
-      }
-  }, [state.rules, addToast]);
+  const addHistoryEntry = (entry: SeasonHistory) => dispatch({ type: 'ADD_HISTORY_ENTRY', payload: entry });
+  const deleteHistoryEntry = (id: string) => dispatch({ type: 'DELETE_HISTORY_ENTRY', payload: id });
 
   return { 
-      ...state, 
-      isLoading,
-      setMode, 
-      setRoundRobin, 
-      addTeam, 
-      updateTeam, 
-      deleteTeam, 
-      updateMatchScore, 
-      addMatchComment,
-      generateMatchesFromGroups,
-      generateKnockoutBracket,
-      importLegacyData,
-      finalizeSeason,
+      ...state, isLoading, setMode, setRoundRobin, addTeam, updateTeam, deleteTeam, updateMatchScore, addMatchComment, generateMatchesFromGroups, generateKnockoutBracket, finalizeSeason, addHistoryEntry, deleteHistoryEntry,
       startNewSeason: () => dispatch({ type: 'START_NEW_SEASON' }),
       resumeSeason: () => dispatch({ type: 'SET_STATUS', payload: 'active' }),
       resetTournament: () => dispatch({ type: 'RESET', payload: createInitialState(activeMode) }), 
@@ -692,16 +467,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       initializeEmptyKnockoutStage: () => dispatch({ type: 'INITIALIZE_EMPTY_KNOCKOUT' }),
       setTournamentState: (state: FullTournamentState) => dispatch({ type: 'SET_STATE', payload: state }),
       addKnockoutMatch: (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => {
-          const match: KnockoutMatch = {
-              id: `km-${Date.now()}`,
-              round,
-              matchNumber: (state.knockoutStage?.[round].length || 0) + 1,
-              teamA: state.teams.find(t => t.id === teamAId) || null,
-              teamB: state.teams.find(t => t.id === teamBId) || null,
-              placeholderA,
-              placeholderB,
-              scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null
-          };
+          const match: KnockoutMatch = { id: `km-${Date.now()}`, round, matchNumber: (state.knockoutStage?.[round].length || 0) + 1, teamA: state.teams.find(t => t.id === teamAId) || null, teamB: state.teams.find(t => t.id === teamBId) || null, placeholderA, placeholderB, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null };
           dispatch({ type: 'ADD_KNOCKOUT_MATCH', payload: { round, match } });
       },
       requestTeamClaim: (teamId: string, userEmail: string) => dispatch({ type: 'REQUEST_TEAM_CLAIM', payload: { teamId, userEmail } }),

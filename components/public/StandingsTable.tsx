@@ -12,16 +12,16 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSel
   const headers = ['Pos', 'Club', 'P', 'W', 'D', 'L', 'GD', 'Pts', 'Form'];
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-brand-secondary/20 backdrop-blur-sm">
-      <div className="w-full">
-        <table className="w-full text-sm text-left text-brand-light table-fixed">
-          <thead className="text-[10px] sm:text-xs text-brand-text/70 uppercase bg-black/20 border-b border-white/5">
+    <div className="overflow-x-auto rounded-xl border border-white/10 bg-brand-secondary/20 backdrop-blur-sm custom-scrollbar">
+      <div className="min-w-[320px] w-full">
+        <table className="w-full text-sm text-left text-brand-light">
+          <thead className="text-[9px] sm:text-xs text-brand-text/70 uppercase bg-black/30 border-b border-white/5">
             <tr>
-              {headers.map((header, idx) => {
-                let classes = "py-2 sm:py-3 font-bold tracking-wider whitespace-nowrap ";
+              {headers.map((header) => {
+                let classes = "py-2 sm:py-3 font-black tracking-wider whitespace-nowrap ";
                 
                 if (header === 'Pos') classes += "w-8 text-center px-1";
-                else if (header === 'Club') classes += "text-left px-2 w-auto"; 
+                else if (header === 'Club') classes += "text-left px-2"; 
                 else if (['W', 'D', 'L'].includes(header)) classes += "hidden md:table-cell text-center w-8 sm:w-10 px-1";
                 else if (header === 'Form') classes += "hidden sm:table-cell text-center w-24 px-1";
                 else classes += "text-center w-8 sm:w-10 px-1"; // P, GD, Pts
@@ -47,42 +47,42 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSel
                   `}
                 >
                   {/* Position */}
-                  <td className="py-2 text-center relative px-1">
+                  <td className="py-2.5 text-center relative px-1">
                     {isQualifier && (
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 h-3/5 w-0.5 bg-brand-vibrant rounded-r-full"></div>
                     )}
-                    <span className={`font-bold text-xs ${isQualifier ? 'text-brand-vibrant' : 'text-brand-light/50'}`}>
+                    <span className={`font-black text-[10px] sm:text-xs ${isQualifier ? 'text-brand-vibrant' : 'text-brand-light/40'}`}>
                         {index + 1}
                     </span>
                   </td>
 
                   {/* Team */}
-                  <td className="py-2 px-2 font-medium text-brand-text overflow-hidden">
-                    <button onClick={() => onSelectTeam(standing.team)} className="flex items-center gap-2 text-left w-full group max-w-full">
+                  <td className="py-2 px-2 font-medium text-brand-text">
+                    <button onClick={() => onSelectTeam(standing.team)} className="flex items-center gap-1.5 sm:gap-2 text-left group max-w-[120px] sm:max-w-none">
                       <div className="relative flex-shrink-0">
                         <TeamLogo logoUrl={standing.team.logoUrl} teamName={standing.team.name} className="w-6 h-6 sm:w-8 sm:h-8 transition-transform group-hover:scale-110"/>
-                        {isQualifier && <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-brand-vibrant rounded-full border border-brand-secondary shadow-sm"></div>}
+                        {isQualifier && <div className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-brand-vibrant rounded-full border border-brand-secondary"></div>}
                       </div>
-                      <span className="truncate text-xs sm:text-sm font-semibold group-hover:text-brand-vibrant transition-colors">{standing.team.name}</span>
+                      <span className="truncate text-[11px] sm:text-sm font-bold group-hover:text-brand-vibrant transition-colors leading-none">{standing.team.name}</span>
                     </button>
                   </td>
 
                   {/* Stats */}
-                  <td className="py-2 px-1 text-center text-brand-text text-xs">{standing.played}</td>
+                  <td className="py-2 px-1 text-center text-brand-text text-[11px] sm:text-xs font-bold">{standing.played}</td>
                   <td className="py-2 px-1 text-center hidden md:table-cell opacity-70 text-xs">{standing.wins}</td>
                   <td className="py-2 px-1 text-center hidden md:table-cell opacity-70 text-xs">{standing.draws}</td>
                   <td className="py-2 px-1 text-center hidden md:table-cell opacity-70 text-xs">{standing.losses}</td>
                   
                   {/* Goal Difference */}
-                  <td className="py-2 px-1 text-center text-xs">
-                    <span className={`font-bold ${standing.goalDifference > 0 ? 'text-green-400' : standing.goalDifference < 0 ? 'text-red-400' : 'text-brand-light'}`}>
+                  <td className="py-2 px-1 text-center text-[10px] sm:text-xs">
+                    <span className={`font-bold ${standing.goalDifference > 0 ? 'text-green-400' : standing.goalDifference < 0 ? 'text-red-400' : 'text-brand-light/50'}`}>
                         {standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}
                     </span>
                   </td>
                   
                   {/* Points */}
                   <td className="py-2 px-1 text-center">
-                    <span className="font-black text-white bg-white/10 px-1.5 py-0.5 rounded text-xs border border-white/5 shadow-sm">
+                    <span className="font-black text-white bg-white/5 sm:bg-white/10 px-1.5 py-0.5 rounded text-[11px] sm:text-xs border border-white/5">
                         {standing.points}
                     </span>
                   </td>

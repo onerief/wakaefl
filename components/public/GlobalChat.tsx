@@ -26,8 +26,6 @@ export const GlobalChat: React.FC<GlobalChatProps> = ({ currentUser, isAdmin, on
         const unsubscribe = subscribeToGlobalChat((incomingMessages) => {
             setMessages(incomingMessages);
             if (!isOpen && incomingMessages.length > 0) {
-                 // Check if the last message is new (simple check logic)
-                 // Ideally we compare IDs, but for now just showing indicator if closed
                  setHasUnread(true);
             }
         });
@@ -58,14 +56,14 @@ export const GlobalChat: React.FC<GlobalChatProps> = ({ currentUser, isAdmin, on
     };
 
     return (
-        <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[60] flex flex-col items-end pointer-events-none">
+        <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[60] flex flex-col items-end pointer-events-none max-w-[calc(100vw-32px)]">
             {/* Chat Window */}
             <div 
                 className={`
                     w-80 sm:w-96 bg-brand-primary/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300 origin-bottom-right mb-4 pointer-events-auto
-                    ${isOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-90 opacity-0 translate-y-10 pointer-events-none'}
+                    ${isOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-0 opacity-0 translate-y-10 pointer-events-none h-0 w-0 mb-0'}
                 `}
-                style={{ maxHeight: 'min(500px, 70vh)' }}
+                style={{ maxHeight: 'min(500px, 60vh)' }}
             >
                 {/* Header */}
                 <div className="bg-brand-secondary/80 p-3 flex justify-between items-center border-b border-white/5">
@@ -175,7 +173,6 @@ export const GlobalChat: React.FC<GlobalChatProps> = ({ currentUser, isAdmin, on
             >
                 {isOpen ? <X size={24} /> : <MessageCircle size={24} className={hasUnread ? 'animate-bounce' : ''} />}
                 
-                {/* Notification Badge */}
                 {!isOpen && hasUnread && (
                     <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-brand-primary animate-ping"></span>
                 )}
@@ -183,7 +180,6 @@ export const GlobalChat: React.FC<GlobalChatProps> = ({ currentUser, isAdmin, on
                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-brand-primary flex items-center justify-center text-[8px] font-bold">!</span>
                 )}
                 
-                {/* Tooltip */}
                 <span className="absolute right-full mr-3 bg-brand-secondary px-2 py-1 rounded text-xs text-brand-light whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none border border-white/10 shadow-xl">
                     Global Chat
                 </span>
