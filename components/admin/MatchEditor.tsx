@@ -3,11 +3,10 @@ import React, { useState } from 'react';
 import type { Match } from '../../types';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { Sparkles, Save, Pencil, Link } from 'lucide-react';
+import { Sparkles, Save, Pencil, Link, Plus, Minus } from 'lucide-react';
 import { Spinner } from '../shared/Spinner';
 import { useToast } from '../shared/Toast';
 import { TeamLogo } from '../shared/TeamLogo';
-
 
 interface MatchEditorProps {
   match: Match;
@@ -17,134 +16,131 @@ interface MatchEditorProps {
 }
 
 export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, onGenerateSummary, onEditSchedule }) => {
-  const [scoreA, setScoreA] = useState(match.scoreA?.toString() ?? '');
-  const [scoreB, setScoreB] = useState(match.scoreB?.toString() ?? '');
+  const [scoreA, setScoreA] = useState<number>(match.scoreA ?? 0);
+  const [scoreB, setScoreB] = useState<number>(match.scoreB ?? 0);
   const [proofUrl, setProofUrl] = useState(match.proofUrl ?? '');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState('');
   const { addToast } = useToast();
 
   const handleSave = () => {
-    const numA = parseInt(scoreA, 10);
-    const numB = parseInt(scoreB, 10);
-    if (!isNaN(numA) && !isNaN(numB)) {
-      onUpdateScore(match.id, numA, numB, proofUrl);
-      addToast('Score saved!', 'success');
+    onUpdateScore(match.id, scoreA, scoreB, proofUrl);
+    addToast('Skor berhasil disimpan!', 'success');
+  };
+
+  const adjustScore = (team: 'A' | 'B', delta: number) => {
+    if (team === 'A') {
+        setScoreA(prev => Math.max(0, prev + delta));
     } else {
-      addToast('Invalid score.', 'error');
+        setScoreB(prev => Math.max(0, prev + delta));
     }
   };
 
   const handleGenerate = async () => {
       if (match.status !== 'finished') {
-          const message = 'Please save final score first.';
-          setError(message);
-          addToast(message, 'error');
+          addToast('Simpan skor terlebih dahulu.', 'error');
           return;
       }
-      setError('');
       setIsGenerating(true);
       try {
         await onGenerateSummary(match.id);
-        addToast('Summary generated!', 'success');
+        addToast('Ringkasan AI dibuat!', 'success');
       } catch (e) {
-          const message = 'Failed to generate summary.';
-          setError(message);
-          addToast(message, 'error');
-          console.error(e);
+          addToast('Gagal membuat ringkasan.', 'error');
       } finally {
         setIsGenerating(false);
       }
   }
 
   return (
-    <Card className="!p-3 bg-brand-primary hover:!ring-brand-vibrant relative transition-all">
-      <div className="flex justify-between items-center mb-3">
-           <span className="text-[10px] font-bold text-brand-vibrant bg-brand-vibrant/10 px-2 py-0.5 rounded-full">
-            MD {match.matchday}
-          </span>
-          <div className="flex gap-2 items-center">
-              <span className="text-[10px] font-bold text-brand-light opacity-50 uppercase">Leg {match.leg}</span>
-              <button 
-                onClick={() => onEditSchedule(match)} 
-                className="p-2 -m-2 text-brand-light hover:text-white transition-colors" 
-                title="Edit Match Schedule"
-              >
-                  <Pencil size={14} />
-              </button>
+    <Card className="!p-4 bg-brand-primary/60 border-brand-accent hover:border-brand-vibrant transition-all">
+      <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black text-brand-vibrant bg-brand-vibrant/10 px-2 py-1 rounded uppercase tracking-tighter">
+                Matchday {match.matchday}
+            </span>
+            <span className="text-[10px] font-bold text-brand-light/40 uppercase">Leg {match.leg}</span>
           </div>
+          <button 
+            onClick={() => onEditSchedule(match)} 
+            className="p-1.5 text-brand-light hover:text-white bg-white/5 rounded-lg transition-colors"
+          >
+              <Pencil size={14} />
+          </button>
       </div>
      
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 gap-y-3">
-        {/* Team A */}
-        <div className="flex flex-col items-center justify-center text-center gap-1 min-w-0">
-            <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-10 h-10" />
-            <span className="font-semibold text-brand-text truncate text-xs leading-tight w-full">{match.teamA.name}</span>
+      <div className="flex flex-col gap-6">
+        {/* Teams & Scores Area */}
+        <div className="flex items-center justify-between gap-2">
+            
+            {/* Team A Section */}
+            <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+                <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-12 h-12 sm:w-14 sm:h-14" />
+                <span className="font-black text-white text-[10px] sm:text-xs uppercase truncate w-full text-center">{match.teamA.name}</span>
+                
+                {/* Score Controls A */}
+                <div className="flex items-center bg-black/40 rounded-xl border border-white/5 p-1">
+                    <button onClick={() => adjustScore('A', -1)} className="p-2 text-brand-light hover:text-red-400"><Minus size={16} /></button>
+                    <input 
+                        type="number" 
+                        value={scoreA}
+                        onChange={(e) => setScoreA(parseInt(e.target.value) || 0)}
+                        className="w-10 text-center bg-transparent font-black text-xl text-brand-vibrant focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <button onClick={() => adjustScore('A', 1)} className="p-2 text-brand-light hover:text-green-400"><Plus size={16} /></button>
+                </div>
+            </div>
+
+            <div className="text-brand-light/20 font-black italic text-xl">VS</div>
+
+            {/* Team B Section */}
+            <div className="flex flex-col items-center gap-2 flex-1 min-w-0">
+                <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-12 h-12 sm:w-14 sm:h-14" />
+                <span className="font-black text-white text-[10px] sm:text-xs uppercase truncate w-full text-center">{match.teamB.name}</span>
+                
+                {/* Score Controls B */}
+                <div className="flex items-center bg-black/40 rounded-xl border border-white/5 p-1">
+                    <button onClick={() => adjustScore('B', -1)} className="p-2 text-brand-light hover:text-red-400"><Minus size={16} /></button>
+                    <input 
+                        type="number" 
+                        value={scoreB}
+                        onChange={(e) => setScoreB(parseInt(e.target.value) || 0)}
+                        className="w-10 text-center bg-transparent font-black text-xl text-brand-vibrant focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <button onClick={() => adjustScore('B', 1)} className="p-2 text-brand-light hover:text-green-400"><Plus size={16} /></button>
+                </div>
+            </div>
         </div>
 
-        {/* Score Inputs Center */}
-        <div className="flex items-center gap-2">
-            <input 
-                id={`scoreA-${match.id}`} 
-                type="number" 
-                inputMode="numeric"
-                value={scoreA} 
-                onChange={e => setScoreA(e.target.value)} 
-                className="w-12 h-12 text-center bg-brand-secondary border border-brand-accent rounded-xl text-brand-text font-bold text-xl focus:ring-2 focus:ring-brand-vibrant touch-manipulation appearance-none" 
-                placeholder="-" 
-            />
-            <div className="text-brand-light text-xs font-bold px-1">-</div>
-            <input 
-                id={`scoreB-${match.id}`} 
-                type="number" 
-                inputMode="numeric"
-                value={scoreB} 
-                onChange={e => setScoreB(e.target.value)} 
-                className="w-12 h-12 text-center bg-brand-secondary border border-brand-accent rounded-xl text-brand-text font-bold text-xl focus:ring-2 focus:ring-brand-vibrant touch-manipulation appearance-none" 
-                placeholder="-" 
-            />
-        </div>
+        {/* Proof URL & Summary Button */}
+        <div className="space-y-3 pt-4 border-t border-white/5">
+            <div className="relative">
+                <Link size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" />
+                <input
+                    type="text"
+                    value={proofUrl}
+                    onChange={e => setProofUrl(e.target.value)}
+                    className="w-full py-2.5 pl-9 pr-3 bg-black/30 border border-brand-accent rounded-xl text-xs text-brand-light placeholder:text-brand-light/20 focus:border-brand-vibrant outline-none"
+                    placeholder="Link Bukti (Video/SS)..."
+                />
+            </div>
 
-        {/* Team B */}
-        <div className="flex flex-col items-center justify-center text-center gap-1 min-w-0">
-            <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-10 h-10" />
-            <span className="font-semibold text-brand-text truncate text-xs leading-tight w-full">{match.teamB.name}</span>
+            <div className="flex gap-2">
+                <Button onClick={handleSave} className="flex-grow !py-3 bg-green-600 hover:bg-green-700 border-none shadow-lg shadow-green-900/20">
+                    <Save size={18}/> <span>Update Skor</span>
+                </Button>
+                
+                <Button 
+                    onClick={handleGenerate} 
+                    disabled={isGenerating || match.status !== 'finished'} 
+                    variant="secondary" 
+                    className="!px-4 bg-white/5 border-white/10"
+                    title="Generate Summary AI"
+                >
+                    {isGenerating ? <Spinner size={16} /> : <Sparkles size={18} className="text-brand-special" />}
+                </Button>
+            </div>
         </div>
       </div>
-
-      {/* Actions Row */}
-      <div className="flex items-center gap-2 mt-4 pt-3 border-t border-brand-accent/30">
-          <div className="relative flex-grow">
-            <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                <Link size={14} className="text-brand-light" />
-            </div>
-            <input
-                type="text"
-                value={proofUrl}
-                onChange={e => setProofUrl(e.target.value)}
-                className="w-full py-2 pl-8 pr-2 bg-brand-secondary border border-brand-accent rounded-lg text-brand-text text-sm placeholder:text-brand-accent/80 focus:ring-1 focus:ring-brand-vibrant outline-none"
-                placeholder="Proof Link..."
-            />
-          </div>
-          
-          <Button onClick={handleSave} className="!py-2 !px-4 h-10 text-sm shrink-0 bg-green-600 hover:bg-green-700 border-none">
-              <Save size={16}/>
-          </Button>
-          
-          {/* Optional: Summary AI Button */}
-          {match.status === 'finished' && (
-              <Button onClick={handleGenerate} disabled={isGenerating} variant="secondary" className="!py-2 !px-3 h-10 w-10 shrink-0 flex items-center justify-center">
-                  {isGenerating ? <Spinner size={14} /> : <Sparkles size={16} className="text-brand-special" />}
-              </Button>
-          )}
-      </div>
-
-        {error && <p className="text-red-400 text-[10px] mt-2 text-center">{error}</p>}
-        {match.summary && !isGenerating && (
-            <div className="bg-brand-secondary/30 p-2 rounded mt-2 border border-white/5">
-                <p className="text-[10px] text-brand-light italic line-clamp-2">"{match.summary}"</p>
-            </div>
-        )}
     </Card>
   );
 };

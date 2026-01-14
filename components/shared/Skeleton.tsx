@@ -11,6 +11,10 @@ export const Skeleton: React.FC<SkeletonProps> = ({ className = '' }) => {
   );
 };
 
+export const LogoSkeleton: React.FC<{ size?: string }> = ({ size = 'w-8 h-8' }) => (
+    <div className={`${size} rounded-full bg-white/5 animate-pulse border border-white/5 flex-shrink-0`}></div>
+);
+
 export const DashboardSkeleton = () => (
     <div className="space-y-8 w-full max-w-7xl mx-auto py-8">
         <div className="w-full h-40 bg-white/5 rounded-xl animate-pulse"></div>

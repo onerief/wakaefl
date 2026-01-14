@@ -16,14 +16,14 @@ export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin }) => {
       <div className="container mx-auto px-4 md:px-8">
         
         {/* Official Partners Banner */}
-        <div className="flex flex-col items-center justify-center mb-12 space-y-6">
-            <div className="flex items-center gap-3 w-full max-w-4xl">
+        <div className="flex flex-col items-center justify-center mb-16 space-y-10">
+            <div className="flex items-center gap-4 w-full max-w-5xl">
                 <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent flex-grow"></div>
-                <span className="text-[10px] font-bold text-brand-light/30 tracking-[0.3em] uppercase whitespace-nowrap">Official Partners</span>
+                <span className="text-[11px] font-black text-brand-light/30 tracking-[0.4em] uppercase whitespace-nowrap">Official Partners & Sponsors</span>
                 <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent flex-grow"></div>
             </div>
             
-            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-80 hover:opacity-100 transition-opacity duration-500">
+            <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-95 hover:opacity-100 transition-opacity duration-500">
                 {hasPartners ? (
                     partners.map((partner) => (
                          <a 
@@ -37,35 +37,35 @@ export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin }) => {
                             <img 
                                 src={partner.logoUrl} 
                                 alt={partner.name} 
-                                className="h-8 md:h-10 w-auto object-contain max-w-[150px] drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]"
+                                className="h-24 md:h-32 w-auto object-contain max-w-[250px] md:max-w-[300px] drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                                 loading="lazy"
                             />
                         </a>
                     ))
                 ) : (
                     <>
-                        {/* Default Placeholders if no partners added */}
-                         <div className="flex items-center gap-2 group cursor-default transition-all">
-                            <Gamepad2 size={28} className="text-brand-vibrant fill-brand-vibrant/10 transition-colors" />
-                            <span className="font-black text-2xl text-brand-text tracking-tighter italic group-hover:text-white transition-colors">eFootball™</span>
+                        {/* Default Placeholders if no partners added - Heavily Increased Sizes */}
+                         <div className="flex items-center gap-4 group cursor-default transition-all">
+                            <Gamepad2 size={56} className="text-brand-vibrant fill-brand-vibrant/10 transition-colors drop-shadow-[0_0_15px_rgba(37,99,235,0.4)]" />
+                            <span className="font-black text-4xl text-brand-text tracking-tighter italic group-hover:text-white transition-colors">eFootball™</span>
                         </div>
 
-                        <div className="h-8 w-px bg-white/10 hidden sm:block"></div>
+                        <div className="h-16 w-px bg-white/10 hidden sm:block"></div>
 
-                        <div className="flex items-center gap-2 group cursor-default transition-all">
-                             <Monitor size={28} className="text-purple-400 fill-purple-400/10 transition-colors" />
-                            <span className="font-bold text-xl text-brand-text tracking-wide group-hover:text-white transition-colors">
+                        <div className="flex items-center gap-4 group cursor-default transition-all">
+                             <Monitor size={56} className="text-purple-400 fill-purple-400/10 transition-colors drop-shadow-[0_0_15px_rgba(168,85,247,0.4)]" />
+                            <span className="font-bold text-3xl text-brand-text tracking-wide group-hover:text-white transition-colors">
                                 S<span className="text-purple-400">TREAM</span>LABS
                             </span>
                         </div>
 
-                        <div className="h-8 w-px bg-white/10 hidden sm:block"></div>
+                        <div className="h-16 w-px bg-white/10 hidden sm:block"></div>
 
-                        <div className="flex items-center gap-2 group cursor-default transition-all">
-                            <Trophy size={28} className="text-yellow-400 fill-yellow-400/10 transition-colors" />
+                        <div className="flex items-center gap-4 group cursor-default transition-all">
+                            <Trophy size={56} className="text-yellow-400 fill-yellow-400/10 transition-colors drop-shadow-[0_0_15px_rgba(250,204,21,0.4)]" />
                             <div className="flex flex-col leading-none">
-                                <span className="font-black text-base text-brand-text uppercase group-hover:text-white transition-colors">Way Kanan</span>
-                                <span className="text-[10px] font-bold text-yellow-400 tracking-widest uppercase">ESPORTS</span>
+                                <span className="font-black text-2xl text-brand-text uppercase group-hover:text-white transition-colors">Way Kanan</span>
+                                <span className="text-sm font-bold text-yellow-400 tracking-[0.2em] uppercase">ESPORTS</span>
                             </div>
                         </div>
                     </>

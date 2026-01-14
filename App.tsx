@@ -24,7 +24,7 @@ import type { User } from 'firebase/auth';
 import { GlobalChat } from './components/public/GlobalChat';
 
 // IMPORTANT: Replace this with your specific admin email(s) to secure the Admin Panel.
-const ADMIN_EMAILS = ['admin@wakacl.com', 'admin@waykanan.com'];
+const ADMIN_EMAILS = ['admin@wakacl.com', 'admin@waykanan.com', 'kanyepocof@gmail.com'];
 
 function AppContent() {
   const [view, setView] = useState<View>('home');
@@ -152,7 +152,7 @@ function AppContent() {
       
       <Header currentView={view} setView={handleSetView} isAdminAuthenticated={isAdminAuthenticated} onAdminViewRequest={handleAdminViewRequest} onLogout={handleLogout} currentUser={currentUser} onUserAuthRequest={() => setShowUserAuth(true)} onUserLogout={handleLogout} onShowProfile={() => setShowUserProfile(true)} headerLogoUrl={tournament.headerLogoUrl} />
       
-      <main className="container mx-auto px-2 py-4 md:p-8 flex-grow relative z-20">
+      <main className="container mx-auto px-3 py-4 md:p-8 pb-32 md:pb-8 flex-grow relative z-20">
         <Suspense fallback={<div className="flex justify-center py-20"><Spinner size={40} /></div>}>
           {tournament.isLoading ? (
              <DashboardSkeleton />
@@ -162,7 +162,19 @@ function AppContent() {
                 <HomeDashboard onSelectMode={handleSelectMode} teamCount={globalStats.teamCount} partnerCount={globalStats.partnerCount} banners={tournament.banners} onRegisterTeam={handleRegisterTeamRequest} isRegistrationOpen={tournament.isRegistrationOpen} />
               )}
               {(view === 'league' || view === 'wakacl' || view === 'two_leagues') && (
-                <PublicView groups={tournament.groups} matches={tournament.matches} knockoutStage={(view === 'wakacl' || view === 'two_leagues') ? tournament.knockoutStage : null} rules={tournament.rules} banners={tournament.banners} onSelectTeam={setViewingTeam} currentUser={currentUser} onAddMatchComment={handleAddComment} />
+                <PublicView 
+                    groups={tournament.groups} 
+                    matches={tournament.matches} 
+                    knockoutStage={(view === 'wakacl' || view === 'two_leagues') ? tournament.knockoutStage : null} 
+                    rules={tournament.rules} 
+                    banners={tournament.banners} 
+                    onSelectTeam={setViewingTeam} 
+                    currentUser={currentUser} 
+                    onAddMatchComment={handleAddComment}
+                    isAdmin={isAdminAuthenticated}
+                    onUpdateMatchScore={tournament.updateMatchScore}
+                    onUpdateKnockoutScore={(id, data) => tournament.updateKnockoutMatch(id, { ...tournament.knockoutStage![data.round].find(m => m.id === id)!, ...data })}
+                />
               )}
               {view === 'hall_of_fame' && (
                 <HallOfFame history={allHistory} currentStatus={tournament.status} mode={activeMode} currentLeader={currentLeader} onBack={() => setView('home')} />

@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import type { KnockoutMatch } from '../../types';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { Save, Trophy, Pencil, Trash2 } from 'lucide-react';
+import { Save, Trophy, Pencil, Trash2, Plus, Minus } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { TeamLogo } from '../shared/TeamLogo';
 
@@ -15,10 +15,10 @@ interface KnockoutMatchEditorProps {
 }
 
 export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match, onUpdateScore, onEdit, onDelete }) => {
-  const [scoreA1, setScoreA1] = useState(match.scoreA1?.toString() ?? '');
-  const [scoreB1, setScoreB1] = useState(match.scoreB1?.toString() ?? '');
-  const [scoreA2, setScoreA2] = useState(match.scoreA2?.toString() ?? '');
-  const [scoreB2, setScoreB2] = useState(match.scoreB2?.toString() ?? '');
+  const [sA1, setSA1] = useState<number | null>(match.scoreA1);
+  const [sB1, setSB1] = useState<number | null>(match.scoreB1);
+  const [sA2, setSA2] = useState<number | null>(match.scoreA2);
+  const [sB2, setSB2] = useState<number | null>(match.scoreB2);
   const { addToast } = useToast();
   
   const isEditable = !!match.teamA && !!match.teamB;
@@ -26,184 +26,86 @@ export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match,
 
   const handleSave = () => {
     if (!isEditable) return;
-    const numA1 = scoreA1 === '' ? null : parseInt(scoreA1, 10);
-    const numB1 = scoreB1 === '' ? null : parseInt(scoreB1, 10);
-    const numA2 = scoreA2 === '' ? null : parseInt(scoreA2, 10);
-    const numB2 = scoreB2 === '' ? null : parseInt(scoreB2, 10);
-    
-    if ((scoreA1 !== '' && isNaN(numA1!)) || (scoreB1 !== '' && isNaN(numB1!)) || (scoreA2 !== '' && isNaN(numA2!)) || (scoreB2 !== '' && isNaN(numB2!))) {
-        addToast('Invalid score format.', 'error');
-        return;
-    }
-
-    onUpdateScore(match.id, { scoreA1: numA1, scoreB1: numB1, scoreA2: numA2, scoreB2: numB2 });
-    addToast('Knockout score saved!', 'success');
+    onUpdateScore(match.id, { scoreA1: sA1, scoreB1: sB1, scoreA2: sA2, scoreB2: sB2 });
+    addToast('Skor Knockout disimpan!', 'success');
   };
-  
-  const aggA = (parseInt(scoreA1, 10) || 0) + (parseInt(scoreA2, 10) || 0);
-  const aggB = (parseInt(scoreB1, 10) || 0) + (parseInt(scoreB2, 10) || 0);
+
+  const adjust = (leg: 1 | 2, team: 'A' | 'B', delta: number) => {
+      if (leg === 1) {
+          if (team === 'A') setSA1(prev => Math.max(0, (prev || 0) + delta));
+          else setSB1(prev => Math.max(0, (prev || 0) + delta));
+      } else {
+          if (team === 'A') setSA2(prev => Math.max(0, (prev || 0) + delta));
+          else setSB2(prev => Math.max(0, (prev || 0) + delta));
+      }
+  };
 
   const teamAName = match.teamA?.name || match.placeholderA || 'Team A';
   const teamBName = match.teamB?.name || match.placeholderB || 'Team B';
 
+  const ScoreControl = ({ val, onAdjust }: { val: number | null, onAdjust: (d: number) => void }) => (
+      <div className="flex items-center bg-black/40 rounded-lg border border-white/5 p-0.5">
+          <button onClick={() => onAdjust(-1)} className="p-1 text-brand-light hover:text-red-400"><Minus size={14} /></button>
+          <span className="w-8 text-center font-black text-lg text-brand-vibrant">{val ?? 0}</span>
+          <button onClick={() => onAdjust(1)} className="p-1 text-brand-light hover:text-green-400"><Plus size={14} /></button>
+      </div>
+  );
+
   return (
-    <Card className={`${!isEditable ? 'opacity-80' : ''} border border-white/5`}>
-      {/* Header with Toolbar */}
-      <div className="border-b border-white/5 pb-4 mb-4">
-          <div className="flex justify-between items-center mb-3">
-              <span className="text-[10px] font-bold text-brand-light uppercase tracking-wider bg-white/5 px-2 py-1 rounded">
-                Match {match.matchNumber}
-              </span>
-              <div className="flex gap-2">
-                 <Button 
-                    onClick={() => onEdit(match)} 
-                    variant="secondary" 
-                    className="!p-1.5 h-7 w-7" 
-                    title="Edit Match Details"
-                 >
-                     <Pencil size={12} />
-                 </Button>
-                 <Button 
-                    onClick={onDelete} 
-                    variant="secondary" 
-                    className="!p-1.5 h-7 w-7 bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-300 border-red-500/30" 
-                    title="Delete Match"
-                 >
-                     <Trash2 size={12} />
-                 </Button>
-             </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                 <TeamLogo logoUrl={match.teamA?.logoUrl} teamName={teamAName} className="w-8 h-8 sm:w-10 sm:h-10 shadow-md" />
-                 <div className="flex flex-col truncate min-w-0">
-                     <span className="font-bold text-brand-text truncate text-sm sm:text-lg">{teamAName}</span>
-                     {match.winnerId === match.teamA?.id && <span className="text-[10px] sm:text-xs text-brand-vibrant flex items-center gap-1"><Trophy size={10} /> Winner</span>}
-                 </div>
-             </div>
-
-             <div className="px-2 sm:px-4 text-brand-light font-bold text-xs sm:text-sm italic shrink-0">VS</div>
-
-             <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-end min-w-0 text-right">
-                 <div className="flex flex-col truncate min-w-0 items-end">
-                     <span className="font-bold text-brand-text truncate text-sm sm:text-lg">{teamBName}</span>
-                     {match.winnerId === match.teamB?.id && <span className="text-[10px] sm:text-xs text-brand-vibrant flex items-center gap-1"><Trophy size={10} /> Winner</span>}
-                 </div>
-                 <TeamLogo logoUrl={match.teamB?.logoUrl} teamName={teamBName} className="w-8 h-8 sm:w-10 sm:h-10 shadow-md" />
-             </div>
-          </div>
+    <Card className={`${!isEditable ? 'opacity-80' : ''} border border-brand-accent/50 bg-brand-primary/40`}>
+      <div className="flex justify-between items-center mb-4 pb-2 border-b border-white/5">
+          <span className="text-[10px] font-black text-brand-light uppercase tracking-widest bg-white/5 px-2 py-1 rounded">
+            {match.round} - M{match.matchNumber}
+          </span>
+          <div className="flex gap-1">
+             <button onClick={() => onEdit(match)} className="p-1.5 text-brand-light hover:text-white bg-white/5 rounded-lg"><Pencil size={12} /></button>
+             <button onClick={onDelete} className="p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 rounded-lg"><Trash2 size={12} /></button>
+         </div>
       </div>
 
-      <div className="space-y-4 bg-black/20 p-3 sm:p-4 rounded-xl shadow-inner">
-        {isFinal ? (
-           <div className="flex flex-col items-center">
-                <span className="text-xs uppercase tracking-widest text-brand-special font-bold mb-2">Final Match (Single Leg)</span>
-                <div className="flex items-center gap-4">
-                    <div className="flex flex-col items-center">
-                         <input 
-                            type="number" 
-                            value={scoreA1} 
-                            onChange={e => setScoreA1(e.target.value)} 
-                            className="w-14 h-10 sm:w-16 sm:h-12 text-center text-lg sm:text-xl font-black bg-brand-primary border border-brand-accent rounded-lg focus:ring-2 focus:ring-brand-vibrant focus:border-transparent transition-all placeholder:text-brand-accent"
-                            placeholder="0"
-                            disabled={!isEditable}
-                        />
-                         <span className="text-[10px] text-brand-light mt-1 font-bold truncate max-w-[60px] sm:max-w-[80px]">{teamAName}</span>
-                    </div>
-                   
-                    <span className="text-2xl font-black text-brand-light/50">-</span>
-                    
-                     <div className="flex flex-col items-center">
-                        <input 
-                            type="number" 
-                            value={scoreB1} 
-                            onChange={e => setScoreB1(e.target.value)} 
-                            className="w-14 h-10 sm:w-16 sm:h-12 text-center text-lg sm:text-xl font-black bg-brand-primary border border-brand-accent rounded-lg focus:ring-2 focus:ring-brand-vibrant focus:border-transparent transition-all placeholder:text-brand-accent"
-                            placeholder="0"
-                            disabled={!isEditable}
-                        />
-                         <span className="text-[10px] text-brand-light mt-1 font-bold truncate max-w-[60px] sm:max-w-[80px]">{teamBName}</span>
-                    </div>
-                </div>
-           </div>
-        ) : (
-            <>
-                {/* Leg 1 */}
-                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 sm:gap-4 items-center">
-                     <div className="flex flex-col items-end">
-                        <input 
-                            type="number" 
-                            value={scoreA1} 
-                            onChange={e => setScoreA1(e.target.value)} 
-                            className="w-12 h-9 sm:w-14 sm:h-10 text-center font-bold bg-brand-primary border border-brand-accent rounded-md focus:ring-1 focus:ring-brand-vibrant placeholder:text-brand-accent"
-                            placeholder="-"
-                            disabled={!isEditable}
-                        />
-                        <span className="text-[8px] sm:text-[10px] text-brand-vibrant font-bold mt-1 uppercase tracking-wide">Home</span>
-                     </div>
-                     <div className="flex flex-col items-center w-10 sm:w-12">
-                        <span className="text-[10px] sm:text-xs font-bold text-brand-light uppercase">Leg 1</span>
-                     </div>
-                     <div className="flex flex-col items-start">
-                        <input 
-                            type="number" 
-                            value={scoreB1} 
-                            onChange={e => setScoreB1(e.target.value)} 
-                            className="w-12 h-9 sm:w-14 sm:h-10 text-center font-bold bg-brand-primary border border-brand-accent rounded-md focus:ring-1 focus:ring-brand-vibrant placeholder:text-brand-accent"
-                            placeholder="-"
-                            disabled={!isEditable}
-                        />
-                        <span className="text-[8px] sm:text-[10px] text-brand-light/50 font-bold mt-1 uppercase tracking-wide">Away</span>
-                     </div>
-                </div>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between text-center gap-2">
+            <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+                <TeamLogo logoUrl={match.teamA?.logoUrl} teamName={teamAName} className="w-10 h-10" />
+                <span className="text-[10px] font-bold text-white truncate w-full uppercase">{teamAName}</span>
+            </div>
+            <div className="text-brand-light/30 font-black italic">VS</div>
+            <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+                <TeamLogo logoUrl={match.teamB?.logoUrl} teamName={teamBName} className="w-10 h-10" />
+                <span className="text-[10px] font-bold text-white truncate w-full uppercase">{teamBName}</span>
+            </div>
+        </div>
 
-                {/* Leg 2 */}
-                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 sm:gap-4 items-center">
-                     <div className="flex flex-col items-end">
-                        <input 
-                            type="number" 
-                            value={scoreA2} 
-                            onChange={e => setScoreA2(e.target.value)} 
-                            className="w-12 h-9 sm:w-14 sm:h-10 text-center font-bold bg-brand-primary border border-brand-accent rounded-md focus:ring-1 focus:ring-brand-vibrant placeholder:text-brand-accent"
-                            placeholder="-"
-                            disabled={!isEditable}
-                        />
-                         <span className="text-[8px] sm:text-[10px] text-brand-light/50 font-bold mt-1 uppercase tracking-wide">Away</span>
-                     </div>
-                     <div className="flex flex-col items-center w-10 sm:w-12">
-                        <span className="text-[10px] sm:text-xs font-bold text-brand-light uppercase">Leg 2</span>
-                     </div>
-                     <div className="flex flex-col items-start">
-                        <input 
-                            type="number" 
-                            value={scoreB2} 
-                            onChange={e => setScoreB2(e.target.value)} 
-                            className="w-12 h-9 sm:w-14 sm:h-10 text-center font-bold bg-brand-primary border border-brand-accent rounded-md focus:ring-1 focus:ring-brand-vibrant placeholder:text-brand-accent"
-                            placeholder="-"
-                            disabled={!isEditable}
-                        />
-                        <span className="text-[8px] sm:text-[10px] text-brand-vibrant font-bold mt-1 uppercase tracking-wide">Home</span>
-                     </div>
-                </div>
-                
-                {/* Aggregate */}
-                <div className="border-t border-white/5 pt-3 mt-1">
-                     <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center">
-                        <div className="text-right text-xl sm:text-2xl font-black text-brand-text w-14">{aggA}</div>
-                        <div className="text-center text-[8px] sm:text-[10px] uppercase tracking-widest text-brand-light/50 font-bold w-12">AGG</div>
-                        <div className="text-left text-xl sm:text-2xl font-black text-brand-text w-14">{aggB}</div>
-                     </div>
-                </div>
-            </>
-        )}
-      </div>
+        <div className="grid grid-cols-1 gap-3 bg-black/20 p-3 rounded-xl">
+            {/* Leg 1 */}
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 flex justify-center"><ScoreControl val={sA1} onAdjust={(d) => adjust(1, 'A', d)} /></div>
+                <div className="text-[9px] font-black text-brand-light uppercase tracking-tighter opacity-40">Leg 1</div>
+                <div className="flex-1 flex justify-center"><ScoreControl val={sB1} onAdjust={(d) => adjust(1, 'B', d)} /></div>
+            </div>
 
-      <div className="mt-4 flex justify-end">
-         <Button onClick={handleSave} disabled={!isEditable} className="w-full sm:w-auto">
-            <Save size={16}/>
-            Save Score
-         </Button>
+            {/* Leg 2 - Hidden for Final */}
+            {!isFinal && (
+                <div className="flex items-center justify-between gap-4 border-t border-white/5 pt-3">
+                    <div className="flex-1 flex justify-center"><ScoreControl val={sA2} onAdjust={(d) => adjust(2, 'A', d)} /></div>
+                    <div className="text-[9px] font-black text-brand-light uppercase tracking-tighter opacity-40">Leg 2</div>
+                    <div className="flex-1 flex justify-center"><ScoreControl val={sB2} onAdjust={(d) => adjust(2, 'B', d)} /></div>
+                </div>
+            )}
+            
+            {/* Total Aggregate */}
+            {!isFinal && (
+                <div className="flex items-center justify-center gap-8 pt-2 border-t border-white/5">
+                    <div className="text-xl font-black text-white">{(sA1 || 0) + (sA2 || 0)}</div>
+                    <div className="text-[8px] font-black text-brand-vibrant uppercase bg-brand-vibrant/10 px-2 py-0.5 rounded">AGG</div>
+                    <div className="text-xl font-black text-white">{(sB1 || 0) + (sB2 || 0)}</div>
+                </div>
+            )}
+        </div>
+
+        <Button onClick={handleSave} disabled={!isEditable} className="w-full !py-3 bg-brand-vibrant hover:bg-blue-600 border-none shadow-lg shadow-blue-900/20">
+            <Save size={16}/> <span>Simpan Hasil</span>
+        </Button>
       </div>
     </Card>
   );

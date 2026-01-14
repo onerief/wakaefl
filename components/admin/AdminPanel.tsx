@@ -5,7 +5,7 @@ import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ChevronDown, Check, Menu, Lock, Unlock, Crown } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ChevronDown, Check, Menu, Lock, Unlock, Crown, Image as ImageIcon, ShieldCheck, HelpCircle, Bell, ChevronRight, LayoutGrid } from 'lucide-react';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { useToast } from '../shared/Toast';
 import { Card } from '../shared/Card';
@@ -40,7 +40,7 @@ interface AdminPanelProps {
   generateKnockoutBracket: () => { success: boolean; message?: string };
   updateKnockoutMatch: (matchId: string, match: KnockoutMatch) => void;
   initializeEmptyKnockoutStage: () => void;
-  addKnockoutMatch: (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => void;
+  addKnockoutMatch: (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string, matchNumber: number) => void;
   deleteKnockoutMatch?: (matchId: string) => void;
   resetTournament: () => void;
   updateRules: (rules: string) => void;
@@ -62,7 +62,7 @@ interface AdminPanelProps {
   isLoading?: boolean;
   isRegistrationOpen?: boolean; 
   setRegistrationStatus?: (isOpen: boolean) => void;
-  updateKnockoutMatchDetails?: (matchId: string, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => void;
+  updateKnockoutMatchDetails?: (matchId: string, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string, matchNumber: number) => void;
   updateMatchSchedule?: (matchId: string, teamAId: string, teamBId: string) => void;
   headerLogoUrl?: string;
   updateHeaderLogo?: (url: string) => void;
@@ -71,10 +71,10 @@ interface AdminPanelProps {
 type AdminTab = 'group-fixtures' | 'knockout' | 'teams' | 'history' | 'rules' | 'settings';
 
 const ADMIN_TABS: { id: AdminTab; label: string; icon: any }[] = [
-    { id: 'teams', label: 'Teams Management', icon: Users },
-    { id: 'group-fixtures', label: 'Fixtures & Results', icon: ListChecks },
-    { id: 'knockout', label: 'Knockout Stage', icon: Trophy },
-    { id: 'history', label: 'Hall of Fame', icon: Crown },
+    { id: 'teams', label: 'Teams', icon: Users },
+    { id: 'group-fixtures', label: 'Fixtures', icon: ListChecks },
+    { id: 'knockout', label: 'Knockout', icon: Trophy },
+    { id: 'history', label: 'History', icon: Crown },
     { id: 'rules', label: 'Rules', icon: BookOpen },
     { id: 'settings', label: 'Settings', icon: Settings },
 ];
@@ -94,6 +94,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const [showGenerateBracketConfirm, setShowGenerateBracketConfirm] = useState(false);
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
   const [showStartNewSeasonConfirm, setShowStartNewSeasonConfirm] = useState(false);
+  
+  // Mobile accordion state for settings
+  const [openSettingsSection, setOpenSettingsSection] = useState<string | null>('branding');
+
   const { addToast } = useToast();
   
   const { 
@@ -108,9 +112,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       headerLogoUrl, updateHeaderLogo, history, addHistoryEntry, deleteHistoryEntry
   } = props;
 
-  const handleAddKnockoutMatch = (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => {
-      props.addKnockoutMatch(round, teamAId, teamBId, placeholderA, placeholderB);
-      addToast(`Match added to ${round}.`, 'success');
+  const AccordionItem = ({ id, label, icon: Icon, children }: React.PropsWithChildren<{ id: string, label: string, icon: any }>) => {
+      const isOpen = openSettingsSection === id;
+      return (
+          <div className="mb-3">
+              <button
+                  onClick={() => setOpenSettingsSection(isOpen ? null : id)}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl transition-all border ${
+                      isOpen ? 'bg-brand-vibrant/10 border-brand-vibrant/30' : 'bg-black/20 border-white/5 hover:bg-white/5'
+                  }`}
+              >
+                  <div className="flex items-center gap-3">
+                      <Icon size={18} className={isOpen ? 'text-brand-vibrant' : 'text-brand-light'} />
+                      <span className={`text-sm font-bold uppercase tracking-wider ${isOpen ? 'text-white' : 'text-brand-light'}`}>{label}</span>
+                  </div>
+                  <ChevronDown size={18} className={`text-brand-light transition-transform duration-300 ${isOpen ? 'rotate-180 text-brand-vibrant' : ''}`} />
+              </button>
+              {isOpen && (
+                  <div className="mt-2 animate-in slide-in-from-top-2 duration-300">
+                      {children}
+                  </div>
+              )}
+          </div>
+      );
+  };
+
+  const handleAddKnockoutMatch = (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string, matchNumber: number) => {
+      props.addKnockoutMatch(round, teamAId, teamBId, placeholderA, placeholderB, matchNumber);
+      addToast(`Match #${matchNumber} added to ${round}.`, 'success');
       setIsAddingMatch(null);
   }
 
@@ -155,9 +184,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       }
   }
 
-  const handleEditKnockoutMatchDetails = (matchId: string, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string) => {
+  const handleEditKnockoutMatchDetails = (matchId: string, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string, matchNumber: number) => {
       if (updateKnockoutMatchDetails) {
-          updateKnockoutMatchDetails(matchId, teamAId, teamBId, placeholderA, placeholderB);
+          updateKnockoutMatchDetails(matchId, teamAId, teamBId, placeholderA, placeholderB, matchNumber);
           addToast('Knockout match details updated.', 'success');
           setEditingKnockoutMatch(null);
       }
@@ -171,9 +200,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           addToast('Delete function not available.', 'error');
       }
   }
-
-  const activeTabInfo = ADMIN_TABS.find(t => t.id === activeTab) || ADMIN_TABS[0];
-  const ActiveIcon = activeTabInfo.icon;
 
   const renderContent = () => {
     switch(activeTab) {
@@ -190,7 +216,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-black italic uppercase text-brand-text mb-4">Fixtures & Results</h2>
+            <h2 className="text-2xl font-black italic uppercase text-brand-text mb-4 hidden lg:block">Fixtures & Results</h2>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 {groups.map(group => {
                     const groupLetter = group.name.split(' ')[1];
@@ -267,17 +293,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         }
         return (
           <div className="space-y-6">
-             <h2 className="text-2xl font-black italic uppercase text-brand-text mb-4">Knockout Stage</h2>
+             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                <h2 className="text-2xl font-black italic uppercase text-brand-text">Knockout Stage</h2>
+                {knockoutStage && (
+                    <Button onClick={() => setIsAddingMatch('Quarter-finals')} className="!py-2.5 shadow-brand-vibrant/20">
+                        <Plus size={18} /> Tambah Match Manual
+                    </Button>
+                )}
+             </div>
+
             {!knockoutStage || Object.values(knockoutStage).every((r: any) => r.length === 0) ? (
               <div className="flex flex-col items-center justify-center p-12 text-center bg-brand-secondary/20 rounded-2xl border border-dashed border-white/10">
                 <Trophy size={48} className="text-brand-light/20 mb-4" />
                 <h3 className="text-xl font-bold text-brand-text mb-2">Ready to Rumble?</h3>
-                <p className="text-brand-light mb-6">Generate the bracket once group stages are complete.</p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Button onClick={() => setShowGenerateBracketConfirm(true)}>
+                <p className="text-brand-light mb-6 text-sm">Generate the bracket once group stages are complete.</p>
+                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                  <Button onClick={() => setShowGenerateBracketConfirm(true)} className="w-full">
                     Auto-Generate Bracket
                   </Button>
-                  <Button onClick={() => initializeEmptyKnockoutStage()} variant="secondary">
+                  <Button onClick={() => { initializeEmptyKnockoutStage(); setIsAddingMatch('Quarter-finals'); }} variant="secondary" className="w-full">
                     Create Manually
                   </Button>
                 </div>
@@ -285,13 +319,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
             ) : (
               <div className="space-y-8">
                 {(Object.keys(knockoutStage) as Array<keyof KnockoutStageRounds>).map((roundName) => (
-                  <Card key={roundName} className="border-white/5">
+                  <Card key={roundName} className="border-white/5 !p-3 sm:!p-6">
                     <div className="flex justify-between items-center mb-4 border-b border-white/5 pb-2">
-                      <h3 className="text-lg font-bold text-brand-vibrant uppercase tracking-wider">{roundName}</h3>
-                      <Button onClick={() => setIsAddingMatch(roundName)} variant="secondary" className="!px-3 !py-1 text-xs h-8"><Plus size={12} /> Add Match</Button>
+                      <h3 className="text-sm sm:text-lg font-bold text-brand-vibrant uppercase tracking-wider">{roundName}</h3>
+                      <Button onClick={() => setIsAddingMatch(roundName)} variant="secondary" className="!px-2 sm:!px-3 !py-1 text-[10px] sm:text-xs h-7 sm:h-8"><Plus size={12} /> Add Match</Button>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {knockoutStage[roundName].map((match: KnockoutMatch) => (
+                      {knockoutStage[roundName].sort((a,b) => a.matchNumber - b.matchNumber).map((match: KnockoutMatch) => (
                          <KnockoutMatchEditor 
                             key={match.id} 
                             match={match} 
@@ -330,89 +364,160 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         return <RulesEditor rules={rules} onSave={updateRules} />;
       case 'settings':
         return (
-            <div className="space-y-6 pb-12">
-                 <h2 className="text-2xl font-black italic uppercase text-brand-text mb-4">Settings & Config</h2>
+            <div className="space-y-4 pb-24">
+                 <h2 className="text-2xl font-black italic uppercase text-brand-text mb-4 hidden lg:block">Settings & Config</h2>
                 
-                {updateHeaderLogo && (
-                    <BrandingSettings 
-                        headerLogoUrl={headerLogoUrl || ''} 
-                        onUpdateHeaderLogo={updateHeaderLogo} 
-                    />
-                )}
+                <div className="lg:hidden space-y-2">
+                    <AccordionItem id="branding" label="Website Branding" icon={ImageIcon}>
+                         {updateHeaderLogo && (
+                            <BrandingSettings 
+                                headerLogoUrl={headerLogoUrl || ''} 
+                                onUpdateHeaderLogo={updateHeaderLogo} 
+                            />
+                        )}
+                    </AccordionItem>
 
-                {setRegistrationStatus && (
-                    <Card className="border-brand-accent/50 z-10 relative">
+                    <AccordionItem id="registration" label="Registration Status" icon={Users}>
+                         {setRegistrationStatus && (
+                            <Card className="border-brand-accent/50 z-10 relative !p-3">
+                                <div className="flex flex-col items-stretch justify-between p-4 bg-black/20 rounded-xl border border-white/5 gap-4">
+                                    <div className="text-center">
+                                        <p className="font-bold text-white text-sm">Status Pendaftaran Publik</p>
+                                        <p className="text-[10px] text-brand-light mt-1">
+                                            {isRegistrationOpen 
+                                                ? "Tombol 'Daftar' terlihat di Home." 
+                                                : "Pendaftaran ditutup."}
+                                        </p>
+                                    </div>
+                                    <div className="flex bg-black/40 p-1 rounded-xl border border-white/10 shrink-0">
+                                        <button
+                                            onClick={() => handleSetRegistration(true)}
+                                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${isRegistrationOpen ? 'bg-green-600 text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
+                                        >
+                                            <Unlock size={14} /> Open
+                                        </button>
+                                        <button
+                                            onClick={() => handleSetRegistration(false)}
+                                            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${!isRegistrationOpen ? 'bg-red-600 text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
+                                        >
+                                            <Lock size={14} /> Closed
+                                        </button>
+                                    </div>
+                                </div>
+                            </Card>
+                        )}
+                    </AccordionItem>
+
+                    <AccordionItem id="season" label="Season Controls" icon={Settings}>
+                         <Card className="border-brand-accent/50 !p-3">
+                            <div className="flex flex-col gap-4">
+                                <div className="p-4 bg-black/20 rounded-xl border border-white/5 text-center">
+                                    <p className="font-semibold text-white text-sm">
+                                        Current Status: 
+                                        <span className={`ml-2 px-2 py-0.5 rounded text-xs uppercase font-black tracking-wider ${status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                            {status}
+                                        </span>
+                                    </p>
+                                </div>
+                                {status === 'active' ? (
+                                    <Button onClick={() => setShowFinalizeConfirm(true)} className="bg-yellow-600 text-white hover:bg-yellow-700 border-none w-full justify-center text-xs py-3">
+                                        <StopCircle size={16} /> End Season
+                                    </Button>
+                                ) : (
+                                    <div className="flex flex-col gap-2">
+                                        <Button onClick={resumeSeason} variant="secondary" className="w-full justify-center text-xs py-3">
+                                            <PlayCircle size={16} /> Resume
+                                        </Button>
+                                        <Button onClick={() => setShowStartNewSeasonConfirm(true)} className="bg-blue-600 hover:bg-blue-700 text-white border-none w-full justify-center text-xs py-3">
+                                            <Archive size={16} /> New Season
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </Card>
+                    </AccordionItem>
+
+                    <AccordionItem id="banners" label="Home Banners" icon={ImageIcon}>
+                         <BannerSettings banners={banners} onUpdateBanners={updateBanners} />
+                    </AccordionItem>
+
+                    <AccordionItem id="partners" label="Partners & Sponsors" icon={ShieldCheck}>
+                         <PartnerSettings partners={partners} onUpdatePartners={updatePartners} />
+                    </AccordionItem>
+                </div>
+
+                <div className="hidden lg:block space-y-6">
+                    {updateHeaderLogo && (
+                        <BrandingSettings 
+                            headerLogoUrl={headerLogoUrl || ''} 
+                            onUpdateHeaderLogo={updateHeaderLogo} 
+                        />
+                    )}
+
+                    {setRegistrationStatus && (
+                        <Card className="border-brand-accent/50 z-10 relative">
+                            <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
+                                <Users size={20} className="text-brand-vibrant" /> New Team Registration
+                            </h3>
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5 gap-4">
+                                <div className="text-center sm:text-left flex-grow">
+                                    <p className="font-bold text-white text-sm">Status Pendaftaran Publik</p>
+                                    <p className="text-xs text-brand-light mt-1">
+                                        {isRegistrationOpen 
+                                            ? "Tombol 'Daftar Tim Baru' terlihat di halaman depan." 
+                                            : "Pendaftaran disembunyikan dari publik."}
+                                    </p>
+                                </div>
+                                <div className="flex bg-black/40 p-1 rounded-xl border border-white/10 shrink-0">
+                                    <button
+                                        onClick={() => handleSetRegistration(true)}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${isRegistrationOpen ? 'bg-green-600 text-white shadow-lg' : 'text-brand-light hover:text-white hover:bg-white/5'}`}
+                                    >
+                                        <Unlock size={14} /> Open
+                                    </button>
+                                    <button
+                                        onClick={() => handleSetRegistration(false)}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${!isRegistrationOpen ? 'bg-red-600 text-white shadow-lg' : 'text-brand-light hover:text-white hover:bg-white/5'}`}
+                                    >
+                                        <Lock size={14} /> Closed
+                                    </button>
+                                </div>
+                            </div>
+                        </Card>
+                    )}
+
+                    <Card className="border-brand-accent/50">
                         <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
-                            <Users size={20} className="text-brand-vibrant" /> New Team Registration
+                            <Settings size={20} className="text-brand-vibrant" /> Season Status
                         </h3>
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-4 bg-black/20 rounded-xl border border-white/5 gap-4">
-                            <div className="text-center sm:text-left flex-grow">
-                                <p className="font-bold text-white text-sm">Status Pendaftaran Publik</p>
-                                <p className="text-xs text-brand-light mt-1">
-                                    {isRegistrationOpen 
-                                        ? "Tombol 'Daftar Tim Baru' terlihat di halaman depan." 
-                                        : "Pendaftaran disembunyikan dari publik."}
+                        <div className="flex flex-col gap-4">
+                            <div className="p-4 bg-black/20 rounded-xl border border-white/5">
+                                <p className="font-semibold text-white flex items-center gap-2 text-sm">
+                                    Current Status: 
+                                    <span className={`px-2 py-0.5 rounded text-xs uppercase font-black tracking-wider ${status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                        {status}
+                                    </span>
                                 </p>
                             </div>
-                            <div className="flex bg-black/40 p-1 rounded-xl border border-white/10 shrink-0">
-                                <button
-                                    onClick={() => handleSetRegistration(true)}
-                                    className={`
-                                        flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all
-                                        ${isRegistrationOpen 
-                                            ? 'bg-green-600 text-white shadow-lg' 
-                                            : 'text-brand-light hover:text-white hover:bg-white/5'}
-                                    `}
-                                >
-                                    <Unlock size={14} /> Open
-                                </button>
-                                <button
-                                    onClick={() => handleSetRegistration(false)}
-                                    className={`
-                                        flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all
-                                        ${!isRegistrationOpen 
-                                            ? 'bg-red-600 text-white shadow-lg' 
-                                            : 'text-brand-light hover:text-white hover:bg-white/5'}
-                                    `}
-                                >
-                                    <Lock size={14} /> Closed
-                                </button>
-                            </div>
+                            {status === 'active' ? (
+                                <Button onClick={() => setShowFinalizeConfirm(true)} className="bg-yellow-600 text-white hover:bg-yellow-700 border-none w-full justify-center">
+                                    <StopCircle size={16} /> End Season & Crown Champion
+                                </Button>
+                            ) : (
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <Button onClick={resumeSeason} variant="secondary" className="w-full justify-center">
+                                        <PlayCircle size={16} /> Resume Season
+                                    </Button>
+                                    <Button onClick={() => setShowStartNewSeasonConfirm(true)} className="bg-blue-600 hover:bg-blue-700 text-white border-none w-full justify-center">
+                                        <Archive size={16} /> Start New Season
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     </Card>
-                )}
-
-                <Card className="border-brand-accent/50">
-                    <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
-                        <Settings size={20} className="text-brand-vibrant" /> Season Status
-                    </h3>
-                    <div className="flex flex-col gap-4">
-                        <div className="p-4 bg-black/20 rounded-xl border border-white/5">
-                            <p className="font-semibold text-white flex items-center gap-2 text-sm">
-                                Current Status: 
-                                <span className={`px-2 py-0.5 rounded text-xs uppercase font-black tracking-wider ${status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                                    {status}
-                                </span>
-                            </p>
-                        </div>
-                        {status === 'active' ? (
-                            <Button onClick={() => setShowFinalizeConfirm(true)} className="bg-yellow-600 text-white hover:bg-yellow-700 border-none w-full justify-center">
-                                <StopCircle size={16} /> End Season & Crown Champion
-                            </Button>
-                        ) : (
-                            <div className="flex flex-col sm:flex-row gap-2">
-                                <Button onClick={resumeSeason} variant="secondary" className="w-full justify-center">
-                                    <PlayCircle size={16} /> Resume Season
-                                </Button>
-                                <Button onClick={() => setShowStartNewSeasonConfirm(true)} className="bg-blue-600 hover:bg-blue-700 text-white border-none w-full justify-center">
-                                    <Archive size={16} /> Start New Season
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-                </Card>
-                <BannerSettings banners={banners} onUpdateBanners={updateBanners} />
-                <PartnerSettings partners={partners} onUpdatePartners={updatePartners} />
+                    <BannerSettings banners={banners} onUpdateBanners={updateBanners} />
+                    <PartnerSettings partners={partners} onUpdatePartners={updatePartners} />
+                </div>
             </div>
         );
       default:
@@ -420,63 +525,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     }
   }
 
-  const MobileNativeSelect = ({ 
-      value, 
-      options, 
-      onChange, 
-      label, 
-      icon: Icon 
-  }: { 
-      value: string, 
-      options: { id: string, label: string }[], 
-      onChange: (val: any) => void, 
-      label: string, 
-      icon: any 
-  }) => (
-      <div className="relative bg-brand-secondary/40 border border-white/10 rounded-xl p-3 flex items-center justify-between shadow-lg">
-          <div className="flex items-center gap-3">
-              <div className="p-2 bg-brand-vibrant/20 rounded-lg text-brand-vibrant">
-                  <Icon size={20} />
-              </div>
-              <div className="flex flex-col">
-                  <span className="text-[10px] text-brand-light uppercase tracking-wider font-bold">Select {label}</span>
-                  <span className="text-sm font-bold text-white truncate max-w-[180px]">
-                      {options.find(o => o.id === value)?.label || 'Select...'}
-                  </span>
-              </div>
-          </div>
-          <ChevronDown size={20} className="text-brand-light" />
-          <select 
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-          >
-              {options.map(opt => (
-                  <option key={opt.id} value={opt.id} className="text-black">
-                      {opt.label}
-                  </option>
-              ))}
-          </select>
-      </div>
+  const MobileMenuButton: React.FC<{ tab: typeof ADMIN_TABS[0], isActive: boolean, onClick: () => void }> = ({ tab, isActive, onClick }) => (
+      <button
+          onClick={onClick}
+          className={`flex flex-col items-center justify-center px-4 py-2 min-w-[80px] transition-all relative ${
+              isActive ? 'text-brand-vibrant' : 'text-brand-light'
+          }`}
+      >
+          <tab.icon size={20} className={isActive ? 'scale-110' : 'scale-100'} />
+          <span className="text-[9px] font-black uppercase tracking-tighter mt-1">{tab.label}</span>
+          {isActive && (
+              <div className="absolute bottom-0 w-1/3 h-0.5 bg-brand-vibrant rounded-full shadow-[0_0_8px_rgba(37,99,235,1)]"></div>
+          )}
+      </button>
   );
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 pb-4 lg:h-[calc(100vh-140px)]"> 
-      <div className="lg:hidden flex flex-col gap-3 relative z-40 bg-brand-primary/95 backdrop-blur-xl p-2 rounded-2xl border border-white/10 shadow-2xl mb-4">
-          <MobileNativeSelect 
-              value={mode}
-              options={MODES}
-              onChange={(val) => setMode(val)}
-              label="Database"
-              icon={Database}
-          />
-          <MobileNativeSelect 
-              value={activeTab}
-              options={ADMIN_TABS.map(t => ({ id: t.id, label: t.label }))}
-              onChange={(val) => setActiveTab(val)}
-              label="Menu"
-              icon={ActiveIcon}
-          />
+      
+      <div className="lg:hidden flex flex-col gap-2 relative z-40 bg-brand-primary/95 backdrop-blur-xl p-2 rounded-2xl border border-white/10 shadow-2xl">
+          <div className="flex items-center justify-between px-3 py-1">
+              <div className="flex items-center gap-2">
+                  <Database size={16} className="text-brand-vibrant" />
+                  <span className="text-[10px] font-black text-brand-light uppercase tracking-widest">Active Database</span>
+              </div>
+              <div className="relative">
+                  <select 
+                      value={mode}
+                      onChange={(e) => setMode(e.target.value as TournamentMode)}
+                      className="bg-transparent text-xs font-black text-white outline-none appearance-none pr-5 cursor-pointer"
+                  >
+                      {MODES.map(m => (
+                          <option key={m.id} value={m.id} className="text-black">{m.label}</option>
+                      ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-0 top-1/2 -translate-y-1/2 text-brand-light pointer-events-none" />
+              </div>
+          </div>
       </div>
 
       <aside className="hidden lg:block w-72 flex-shrink-0 space-y-6 relative z-30">
@@ -530,12 +615,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       </aside>
 
       <main className="flex-1 bg-brand-secondary/20 backdrop-blur-sm border border-white/5 rounded-[2rem] shadow-2xl relative overflow-hidden flex flex-col min-h-[500px]">
-        <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar p-4 md:p-8">
-             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 lg:pb-0">
+        <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar p-3 md:p-8">
+             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 lg:pb-0">
                 {renderContent()}
              </div>
         </div>
       </main>
+
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-brand-primary/95 backdrop-blur-xl border-t border-white/10 flex items-center justify-around z-50 px-2">
+          <div className="flex w-full max-w-md mx-auto overflow-x-auto custom-scrollbar-hide">
+              {ADMIN_TABS.map((tab) => (
+                  <MobileMenuButton 
+                      key={tab.id} 
+                      tab={tab} 
+                      isActive={activeTab === tab.id} 
+                      onClick={() => setActiveTab(tab.id)} 
+                  />
+              ))}
+          </div>
+      </div>
 
       <ConfirmationModal
         isOpen={showFinalizeConfirm}
@@ -556,6 +654,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         confirmText="Yes, Start Fresh"
         confirmButtonClass="bg-blue-600 text-white hover:bg-blue-700"
       />
+      
+      <style>{`
+        .custom-scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .custom-scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 };

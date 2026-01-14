@@ -81,6 +81,7 @@ export interface KnockoutMatch {
   nextMatchId: string | null;
   placeholderA: string;
   placeholderB: string;
+  proofUrl?: string; // New: Proof for knockout matches
 }
 
 export interface KnockoutStageRounds {

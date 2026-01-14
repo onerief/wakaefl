@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card } from '../shared/Card';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface BannerCarouselProps {
     banners: string[];
@@ -8,52 +8,92 @@ interface BannerCarouselProps {
 
 export const BannerCarousel: React.FC<BannerCarouselProps> = ({ banners }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
 
     useEffect(() => {
-        if (banners.length <= 1) return;
+        if (banners.length <= 1 || isPaused) return;
 
+        // Waktu tunggu tetap 2000ms (2 detik)
         const interval = setInterval(() => {
             setCurrentIndex((prevIndex) => (prevIndex + 1) % banners.length);
-        }, 5000); // Change every 5 seconds
+        }, 2000);
 
         return () => clearInterval(interval);
-    }, [banners.length]);
+    }, [banners.length, isPaused]);
 
     if (!banners || banners.length === 0) return null;
 
+    const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % banners.length);
+    const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length);
+
     return (
-        <Card className="!p-0 overflow-hidden mb-8 relative border-brand-accent/50 shadow-2xl group">
-             {/* Aspect ratio container: 16:9 on mobile, 21:9 or wider on desktop */}
-            <div className="relative w-full h-48 sm:h-64 md:h-80 lg:h-96 bg-brand-primary">
-                 {banners.map((banner, index) => (
-                    <div 
-                        key={index}
-                        className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+        <div 
+            className="relative w-full mb-6 group"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+        >
+            {/* Main Carousel Container with Overflow Hidden */}
+            <div className="relative aspect-[21/9] sm:aspect-[21/7] w-full overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-brand-secondary/20">
+                
+                {/* Slidable Wrapper */}
+                <div 
+                    className="flex h-full w-full transition-transform duration-700 ease-in-out"
+                    style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                >
+                    {banners.map((banner, index) => (
+                        <div 
+                            key={index}
+                            className="relative flex-shrink-0 w-full h-full"
+                        >
+                            <img 
+                                src={banner} 
+                                alt={`Tournament Banner ${index + 1}`} 
+                                className="w-full h-full object-cover"
+                                loading={index === 0 ? "eager" : "lazy"}
+                            />
+                            {/* Decorative Overlays for each slide */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-brand-primary/90 via-transparent to-transparent opacity-60"></div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Navigation Arrows */}
+                <div className="absolute inset-0 flex items-center justify-between p-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex">
+                    <button 
+                        onClick={prevSlide}
+                        className="p-2 rounded-full bg-black/40 text-white backdrop-blur-md border border-white/10 hover:bg-brand-vibrant transition-all active:scale-90"
                     >
-                         <img 
-                            src={banner} 
-                            alt={`Tournament Banner ${index + 1}`} 
-                            className="w-full h-full object-cover object-center"
-                        />
-                         {/* Gradient overlay for text readability if needed later */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-brand-primary/80 to-transparent opacity-60"></div>
-                    </div>
-                 ))}
-                 
-                 {/* Navigation Dots */}
-                 {banners.length > 1 && (
-                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
-                         {banners.map((_, index) => (
-                             <button
+                        <ChevronLeft size={24} />
+                    </button>
+                    <button 
+                        onClick={nextSlide}
+                        className="p-2 rounded-full bg-black/40 text-white backdrop-blur-md border border-white/10 hover:bg-brand-vibrant transition-all active:scale-90"
+                    >
+                        <ChevronRight size={24} />
+                    </button>
+                </div>
+
+                {/* Progress Indicators (Dots) */}
+                {banners.length > 1 && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex gap-2.5">
+                        {banners.map((_, index) => (
+                            <button
                                 key={index}
                                 onClick={() => setCurrentIndex(index)}
-                                className={`w-2 h-2 rounded-full transition-all duration-300 ${index === currentIndex ? 'bg-brand-vibrant w-6' : 'bg-white/50 hover:bg-white'}`}
+                                className={`h-1.5 rounded-full transition-all duration-500 ${
+                                    index === currentIndex 
+                                        ? 'bg-brand-vibrant w-8 shadow-[0_0_10px_rgba(37,99,235,0.8)]' 
+                                        : 'bg-white/30 w-2 hover:bg-white/50'
+                                }`}
                                 aria-label={`Go to slide ${index + 1}`}
-                             />
-                         ))}
-                     </div>
-                 )}
+                            />
+                        ))}
+                    </div>
+                )}
+                
+                {/* Static Outer Ring */}
+                <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-2xl pointer-events-none z-40"></div>
             </div>
-        </Card>
+        </div>
     );
 };

@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Team, Group, Match, KnockoutStageRounds, TournamentState } from '../../types';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search, Bell } from 'lucide-react';
+import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search, Bell, Settings as SettingsIcon, LayoutGrid } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { GenerateGroupsConfirmationModal } from './GenerateGroupsConfirmationModal';
 import { useToast } from '../shared/Toast';
@@ -12,7 +12,7 @@ import { ConfirmationModal } from './ConfirmationModal';
 import { MoveTeamModal } from './MoveTeamModal';
 import { ManualGroupManager } from './ManualGroupManager';
 import { TeamLogo } from '../shared/TeamLogo';
-import { subscribeToRegistrations, deleteRegistration } from '../../services/firebaseService';
+import { subscribeToRegistrations, deleteRegistration, sanitizeData } from '../../services/firebaseService';
 
 interface TeamManagerProps {
   teams: Team[];
@@ -22,9 +22,6 @@ interface TeamManagerProps {
   addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => void;
   updateTeam: (teamId: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean, ownerEmail?: string) => void;
   deleteTeam: (teamId: string) => void;
-  generateGroupStage: (config?: { numberOfGroups: number }) => { success: boolean; message?: string };
-  assignTopSeedToGroup: (teamId: string, assignedGroup: string) => void;
-  moveTeamToGroup: (teamId: string, destinationGroupId: string) => void;
   onGenerationSuccess: () => void;
   resetTournament: () => void;
   manualAddGroup: (name: string) => void;
@@ -38,32 +35,30 @@ interface TeamManagerProps {
   resolveTeamClaim?: (teamId: string, approved: boolean) => void;
 }
 
+type SubTab = 'list' | 'requests' | 'setup';
+
 export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const { 
     teams, groups, matches, knockoutStage, addTeam, updateTeam, deleteTeam, 
-    onGenerationSuccess, resetTournament, moveTeamToGroup, 
-    assignTopSeedToGroup, manualAddGroup, manualDeleteGroup, manualAddTeamToGroup, 
+    onGenerationSuccess, resetTournament,
+    manualAddGroup, manualDeleteGroup, manualAddTeamToGroup, 
     manualRemoveTeamFromGroup, generateMatchesFromGroups, setTournamentState, importLegacyData, rules,
     resolveTeamClaim
   } = props;
+  
+  const [activeSubTab, setActiveSubTab] = useState<SubTab>('list');
   const [showForm, setShowForm] = useState(false);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
-  const [showGenerateMatchesConfirm, setShowGenerateMatchesConfirm] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
-  const [movingTeam, setMovingTeam] = useState<Team | null>(null);
-  const [numGroups, setNumGroups] = useState(4);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [newRegistrations, setNewRegistrations] = useState<any[]>([]);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const [importedData, setImportedData] = useState<TournamentState | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  const [newRegistrations, setNewRegistrations] = useState<any[]>([]);
-  
   const [showLegacyImportConfirm, setShowLegacyImportConfirm] = useState(false);
   const [legacyImportData, setLegacyImportData] = useState<any>(null);
-
   const [isSavingTeam, setIsSavingTeam] = useState(false);
+
   const { addToast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const legacyFileInputRef = React.useRef<HTMLInputElement>(null);
@@ -109,34 +104,23 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
     setTeamToDelete(null);
   };
 
+  const handleResetConfirm = () => {
+    resetTournament();
+    addToast('Turnamen telah di-reset ulang ke kondisi awal.', 'success');
+    setShowResetConfirm(false);
+  };
+
   const handleFormSave = async (
     details: { name: string; manager?: string; socialMediaUrl?: string; whatsappNumber?: string; logoUrl: string; ownerEmail?: string; }
   ) => {
     setIsSavingTeam(true);
     try {
         if (editingTeam) {
-            updateTeam(
-                editingTeam.id, 
-                details.name, 
-                details.logoUrl, 
-                details.manager, 
-                details.socialMediaUrl, 
-                details.whatsappNumber, 
-                editingTeam.isTopSeed,
-                details.ownerEmail
-            );
+            updateTeam(editingTeam.id, details.name, details.logoUrl, details.manager, details.socialMediaUrl, details.whatsappNumber, editingTeam.isTopSeed, details.ownerEmail);
             addToast('Team details updated!', 'success');
         } else {
             const newTeamId = `t${Date.now()}`;
-            addTeam(
-                newTeamId, 
-                details.name, 
-                details.logoUrl, 
-                details.manager, 
-                details.socialMediaUrl, 
-                details.whatsappNumber,
-                details.ownerEmail
-            );
+            addTeam(newTeamId, details.name, details.logoUrl, details.manager, details.socialMediaUrl, details.whatsappNumber, details.ownerEmail);
             addToast('New team added successfully!', 'success');
         }
         setShowForm(false);
@@ -159,88 +143,13 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const handleToggleSeed = (team: Team) => {
     updateTeam(team.id, team.name, team.logoUrl || '', team.manager, team.socialMediaUrl, team.whatsappNumber, !team.isTopSeed, team.ownerEmail);
   };
-  
-  const handleGenerateClick = () => {
-    const topSeedTeams = teams.filter(t => t.isTopSeed);
-    if (topSeedTeams.length > 0) {
-        if (topSeedTeams.length > numGroups) {
-            addToast(`You have ${topSeedTeams.length} top seeds but only ${numGroups} groups.`, 'error');
-            return;
-        }
-        if (!topSeedTeams.every(t => t.assignedGroup)) {
-            addToast('Please assign all top seed teams to a group.', 'error');
-            return;
-        }
-    }
-    if (teams.length < 2) {
-        addToast(`You need at least 2 teams.`, 'error');
-        return;
-    }
-    setShowGenerateConfirm(true);
-  };
-
-  const handleGenerateConfirm = () => {
-    setShowGenerateConfirm(false);
-  }
-
-  const handleGenerateMatchesClick = () => {
-    if (groups.some(g => g.teams.length < 2)) {
-        addToast('All groups must have at least 2 teams.', 'error');
-        return;
-    }
-    setShowGenerateMatchesConfirm(true);
-  };
-
-  const handleGenerateMatchesConfirm = () => {
-    generateMatchesFromGroups();
-    addToast('Fixtures generated successfully!', 'success');
-    onGenerationSuccess();
-    setShowGenerateMatchesConfirm(false);
-  };
-
-  const handleResetConfirm = () => {
-    resetTournament();
-    addToast('Tournament reset.', 'info');
-    setShowResetConfirm(false);
-  };
-
-  const handleMoveTeamSave = (destinationGroupId: string) => {
-    if (!movingTeam) return;
-    moveTeamToGroup(movingTeam.id, destinationGroupId);
-    addToast(`Team moved.`, 'success');
-    setMovingTeam(null);
-  };
 
   const handleBackupData = () => {
     try {
         const backupData = { teams, groups, matches, knockoutStage, rules };
-        
-        /**
-         * Robust circular replacer for JSON.stringify.
-         * Detects actual cycles by tracking the current traversal stack.
-         * Duplicate references that aren't cycles are permitted.
-         */
-        const getCircularReplacer = () => {
-          const stack = new Set();
-          return function(this: any, key: string, value: any) {
-            if (typeof value === "object" && value !== null) {
-              // If we find an object already in the stack, we found a cycle
-              if (stack.has(value)) {
-                return "[Circular]";
-              }
-              // Add to stack for current traversal
-              stack.add(value);
-              
-              // Note: Replacer functions can't easily 'pop' from a Set because 
-              // we don't know when the branch is finished. However, JSON.stringify 
-              // handles standard DAGs fine. This replacer is primarily to block 
-              // infinite loops in library internal objects or state corruption.
-            }
-            return value;
-          };
-        };
-
-        const jsonString = JSON.stringify(backupData, getCircularReplacer(), 2);
+        // FIX: Sanitize before stringify to prevent circular errors
+        const sanitized = sanitizeData(backupData);
+        const jsonString = JSON.stringify(sanitized, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -253,7 +162,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
         URL.revokeObjectURL(url);
         addToast('Backup downloaded.', 'success');
     } catch (error) {
-        console.error("Backup error:", error);
+        console.error("Backup failed", error);
         addToast('Failed to create backup.', 'error');
     }
   };
@@ -322,139 +231,192 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       setLegacyImportData(null);
   };
 
-  const filteredTeamsCount = filteredTeams.length;
   const claimRequests = teams.filter(t => t.requestedOwnerEmail);
+  const totalRequests = newRegistrations.length + claimRequests.length;
 
   return (
-    <Card>
-      {newRegistrations.length > 0 && (
-          <div className="mb-8 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-              <h4 className="text-sm font-black text-blue-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <Bell size={16} /> Applications ({newRegistrations.length})
-              </h4>
-              <div className="space-y-3">
-                  {newRegistrations.map(reg => (
-                      <div key={reg.id} className="flex flex-col sm:flex-row justify-between items-center bg-black/30 p-3 rounded-lg border border-blue-500/20">
-                          <div className="flex items-center gap-3 mb-2 sm:mb-0 w-full sm:w-auto">
-                              <TeamLogo logoUrl={reg.logoUrl} teamName={reg.name} className="w-10 h-10" />
-                              <div className="flex flex-col min-w-0">
-                                  <span className="font-bold text-white text-sm truncate">{reg.name}</span>
-                                  <span className="text-[10px] text-brand-light truncate">Mgr: {reg.manager}</span>
-                              </div>
-                          </div>
-                          <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-                              <Button onClick={() => handleApproveRegistration(reg)} className="!py-1.5 !px-3 !text-xs bg-green-500 text-white border-none flex-1">Approve</Button>
-                              <Button onClick={() => deleteRegistration(reg.id)} className="!py-1.5 !px-3 !text-xs bg-red-500/20 text-red-400 border-red-500/30 flex-1">Reject</Button>
-                          </div>
-                      </div>
-                  ))}
-              </div>
-          </div>
-      )}
-
-      {claimRequests.length > 0 && resolveTeamClaim && (
-          <div className="mb-8 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-              <h4 className="text-sm font-black text-yellow-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                  <ShieldAlert size={16} /> Pending Claim Requests ({claimRequests.length})
-              </h4>
-              <div className="space-y-3">
-                  {claimRequests.map(team => (
-                      <div key={team.id} className="flex flex-col sm:flex-row justify-between items-center bg-black/30 p-3 rounded-lg border border-yellow-500/20">
-                          <div className="flex items-center gap-3 mb-2 sm:mb-0">
-                              <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-8 h-8" />
-                              <div className="flex flex-col">
-                                  <span className="font-bold text-white text-sm">{team.name}</span>
-                                  <span className="text-[10px] text-brand-light">{team.requestedOwnerEmail}</span>
-                              </div>
-                          </div>
-                          <div className="flex gap-2">
-                              <Button onClick={() => resolveTeamClaim(team.id, true)} className="!py-1.5 !px-3 !text-xs bg-green-500 text-white border-none">Approve</Button>
-                              <Button onClick={() => resolveTeamClaim(team.id, false)} className="!py-1.5 !px-3 !text-xs bg-red-500/20 text-red-400 border-red-500/30">Reject</Button>
-                          </div>
-                      </div>
-                  ))}
-              </div>
-          </div>
-      )}
-
-      <div className="flex flex-col gap-4 mb-6">
-        <h3 className="text-xl font-bold text-brand-text">Manage Teams ({teams.length})</h3>
-        <div className="flex flex-col sm:flex-row gap-2 w-full">
-             <div className="relative flex-grow">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" size={16} />
-                <input
-                    type="text"
-                    placeholder="Search..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 bg-brand-primary border border-brand-accent rounded-lg text-sm outline-none"
-                />
-             </div>
-             <Button onClick={handleAddClick} className="w-full sm:w-auto"><Plus size={16} /> Add Team</Button>
-        </div>
+    <div className="space-y-6">
+      {/* Mobile Sub-Tabs */}
+      <div className="flex lg:hidden bg-brand-primary/50 p-1 rounded-xl border border-white/5 mb-4">
+          <button 
+              onClick={() => setActiveSubTab('list')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${activeSubTab === 'list' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light'}`}
+          >
+              <Users size={14} /> Team List
+          </button>
+          <button 
+              onClick={() => setActiveSubTab('requests')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all relative ${activeSubTab === 'requests' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light'}`}
+          >
+              <Bell size={14} /> Requests
+              {totalRequests > 0 && <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
+          </button>
+          <button 
+              onClick={() => setActiveSubTab('setup')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${activeSubTab === 'setup' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light'}`}
+          >
+              <LayoutGrid size={14} /> Setup
+          </button>
       </div>
 
-      <div className="space-y-2 max-h-[600px] overflow-y-auto custom-scrollbar pr-1">
-        {filteredTeamsCount > 0 ? filteredTeams.map(team => {
-          const currentGroup = groups.find(g => g.teams.some(t => t.id === team.id));
-          return (
-            <div key={team.id} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-brand-primary p-3 rounded-xl border border-transparent hover:border-brand-accent">
-              <div className="flex items-center gap-3">
-                <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-10 h-10 sm:w-8 sm:h-8" />
-                <div className="flex-grow min-w-0">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                      <span className="font-semibold text-brand-text truncate text-sm sm:text-base">{team.name}</span>
-                  </div>
-                  <p className="text-xs text-brand-light">Mgr: {team.manager || 'N/A'}</p>
+      {/* VIEW: REQUESTS (MOBILE) or INTEGRATED (DESKTOP) */}
+      {(activeSubTab === 'requests' || window.innerWidth >= 1024) && (
+          <div className={`${activeSubTab === 'requests' ? 'block' : 'hidden lg:block'} space-y-4`}>
+             {newRegistrations.length > 0 && (
+                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                    <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                        <Bell size={16} /> New Applications ({newRegistrations.length})
+                    </h4>
+                    <div className="space-y-3">
+                        {newRegistrations.map(reg => (
+                            <div key={reg.id} className="flex flex-col sm:flex-row justify-between items-center bg-black/30 p-3 rounded-lg border border-blue-500/20 gap-3">
+                                <div className="flex items-center gap-3 w-full sm:w-auto">
+                                    <TeamLogo logoUrl={reg.logoUrl} teamName={reg.name} className="w-10 h-10" />
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="font-bold text-white text-xs truncate">{reg.name}</span>
+                                        <span className="text-[9px] text-brand-light truncate uppercase tracking-widest">Mgr: {reg.manager}</span>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 w-full sm:w-auto">
+                                    <button onClick={() => handleApproveRegistration(reg)} className="flex-1 px-3 py-1.5 bg-green-600 text-white text-[10px] font-bold rounded-lg uppercase">Approve</button>
+                                    <button onClick={() => deleteRegistration(reg.id)} className="flex-1 px-3 py-1.5 bg-red-500/20 text-red-400 text-[10px] font-bold rounded-lg border border-red-500/30 uppercase">Reject</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
-              </div>
-              <div className="flex items-center justify-end gap-2">
-                <Button onClick={() => handleToggleSeed(team)} variant="secondary" className="p-2 h-8 w-8" title="Toggle Seed">
-                    <Star size={14} className={team.isTopSeed ? 'fill-yellow-400 text-yellow-400' : 'text-brand-light'} />
-                </Button>
-                <Button onClick={() => handleEditClick(team)} variant="secondary" className="p-2 h-8 w-8"><Edit size={14} /></Button>
-                <Button onClick={() => handleDeleteClick(team)} variant="secondary" className="p-2 h-8 w-8" disabled={!!currentGroup}><Trash2 size={14} /></Button>
-              </div>
-            </div>
-          )
-        }) : <div className="text-center py-8 text-brand-light italic">No teams found.</div>}
-      </div>
+            )}
 
-      <div className="border-t border-brand-accent mt-6 pt-6">
-          <h3 className="text-xl font-bold text-brand-text mb-4">Controls</h3>
-          <div className="flex flex-col sm:flex-row gap-2 flex-wrap mb-4">
-            <Button onClick={handleBackupData} variant="secondary"><Download size={16} /> Backup</Button>
-            <Button onClick={handleRestoreClick} variant="secondary"><Upload size={16} /> Restore</Button>
-            {importLegacyData && <Button onClick={handleLegacyImportClick} variant="secondary">Legacy Import</Button>}
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="application/json" />
-            <input type="file" ref={legacyFileInputRef} onChange={handleLegacyFileChange} className="hidden" accept="application/json" />
+            {claimRequests.length > 0 && resolveTeamClaim && (
+                <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+                    <h4 className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                        <ShieldAlert size={16} /> Claim Requests ({claimRequests.length})
+                    </h4>
+                    <div className="space-y-3">
+                        {claimRequests.map(team => (
+                            <div key={team.id} className="flex flex-col sm:flex-row justify-between items-center bg-black/30 p-3 rounded-lg border border-yellow-500/20 gap-3">
+                                <div className="flex items-center gap-3 w-full sm:w-auto">
+                                    <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-10 h-10" />
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="font-bold text-white text-xs truncate">{team.name}</span>
+                                        <span className="text-[9px] text-brand-light truncate">{team.requestedOwnerEmail}</span>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 w-full sm:w-auto">
+                                    <button onClick={() => resolveTeamClaim(team.id, true)} className="flex-1 px-3 py-1.5 bg-green-600 text-white text-[10px] font-bold rounded-lg uppercase">Approve</button>
+                                    <button onClick={() => resolveTeamClaim(team.id, false)} className="flex-1 px-3 py-1.5 bg-red-500/20 text-red-400 text-[10px] font-bold rounded-lg border border-red-500/30 uppercase">Reject</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+            
+            {activeSubTab === 'requests' && totalRequests === 0 && (
+                <div className="text-center py-12 text-brand-light/30 italic text-sm">No pending requests.</div>
+            )}
           </div>
-          <Button onClick={() => setShowResetConfirm(true)} variant="danger" className="w-full sm:w-auto"><RefreshCw size={16} /> Reset All</Button>
-      </div>
+      )}
 
-      <div className="border-t border-brand-accent mt-6 pt-6">
-          <h3 className="text-xl font-bold text-brand-text mb-4">Manual Group Setup</h3>
-          <ManualGroupManager
-              teams={teams}
-              groups={groups}
-              matches={matches}
-              addGroup={manualAddGroup}
-              deleteGroup={manualDeleteGroup}
-              addTeamToGroup={manualAddTeamToGroup}
-              removeTeamFromGroup={manualRemoveTeamFromGroup}
-              generateMatches={generateMatchesFromGroups}
-              onGenerationSuccess={onGenerationSuccess}
-          />
-      </div>
+      {/* VIEW: TEAM LIST */}
+      {(activeSubTab === 'list' || window.innerWidth >= 1024) && (
+          <div className={activeSubTab === 'list' ? 'block' : 'hidden lg:block'}>
+              <Card className="!p-4 sm:!p-6">
+                <div className="flex flex-col gap-4 mb-6">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-black italic uppercase text-brand-text">All Teams <span className="text-brand-vibrant">({teams.length})</span></h3>
+                        <Button onClick={handleAddClick} className="!py-2 !px-4 !text-xs"><Plus size={14} /> Add Team</Button>
+                    </div>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Search teams or managers..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 bg-brand-primary border border-brand-accent rounded-xl text-sm outline-none focus:border-brand-vibrant transition-all"
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-2 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
+                    {filteredTeams.length > 0 ? filteredTeams.map(team => {
+                    const currentGroup = groups.find(g => g.teams.some(t => t.id === team.id));
+                    return (
+                        <div key={team.id} className="flex flex-row items-center justify-between gap-3 bg-brand-primary/40 p-2.5 rounded-xl border border-white/5 hover:border-brand-vibrant/30 transition-all group">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-10 h-10 sm:w-11 sm:h-11" />
+                                <div className="flex-grow min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="font-bold text-white truncate text-xs sm:text-sm uppercase tracking-tight">{team.name}</span>
+                                        {team.isTopSeed && <Star size={10} className="fill-yellow-400 text-yellow-400 shrink-0" />}
+                                    </div>
+                                    <p className="text-[10px] text-brand-light truncate uppercase tracking-widest">Mgr: {team.manager || 'N/A'}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => handleToggleSeed(team)} className={`p-1.5 rounded-lg ${team.isTopSeed ? 'text-yellow-400 bg-yellow-400/10' : 'text-brand-light hover:text-white bg-white/5'}`} title="Top Seed">
+                                    <Star size={14} />
+                                </button>
+                                <button onClick={() => handleEditClick(team)} className="p-1.5 text-brand-light hover:text-white bg-white/5 rounded-lg"><Edit size={14} /></button>
+                                <button onClick={() => handleDeleteClick(team)} className="p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 rounded-lg disabled:opacity-20" disabled={!!currentGroup}><Trash2 size={14} /></button>
+                            </div>
+                        </div>
+                    )
+                    }) : <div className="text-center py-12 text-brand-light/30 italic">No teams matching your search.</div>}
+                </div>
+              </Card>
+          </div>
+      )}
+
+      {/* VIEW: SETUP & TOOLS */}
+      {(activeSubTab === 'setup' || window.innerWidth >= 1024) && (
+          <div className={`${activeSubTab === 'setup' ? 'block' : 'hidden lg:block'} space-y-6`}>
+              <Card className="!p-4 sm:!p-6 border-brand-accent/30">
+                  <h3 className="text-sm font-black italic text-brand-text uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                      <LayoutGrid size={18} className="text-brand-vibrant" /> Manual Group Setup
+                  </h3>
+                  <ManualGroupManager
+                      teams={teams}
+                      groups={groups}
+                      matches={matches}
+                      addGroup={manualAddGroup}
+                      deleteGroup={manualDeleteGroup}
+                      addTeamToGroup={manualAddTeamToGroup}
+                      removeTeamFromGroup={manualRemoveTeamFromGroup}
+                      generateMatches={generateMatchesFromGroups}
+                      onGenerationSuccess={onGenerationSuccess}
+                  />
+              </Card>
+
+              <Card className="!p-4 sm:!p-6 border-brand-vibrant/20">
+                  <h3 className="text-sm font-black italic text-brand-text uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                      <SettingsIcon size={18} className="text-brand-special" /> Data Tools & Disaster Recovery
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <Button onClick={handleBackupData} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest"><Download size={14} /> Download Backup</Button>
+                    <Button onClick={handleRestoreClick} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest"><Upload size={14} /> Restore from File</Button>
+                    {importLegacyData && <Button onClick={handleLegacyImportClick} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest sm:col-span-2"><FileJson size={14} /> Legacy JSON Import</Button>}
+                  </div>
+                  
+                  <div className="mt-6 pt-6 border-t border-white/5">
+                      <Button onClick={() => setShowResetConfirm(true)} variant="danger" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest bg-red-600/10 hover:bg-red-600">
+                          <RefreshCw size={14} /> Hard Reset Tournament
+                      </Button>
+                      <p className="text-[9px] text-red-400/50 mt-2 text-center uppercase tracking-wider font-bold">⚠️ Perhatian: Tindakan ini tidak dapat dibatalkan!</p>
+                  </div>
+                  
+                  <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="application/json" />
+                  <input type="file" ref={legacyFileInputRef} onChange={handleLegacyFileChange} className="hidden" accept="application/json" />
+              </Card>
+          </div>
+      )}
 
       {showForm && <TeamForm team={editingTeam} onSave={handleFormSave} onClose={() => setShowForm(false)} isSaving={isSavingTeam} />}
-      {movingTeam && <MoveTeamModal team={movingTeam} groups={groups} onClose={() => setMovingTeam(null)} onSave={handleMoveTeamSave} />}
       {showResetConfirm && <ResetConfirmationModal onConfirm={handleResetConfirm} onCancel={() => setShowResetConfirm(false)} />}
-      {showGenerateConfirm && <GenerateGroupsConfirmationModal onConfirm={handleGenerateConfirm} onCancel={() => setShowGenerateConfirm(false)} />}
-      <ConfirmationModal isOpen={showGenerateMatchesConfirm} onClose={() => setShowGenerateMatchesConfirm(false)} onConfirm={handleGenerateMatchesConfirm} title="Generate Fixtures" message="This will overwrite existing match fixtures. Continue?" confirmText="Generate" />
-      <ConfirmationModal isOpen={!!teamToDelete} onClose={() => setTeamToDelete(null)} onConfirm={handleConfirmDelete} title="Delete Team" message={<p>Delete <strong>{teamToDelete?.name}</strong>?</p>} />
-      <ConfirmationModal isOpen={showImportConfirm} onClose={() => { setShowImportConfirm(false); setImportedData(null); }} onConfirm={handleConfirmImport} title="Restore Data" message="Overwrite all current data?" />
-      <ConfirmationModal isOpen={showLegacyImportConfirm} onClose={() => { setShowLegacyImportConfirm(false); setLegacyImportData(null); }} onConfirm={handleConfirmLegacyImport} title="Legacy Import" message="Overwrite with legacy data?" />
-    </Card>
+      <ConfirmationModal isOpen={!!teamToDelete} onClose={() => setTeamToDelete(null)} onConfirm={handleConfirmDelete} title="Delete Team" message={<p>Delete <strong>{teamToDelete?.name}</strong>? This cannot be undone.</p>} />
+      <ConfirmationModal isOpen={showImportConfirm} onClose={() => { setShowImportConfirm(false); setImportedData(null); }} onConfirm={handleConfirmImport} title="Confirm Data Restore" message="This will overwrite all current tournament data with the selected backup file. Continue?" confirmText="Yes, Restore Data" />
+      <ConfirmationModal isOpen={showLegacyImportConfirm} onClose={() => { setShowLegacyImportConfirm(false); setLegacyImportData(null); }} onConfirm={handleConfirmLegacyImport} title="Legacy Data Import" message="Convert and overwrite with data from legacy system format? Current data will be lost." confirmText="Yes, Proceed" />
+    </div>
   );
 };
