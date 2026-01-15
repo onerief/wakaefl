@@ -1,22 +1,18 @@
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import type { KnockoutStageRounds, KnockoutMatch, Team } from '../../types';
 import { Card } from '../shared/Card';
-import { Trophy, Crown, ArrowRight, Zap, Save, Plus, Minus, Camera, Loader, MonitorPlay, Sparkles, MessageSquare, Send, UserCircle, Lock } from 'lucide-react';
+import { Trophy, Crown, ArrowRight, Zap, Save, Plus, Minus, Camera, Loader, MonitorPlay, Sparkles } from 'lucide-react';
 import { TeamLogo } from '../shared/TeamLogo';
 import { useToast } from '../shared/Toast';
 import { uploadMatchProof } from '../../services/firebaseService';
 import { ProofModal } from './ProofModal';
-import type { User } from 'firebase/auth';
 
 interface KnockoutStageViewProps {
   knockoutStage: Partial<KnockoutStageRounds>;
   onSelectTeam: (team: Team) => void;
   isAdminMode?: boolean;
   onUpdateScore?: (matchId: string, data: Partial<KnockoutMatch> & { round: keyof KnockoutStageRounds }) => void;
-  currentUser?: User | null;
-  onAddComment?: (matchId: string, text: string) => void;
-  isAdmin?: boolean;
 }
 
 interface KnockoutMatchTeamProps {
@@ -105,11 +101,8 @@ const KnockoutMatchCard: React.FC<{
     match: KnockoutMatch, 
     onSelectTeam: (team: Team) => void, 
     isAdminMode?: boolean,
-    onUpdateScore?: (matchId: string, data: Partial<KnockoutMatch> & { round: keyof KnockoutStageRounds }) => void,
-    currentUser?: User | null,
-    onAddComment?: (matchId: string, text: string) => void,
-    isAdmin?: boolean
-}> = ({ match, onSelectTeam, isAdminMode, onUpdateScore, currentUser, onAddComment, isAdmin }) => {
+    onUpdateScore?: (matchId: string, data: Partial<KnockoutMatch> & { round: keyof KnockoutStageRounds }) => void
+}> = ({ match, onSelectTeam, isAdminMode, onUpdateScore }) => {
     const isFinal = match.round === 'Final';
     const sA1 = match.scoreA1;
     const sB1 = match.scoreB1;
@@ -123,8 +116,6 @@ const KnockoutMatchCard: React.FC<{
     const [editProofUrl, setEditProofUrl] = useState(match.proofUrl ?? '');
     const [isSaving, setIsSaving] = useState(false);
     const [showProof, setShowProof] = useState(false);
-    const [showComments, setShowComments] = useState(false);
-    const [newComment, setNewComment] = useState('');
     const { addToast } = useToast();
 
     const isLeg1Finished = sA1 !== null && sB1 !== null;
@@ -138,26 +129,6 @@ const KnockoutMatchCard: React.FC<{
     const isTeamBWinner = isFinished && match.winnerId === match.teamB?.id;
     const isTeamALoser = isFinished && !isTeamAWinner && !!match.teamA;
     const isTeamBLoser = isFinished && !isTeamBWinner && !!match.teamB;
-
-    // Chat Permissions Logic
-    const chatPermissions = useMemo(() => {
-        if (!currentUser) return { canChat: false, reason: 'Login untuk chat' };
-        if (isAdmin) return { canChat: true, reason: 'Admin Access' };
-        
-        // If match finished, everyone can discuss
-        if (isFinished) return { canChat: true, reason: 'Public Discussion' };
-
-        // If not finished, only involved managers
-        const userEmail = currentUser.email?.toLowerCase();
-        const isManagerA = match.teamA?.ownerEmail?.toLowerCase() === userEmail;
-        const isManagerB = match.teamB?.ownerEmail?.toLowerCase() === userEmail;
-
-        if (isManagerA || isManagerB) {
-            return { canChat: true, reason: 'Team Coordinator' };
-        }
-
-        return { canChat: false, reason: 'Hanya untuk Manager Tim' };
-    }, [currentUser, isAdmin, isFinished, match.teamA?.ownerEmail, match.teamB?.ownerEmail]);
 
     const handleSave = async () => {
         if (!onUpdateScore) return;
@@ -174,14 +145,6 @@ const KnockoutMatchCard: React.FC<{
             addToast('Gagal.', 'error');
         } finally {
             setIsSaving(false);
-        }
-    };
-
-    const handleSubmitComment = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (newComment.trim() && onAddComment && chatPermissions.canChat) {
-            onAddComment(match.id, newComment.trim());
-            setNewComment('');
         }
     };
 
@@ -263,69 +226,6 @@ const KnockoutMatchCard: React.FC<{
                             onAdjust={(d) => setEB1(v => Math.max(0, v + d))}
                         />
                     </div>
-
-                    {/* Chat Toggle Action */}
-                    <div className="px-3 py-1.5 bg-black/20 border-t border-white/5 flex justify-end">
-                        <button 
-                            onClick={() => setShowComments(!showComments)}
-                            className={`flex items-center gap-1.5 text-[8px] sm:text-[9px] font-black uppercase transition-all ${showComments ? 'text-brand-vibrant' : 'text-brand-light hover:text-white'}`}
-                        >
-                            <MessageSquare size={12} />
-                            {match.comments?.length || 0} Chat
-                        </button>
-                    </div>
-
-                    {/* Comments Section */}
-                    {showComments && (
-                        <div className="bg-black/40 border-t border-white/5 animate-in slide-in-from-top-2 duration-300">
-                            <div className="max-h-32 overflow-y-auto p-2 space-y-2 custom-scrollbar">
-                                {match.comments && match.comments.length > 0 ? (
-                                    match.comments.map((comment) => (
-                                        <div key={comment.id} className="flex gap-2">
-                                            <div className="flex-shrink-0 mt-0.5">
-                                                <UserCircle size={10} className={comment.isAdmin ? 'text-brand-special' : 'text-brand-vibrant'} />
-                                            </div>
-                                            <div className="flex flex-col min-w-0">
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className={`text-[8px] font-black uppercase truncate ${comment.isAdmin ? 'text-brand-special' : 'text-brand-light'}`}>
-                                                        {comment.userName}
-                                                    </span>
-                                                </div>
-                                                <p className="text-[9px] text-brand-text leading-tight break-words">{comment.text}</p>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-[8px] text-brand-light/30 italic text-center py-2">Belum ada chat.</p>
-                                )}
-                            </div>
-
-                            <div className="p-2 bg-brand-secondary/30 border-t border-white/5">
-                                {chatPermissions.canChat ? (
-                                    <form onSubmit={handleSubmitComment} className="flex gap-2">
-                                        <input 
-                                            type="text"
-                                            value={newComment}
-                                            onChange={(e) => setNewComment(e.target.value)}
-                                            placeholder="Ketik..."
-                                            className="flex-grow bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-[9px] text-white outline-none focus:border-brand-vibrant"
-                                        />
-                                        <button 
-                                            type="submit"
-                                            disabled={!newComment.trim()}
-                                            className="p-1.5 bg-brand-vibrant text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
-                                        >
-                                            <Send size={10} />
-                                        </button>
-                                    </form>
-                                ) : (
-                                    <div className="flex items-center justify-center gap-1.5 py-1 text-[8px] font-bold text-brand-light/50">
-                                        <Lock size={10} /> {chatPermissions.reason}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </Card>
 
@@ -344,9 +244,7 @@ const KnockoutMatchCard: React.FC<{
     )
 }
 
-export const KnockoutStageView: React.FC<KnockoutStageViewProps> = ({ 
-    knockoutStage, onSelectTeam, isAdminMode, onUpdateScore, currentUser, onAddComment, isAdmin 
-}) => {
+export const KnockoutStageView: React.FC<KnockoutStageViewProps> = ({ knockoutStage, onSelectTeam, isAdminMode, onUpdateScore }) => {
   const roundOrder: Array<keyof KnockoutStageRounds> = ['Round of 16', 'Quarter-finals', 'Semi-finals', 'Final'];
 
   return (
@@ -408,9 +306,6 @@ export const KnockoutStageView: React.FC<KnockoutStageViewProps> = ({
                         onSelectTeam={onSelectTeam} 
                         isAdminMode={isAdminMode}
                         onUpdateScore={onUpdateScore}
-                        currentUser={currentUser}
-                        onAddComment={onAddComment}
-                        isAdmin={isAdmin}
                     />
                 ))}
                 

@@ -96,17 +96,13 @@ export const PublicView: React.FC<PublicViewProps> = ({
         return (
           <div className="space-y-4">
             <div className="flex items-center gap-3 mb-1 px-1">
-                <h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">
-                  Group Stage
-                </h2>
+                <h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">Group Stage</h2>
                 <div className="h-0.5 flex-grow bg-gradient-to-r from-brand-vibrant to-transparent rounded-full opacity-30"></div>
             </div>
-            {groups.length > 0 ? (
-                <GroupStage groups={groups} onSelectTeam={onSelectTeam} />
-            ) : (
+            {groups.length > 0 ? <GroupStage groups={groups} onSelectTeam={onSelectTeam} /> : (
                 <div className="text-center bg-brand-secondary/30 border border-white/5 p-12 rounded-2xl">
-                    <h3 className="text-lg font-bold text-white mb-2">Groups TBD</h3>
-                    <p className="text-brand-light text-xs">Organizers are finalizing the groups.</p>
+                    <h3 className="text-lg font-bold text-white mb-2">Grup Belum Tersedia</h3>
+                    <p className="text-brand-light text-xs">Admin sedang mengatur pembagian grup.</p>
                 </div>
             )}
           </div>
@@ -115,21 +111,21 @@ export const PublicView: React.FC<PublicViewProps> = ({
         return (
           <div className="space-y-4">
              <div className="flex items-center gap-3 mb-1 px-1">
-                <h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">
-                  Fixtures
-                </h2>
+                <h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">Fixtures</h2>
                 <div className="h-0.5 flex-grow bg-gradient-to-r from-brand-vibrant to-transparent rounded-full opacity-30"></div>
             </div>
-            
             <AdminToggle />
-
-            {matches.length > 0 ? (
+            {groups.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     {groups.map(group => {
-                        const groupLetter = group.name.split(' ')[1];
-                        const groupMatches = matches.filter(m => m.group === groupLetter);
-                        if (groupMatches.length === 0) return null;
-
+                        const groupLetter = group.name.replace('Group ', '').trim();
+                        // Filter lebih cerdas: ID grup, Huruf grup, atau Nama Lengkap
+                        const groupMatches = matches.filter(m => 
+                            m.group === group.id || 
+                            m.group === groupLetter || 
+                            m.group === group.name
+                        );
+                        
                         const schedule = groupMatches.reduce((acc, match) => {
                             const scheduleKey = `Match ${match.leg || 1} - Day ${match.matchday || 1}`;
                             if (!acc[scheduleKey]) acc[scheduleKey] = [];
@@ -138,18 +134,13 @@ export const PublicView: React.FC<PublicViewProps> = ({
                         }, {} as Record<string, Match[]>);
                         
                         const scheduleKeys = Object.keys(schedule).sort((a, b) => {
-                            const [legA, dayA] = (a.match(/\d+/g) || [0, 0]).map(Number);
-                            const [legB, dayB] = (b.match(/\d+/g) || [0, 0]).map(Number);
-                            if (legA !== legB) return legA - legB;
-                            return dayA - dayB;
+                            const numsA = a.match(/\d+/g) || [0, 0];
+                            const numsB = b.match(/\d+/g) || [0, 0];
+                            return Number(numsA[0]) - Number(numsB[0]) || Number(numsA[1]) - Number(numsB[1]);
                         });
 
-                        const defaultScheduleKey = scheduleKeys.find(key => 
-                            schedule[key].some(m => m.status !== 'finished')
-                        ) || scheduleKeys[scheduleKeys.length - 1];
-
-                        const stateKey = group.id;
-                        const activeScheduleKey = selectedMatchdays[stateKey] || defaultScheduleKey;
+                        const defaultScheduleKey = scheduleKeys.find(key => schedule[key].some(m => m.status !== 'finished')) || scheduleKeys[scheduleKeys.length - 1];
+                        const activeScheduleKey = selectedMatchdays[group.id] || defaultScheduleKey;
                         
                         return (
                             <div key={`${group.id}-fixtures`} className="bg-brand-secondary/30 border border-white/5 p-3 rounded-[1.2rem] flex flex-col h-full">
@@ -158,32 +149,20 @@ export const PublicView: React.FC<PublicViewProps> = ({
                                     {scheduleKeys.length > 1 && (
                                         <select
                                             value={activeScheduleKey}
-                                            onChange={(e) => setSelectedMatchdays(prev => ({...prev, [stateKey]: e.target.value}))}
-                                            className="appearance-none px-2 py-1 bg-black/40 border border-white/10 rounded-lg text-white text-[9px] font-black uppercase tracking-wider outline-none cursor-pointer hover:border-brand-vibrant transition-colors"
+                                            onChange={(e) => setSelectedMatchdays(prev => ({...prev, [group.id]: e.target.value}))}
+                                            className="appearance-none px-2 py-1 bg-black/40 border border-white/10 rounded-lg text-white text-[9px] font-black uppercase outline-none"
                                         >
-                                            {scheduleKeys.map(key => {
-                                                const isDone = schedule[key].every(m => m.status === 'finished');
-                                                return <option key={key} value={key}>{key} {isDone ? '✓' : ''}</option>
-                                            })}
+                                            {scheduleKeys.map(key => <option key={key} value={key}>{key}</option>)}
                                         </select>
                                     )}
                                 </div>
                                 <div className="space-y-3 flex-grow">
-                                    {activeScheduleKey && schedule[activeScheduleKey] ? (
-                                        schedule[activeScheduleKey].map(match => (
-                                            <MatchCard 
-                                                key={match.id} 
-                                                match={match} 
-                                                onSelectTeam={onSelectTeam}
-                                                isAdminMode={isAdminModeActive}
-                                                onUpdateScore={onUpdateMatchScore}
-                                                currentUser={currentUser}
-                                                onAddComment={onAddMatchComment}
-                                                isAdmin={isAdmin}
-                                            />
+                                    {groupMatches.length > 0 ? (
+                                        schedule[activeScheduleKey]?.map(match => (
+                                            <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateMatchScore} currentUser={currentUser} onAddComment={onAddMatchComment} isAdmin={isAdmin} />
                                         ))
                                     ) : (
-                                        <div className="text-center py-6 opacity-30 italic text-[10px]">No matches.</div>
+                                        <div className="text-center py-6 opacity-30 italic text-[10px]">Jadwal belum dibuat untuk grup ini.</div>
                                     )}
                                 </div>
                             </div>
@@ -192,7 +171,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
                 </div>
             ) : (
                 <div className="text-center bg-brand-secondary/30 border border-white/5 p-12 rounded-2xl">
-                    <h3 className="text-lg font-bold text-white">No Fixtures</h3>
+                    <h3 className="text-lg font-bold text-white">Belum Ada Jadwal</h3>
                 </div>
             )}
           </div>
@@ -219,46 +198,26 @@ export const PublicView: React.FC<PublicViewProps> = ({
             <KnockoutStageView knockoutStage={{ Final: knockoutStage?.Final || [] }} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateKnockoutScore} />
           </div>
         );
-      case 'rules':
-        return <RulesView rules={rules} />;
-      default:
-        return null;
+      case 'rules': return <RulesView rules={rules} />;
+      default: return null;
     }
   }
 
   return (
     <div className="space-y-4 pb-20 md:pb-0">
         <MarqueeBanner />
-        
-        {banners && banners.length > 0 && (
-             <BannerCarousel banners={banners} />
-        )}
-
+        {banners && banners.length > 0 && <BannerCarousel banners={banners} />}
         <div className="hidden md:flex justify-center mb-8 relative z-30">
             <div className="flex items-center bg-brand-secondary/80 backdrop-blur-xl p-1.5 rounded-[1.5rem] border border-white/5 shadow-2xl">
-                <TabButton isActive={activeTab === 'groups'} onClick={() => setActiveTab('groups')}>
-                    <Users size={16}/> <span>Groups</span>
-                </TabButton>
-                <TabButton isActive={activeTab === 'fixtures'} onClick={() => setActiveTab('fixtures')}>
-                    <ListChecks size={16}/> <span>Fixtures</span>
-                </TabButton>
-                <TabButton isActive={activeTab === 'knockout'} onClick={() => setActiveTab('knockout')}>
-                    <Trophy size={16}/> <span>Knockout</span>
-                </TabButton>
-                 <TabButton isActive={activeTab === 'final'} onClick={() => setActiveTab('final')}>
-                    <Crown size={16} className="text-yellow-400"/> <span className="text-yellow-100">Final</span>
-                </TabButton>
-                <TabButton isActive={activeTab === 'rules'} onClick={() => setActiveTab('rules')}>
-                    <BookOpen size={16}/> <span>Rules</span>
-                </TabButton>
+                <TabButton isActive={activeTab === 'groups'} onClick={() => setActiveTab('groups')}><Users size={16}/> <span>Groups</span></TabButton>
+                <TabButton isActive={activeTab === 'fixtures'} onClick={() => setActiveTab('fixtures')}><ListChecks size={16}/> <span>Fixtures</span></TabButton>
+                <TabButton isActive={activeTab === 'knockout'} onClick={() => setActiveTab('knockout')}><Trophy size={16}/> <span>Knockout</span></TabButton>
+                <TabButton isActive={activeTab === 'final'} onClick={() => setActiveTab('final')}><Crown size={16} className="text-yellow-400"/> <span className="text-yellow-100">Final</span></TabButton>
+                <TabButton isActive={activeTab === 'rules'} onClick={() => setActiveTab('rules')}><BookOpen size={16}/> <span>Rules</span></TabButton>
             </div>
         </div>
-
-        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            {renderContent()}
-        </div>
-
-         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-brand-secondary/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-50 h-[56px]">
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">{renderContent()}</div>
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-brand-secondary/95 backdrop-blur-xl border-t border-white/10 shadow-[0_-5px_20px_rgba(0,0,0,0.5)] z-50 h-[56px]">
              <div className="grid grid-cols-5 h-full px-1">
                 <MobileTabButton isActive={activeTab === 'groups'} onClick={() => setActiveTab('groups')} label="Grup" icon={<Users size={18} />} />
                 <MobileTabButton isActive={activeTab === 'fixtures'} onClick={() => setActiveTab('fixtures')} label="Jadwal" icon={<ListChecks size={18} />} />

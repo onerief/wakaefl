@@ -82,7 +82,8 @@ export interface KnockoutMatch {
   placeholderA: string;
   placeholderB: string;
   proofUrl?: string; // New: Proof for knockout matches
-  comments?: MatchComment[]; // Added: Chat for knockout
+  // Fix: Added comments to KnockoutMatch to support match-specific chat functionality
+  comments?: MatchComment[];
 }
 
 export interface KnockoutStageRounds {
