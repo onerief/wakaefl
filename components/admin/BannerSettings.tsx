@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { Plus, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Plus, Trash2, Image as ImageIcon, ExternalLink, Save } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 
 interface BannerSettingsProps {
@@ -16,80 +16,102 @@ export const BannerSettings: React.FC<BannerSettingsProps> = ({ banners, onUpdat
 
     const handleAdd = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newBannerUrl.trim()) return;
+        const url = newBannerUrl.trim();
+        if (!url) return;
         
-        // Basic URL validation
         try {
-            new URL(newBannerUrl);
+            new URL(url);
         } catch (_) {
-            addToast('Please enter a valid URL (e.g., https://example.com/image.jpg)', 'error');
+            addToast('Harap masukkan URL yang valid (https://...)', 'error');
             return;
         }
 
-        const updatedBanners = [...banners, newBannerUrl.trim()];
+        const updatedBanners = [...banners, url];
         onUpdateBanners(updatedBanners);
         setNewBannerUrl('');
-        addToast('Banner added successfully!', 'success');
+        addToast('Banner ditambahkan ke antrian simpan!', 'success');
     };
 
     const handleDelete = (index: number) => {
         const updatedBanners = banners.filter((_, i) => i !== index);
         onUpdateBanners(updatedBanners);
-        addToast('Banner removed.', 'info');
+        addToast('Banner dihapus.', 'info');
     };
 
     return (
-        <Card>
-            <h3 className="text-xl font-bold text-brand-text mb-4 flex items-center gap-2">
+        <Card className="border-brand-accent/50">
+            <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
                 <ImageIcon size={20} className="text-brand-vibrant"/>
-                Manage Banners
+                Pengaturan Banner Home
             </h3>
             
-            <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-2 mb-6">
-                <input 
-                    type="url"
-                    value={newBannerUrl}
-                    onChange={(e) => setNewBannerUrl(e.target.value)}
-                    placeholder="Enter image URL (https://...)"
-                    className="flex-grow p-2.5 bg-brand-primary border border-brand-accent rounded-md text-brand-text focus:ring-2 focus:ring-brand-vibrant"
-                />
-                <Button type="submit" className="justify-center">
-                    <Plus size={16} /> Add Banner
-                </Button>
-            </form>
+            <div className="bg-black/20 p-4 rounded-xl border border-white/5 mb-6">
+                <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-grow">
+                        <ImageIcon size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light/40" />
+                        <input 
+                            type="url"
+                            value={newBannerUrl}
+                            onChange={(e) => setNewBannerUrl(e.target.value)}
+                            placeholder="URL Gambar Banner (1920x600 recommended)..."
+                            className="w-full pl-10 pr-4 py-2.5 bg-brand-primary border border-brand-accent rounded-xl text-brand-text text-sm focus:ring-2 focus:ring-brand-vibrant outline-none transition-all"
+                        />
+                    </div>
+                    <Button type="submit" className="!rounded-xl px-6">
+                        <Plus size={16} /> Tambah
+                    </Button>
+                </form>
+                <p className="text-[10px] text-brand-light/40 mt-2 italic px-1">
+                    * Data akan otomatis tersimpan ke server dalam beberapa detik setelah perubahan.
+                </p>
+            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                 {banners.length > 0 ? (
                     banners.map((url, index) => (
-                        <div key={index} className="relative group rounded-lg overflow-hidden border border-brand-accent bg-black/50">
-                            <div className="aspect-video w-full">
+                        <div key={index} className="relative group rounded-xl overflow-hidden border border-white/5 bg-black/40 shadow-lg">
+                            <div className="aspect-[21/9] w-full">
                                 <img 
                                     src={url} 
                                     alt={`Banner ${index}`} 
-                                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                    className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity"
                                 />
                             </div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                                <div className="flex items-center justify-between w-full">
+                                    <span className="text-[8px] text-brand-light truncate max-w-[150px]">{url}</span>
+                                    <div className="flex gap-1">
+                                        <a href={url} target="_blank" rel="noreferrer" className="p-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors">
+                                            <ExternalLink size={12} />
+                                        </a>
+                                        <button
+                                            onClick={() => handleDelete(index)}
+                                            className="p-1.5 bg-red-500/20 hover:bg-red-500 rounded-lg text-red-400 hover:text-white transition-all shadow-lg"
+                                            title="Hapus Banner"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {/* Mobile Delete always visible */}
                             <button
                                 onClick={() => handleDelete(index)}
-                                className="absolute top-2 right-2 bg-red-600/80 text-white p-2 rounded-full opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg"
-                                title="Remove Banner"
+                                className="sm:hidden absolute top-2 right-2 p-2 bg-red-600 rounded-full text-white shadow-xl"
                             >
-                                <Trash2 size={16} />
+                                <Trash2 size={14} />
                             </button>
-                             <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 text-xs text-brand-light truncate">
-                                {url}
-                            </div>
                         </div>
                     ))
                 ) : (
-                    <div className="col-span-full text-center py-8 text-brand-light italic bg-brand-secondary/30 rounded-lg border border-brand-accent border-dashed">
-                        No banners added yet. Add an image URL above to display it on the public home page.
+                    <div className="col-span-full text-center py-12 text-brand-light/20 italic bg-black/20 rounded-2xl border border-white/5 border-dashed">
+                        <div className="flex flex-col items-center gap-2">
+                            <ImageIcon size={40} className="opacity-10" />
+                            <p className="text-sm font-bold uppercase tracking-widest">Belum ada banner</p>
+                        </div>
                     </div>
                 )}
             </div>
-             <p className="mt-4 text-xs text-brand-light">
-                * Supported formats: JPG, PNG, GIF, WebP. Ensure URLs are publicly accessible (e.g., from Imgur, Firebase Storage, etc.).
-            </p>
         </Card>
     );
 };
