@@ -23,8 +23,8 @@ import { Footer } from './components/Footer';
 import type { User } from 'firebase/auth';
 import { GlobalChat } from './components/public/GlobalChat';
 
-// IMPORTANT: Replace this with your specific admin email(s) to secure the Admin Panel.
-const ADMIN_EMAILS = ['admin@wakacl.com', 'admin@waykanan.com', 'kanyepocof@gmail.com'];
+// HANYA email di bawah ini yang bisa mengakses panel admin
+const ADMIN_EMAILS = ['admin@banjit.com', 'admin@baradatu.com'];
 
 function AppContent() {
   const [view, setView] = useState<View>('home');
@@ -52,9 +52,15 @@ function AppContent() {
     const unsubscribe = onAuthChange((user) => {
       setCurrentUser(user);
       if (user && user.email) {
-          const isAllowedAdmin = ADMIN_EMAILS.includes(user.email) || user.email.toLowerCase().includes('admin');
+          // Pengecekan ketat: harus terdaftar di array ADMIN_EMAILS
+          const isAllowedAdmin = ADMIN_EMAILS.includes(user.email.toLowerCase());
           setIsAdminAuthenticated(isAllowedAdmin);
-          if (!isAllowedAdmin && view === 'admin') setView('home');
+          
+          // Jika user mencoba masuk view admin tapi tidak punya hak, tendang ke home
+          if (!isAllowedAdmin && view === 'admin') {
+              setView('home');
+              addToast('Akses ditolak. Anda bukan admin.', 'error');
+          }
       } else {
           setIsAdminAuthenticated(false);
           if (view === 'admin') setView('home');
