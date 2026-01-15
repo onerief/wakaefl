@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { Plus, Trash2, Image as ImageIcon, ExternalLink, Save } from 'lucide-react';
+import { Plus, Trash2, Image as ImageIcon, ExternalLink, Save, CloudCheck, Loader } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 
 interface BannerSettingsProps {
@@ -26,24 +26,30 @@ export const BannerSettings: React.FC<BannerSettingsProps> = ({ banners, onUpdat
             return;
         }
 
-        const updatedBanners = [...banners, url];
+        const updatedBanners = [...(banners || []), url];
         onUpdateBanners(updatedBanners);
         setNewBannerUrl('');
-        addToast('Banner ditambahkan ke antrian simpan!', 'success');
+        addToast('Banner ditambahkan! Sedang menyinkronkan...', 'info');
     };
 
     const handleDelete = (index: number) => {
-        const updatedBanners = banners.filter((_, i) => i !== index);
+        const updatedBanners = (banners || []).filter((_, i) => i !== index);
         onUpdateBanners(updatedBanners);
-        addToast('Banner dihapus.', 'info');
+        addToast('Banner dihapus dari daftar.', 'info');
     };
 
     return (
         <Card className="border-brand-accent/50">
-            <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
-                <ImageIcon size={20} className="text-brand-vibrant"/>
-                Pengaturan Banner Home
-            </h3>
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-brand-text flex items-center gap-2">
+                    <ImageIcon size={20} className="text-brand-vibrant"/>
+                    Pengaturan Banner Home
+                </h3>
+                <div className="flex items-center gap-1 opacity-40">
+                    <CloudCheck size={14} className="text-green-500" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Auto-Sync</span>
+                </div>
+            </div>
             
             <div className="bg-black/20 p-4 rounded-xl border border-white/5 mb-6">
                 <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-2">
@@ -62,12 +68,12 @@ export const BannerSettings: React.FC<BannerSettingsProps> = ({ banners, onUpdat
                     </Button>
                 </form>
                 <p className="text-[10px] text-brand-light/40 mt-2 italic px-1">
-                    * Data akan otomatis tersimpan ke server dalam beberapa detik setelah perubahan.
+                    * Banner akan otomatis tersimpan dalam 1 detik. Jangan refresh halaman saat indikator kuning menyala.
                 </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                {banners.length > 0 ? (
+                {banners && banners.length > 0 ? (
                     banners.map((url, index) => (
                         <div key={index} className="relative group rounded-xl overflow-hidden border border-white/5 bg-black/40 shadow-lg">
                             <div className="aspect-[21/9] w-full">
@@ -94,13 +100,6 @@ export const BannerSettings: React.FC<BannerSettingsProps> = ({ banners, onUpdat
                                     </div>
                                 </div>
                             </div>
-                            {/* Mobile Delete always visible */}
-                            <button
-                                onClick={() => handleDelete(index)}
-                                className="sm:hidden absolute top-2 right-2 p-2 bg-red-600 rounded-full text-white shadow-xl"
-                            >
-                                <Trash2 size={14} />
-                            </button>
                         </div>
                     ))
                 ) : (

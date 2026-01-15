@@ -38,6 +38,7 @@ interface AdminPanelProps {
   addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => void;
   updateTeam: (teamId: string, name: string, logoUrl: string, manager?: string | undefined, socialMediaUrl?: string | undefined, whatsappNumber?: string | undefined, isTopSeed?: boolean | undefined, ownerEmail?: string | undefined) => void;
   deleteTeam: (teamId: string) => void;
+  unbindTeam: (teamId: string) => void;
   generateKnockoutBracket: () => { success: boolean; message?: string };
   updateKnockoutMatch: (matchId: string, match: KnockoutMatch) => void;
   initializeEmptyKnockoutStage: () => void;
@@ -103,14 +104,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const { 
       matches, updateMatchScore, teams, knockoutStage, groups, mode, setMode, 
       status, finalizeSeason, resumeSeason, startNewSeason,
-      updateKnockoutMatch, rules, updateRules,
+      updateKnockoutMatch, rules, rules: rulesText, updateRules,
       banners, updateBanners, partners, updatePartners, initializeEmptyKnockoutStage,
       generateKnockoutBracket, 
       isRegistrationOpen, 
       setRegistrationStatus,
       deleteKnockoutMatch, updateKnockoutMatchDetails, updateMatchSchedule,
       headerLogoUrl, updateHeaderLogo, history, addHistoryEntry, deleteHistoryEntry,
-      isSyncing
+      isSyncing, unbindTeam
   } = props;
 
   const AccordionItem = ({ id, label, icon: Icon, children }: React.PropsWithChildren<{ id: string, label: string, icon: any }>) => {
@@ -358,11 +359,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           </div>
         );
       case 'teams':
-        return <TeamManager {...props} onGenerationSuccess={() => setActiveTab('group-fixtures')} />;
+        return <TeamManager {...props} onGenerationSuccess={() => setActiveTab('group-fixtures')} unbindTeam={unbindTeam} />;
       case 'history':
         return <HistoryManager history={history} teams={teams} onAddEntry={addHistoryEntry} onDeleteEntry={deleteHistoryEntry} />;
       case 'rules':
-        return <RulesEditor rules={rules} onSave={updateRules} />;
+        return <RulesEditor rules={rulesText} onSave={updateRules} />;
       case 'settings':
         return (
             <div className="space-y-4 pb-24">

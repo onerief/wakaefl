@@ -4,7 +4,7 @@ import type { Team, Group, Match, KnockoutStageRounds, TournamentState } from '.
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search, Bell, Settings as SettingsIcon, LayoutGrid, Info, ShieldCheck } from 'lucide-react';
+import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search, Bell, Settings as SettingsIcon, LayoutGrid, Info, ShieldCheck, UserMinus } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { GenerateGroupsConfirmationModal } from './GenerateGroupsConfirmationModal';
 import { useToast } from '../shared/Toast';
@@ -22,6 +22,7 @@ interface TeamManagerProps {
   addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => void;
   updateTeam: (teamId: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean, ownerEmail?: string) => void;
   deleteTeam: (teamId: string) => void;
+  unbindTeam: (teamId: string) => void;
   onGenerationSuccess: () => void;
   resetTournament: () => void;
   manualAddGroup: (name: string) => void;
@@ -39,7 +40,7 @@ type SubTab = 'list' | 'requests' | 'setup';
 
 export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const { 
-    teams, groups, matches, knockoutStage, addTeam, updateTeam, deleteTeam, 
+    teams, groups, matches, knockoutStage, addTeam, updateTeam, deleteTeam, unbindTeam,
     onGenerationSuccess, resetTournament,
     manualAddGroup, manualDeleteGroup, manualAddTeamToGroup, 
     manualRemoveTeamFromGroup, generateMatchesFromGroups, setTournamentState, importLegacyData, rules,
@@ -51,6 +52,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
+  const [teamToUnbind, setTeamToUnbind] = useState<Team | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [newRegistrations, setNewRegistrations] = useState<any[]>([]);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
@@ -102,6 +104,13 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
     deleteTeam(teamToDelete.id);
     addToast(`Tim "${teamToDelete.name}" telah dihapus.`, 'success');
     setTeamToDelete(null);
+  };
+
+  const handleConfirmUnbind = () => {
+    if (!teamToUnbind) return;
+    unbindTeam(teamToUnbind.id);
+    addToast(`Manager dilepaskan dari tim "${teamToUnbind.name}".`, 'success');
+    setTeamToUnbind(null);
   };
 
   const handleResetConfirm = () => {
@@ -201,10 +210,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
     reader.readAsText(file);
   };
 
-  // Fixed: Added handleLegacyImportClick to trigger the legacy file input.
   const handleLegacyImportClick = () => legacyFileInputRef.current?.click();
 
-  // Fixed: Added handleLegacyFileChange to handle the legacy JSON data import process.
   const handleLegacyFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -387,15 +394,31 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                                         <span className="font-black text-white truncate text-xs sm:text-sm uppercase tracking-tight">{team.name}</span>
                                         {team.isTopSeed && <Star size={10} className="fill-yellow-400 text-yellow-400 shrink-0" />}
                                     </div>
-                                    <p className="text-[9px] text-brand-light truncate uppercase tracking-widest font-bold opacity-60">Mgr: {team.manager || 'N/A'}</p>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                        <p className="text-[9px] text-brand-light truncate uppercase tracking-widest font-bold opacity-60">Mgr: {team.manager || 'N/A'}</p>
+                                        {team.ownerEmail && (
+                                            <span className="text-[8px] bg-green-500/20 text-green-400 px-1 py-0.5 rounded flex items-center gap-1">
+                                                <Check size={8} /> Linked
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
                                 <button onClick={() => handleToggleSeed(team)} className={`p-2 rounded-lg transition-colors ${team.isTopSeed ? 'text-yellow-400 bg-yellow-400/10' : 'text-brand-light hover:text-white bg-white/5'}`} title="Top Seed">
                                     <Star size={16} />
                                 </button>
+                                {team.ownerEmail && (
+                                    <button 
+                                        onClick={() => setTeamToUnbind(team)} 
+                                        className="p-2 text-orange-400 hover:text-orange-300 bg-orange-500/10 rounded-lg transition-colors"
+                                        title="Unbind Manager Account"
+                                    >
+                                        <UserMinus size={16} />
+                                    </button>
+                                )}
                                 <button onClick={() => handleEditClick(team)} className="p-2 text-brand-light hover:text-white bg-white/5 rounded-lg transition-colors"><Edit size={16} /></button>
-                                <button onClick={() => handleDeleteClick(team)} className="p-2 text-red-400 hover:text-red-300 bg-red-500/10 rounded-lg disabled:opacity-10 transition-colors" disabled={!!currentGroup}><Trash2 size={16} /></button>
+                                <button onClick={() => handleDeleteClick(team)} className="p-2 text-red-400 hover:text-red-300 bg-red-500/10 rounded-lg disabled:opacity-10 transition-colors" disabled={!!currentGroup} title="Hapus Tim"><Trash2 size={16} /></button>
                             </div>
                         </div>
                     )
@@ -451,6 +474,15 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       {showForm && <TeamForm team={editingTeam} onSave={handleFormSave} onClose={() => setShowForm(false)} isSaving={isSavingTeam} />}
       {showResetConfirm && <ResetConfirmationModal onConfirm={handleResetConfirm} onCancel={() => setShowResetConfirm(false)} />}
       <ConfirmationModal isOpen={!!teamToDelete} onClose={() => setTeamToDelete(null)} onConfirm={handleConfirmDelete} title="Hapus Tim" message={<p>Hapus tim <strong>{teamToDelete?.name}</strong> secara permanen?</p>} />
+      <ConfirmationModal 
+        isOpen={!!teamToUnbind} 
+        onClose={() => setTeamToUnbind(null)} 
+        onConfirm={handleConfirmUnbind} 
+        title="Unbind Manager" 
+        message={<p>Lepaskan akses manager (<strong>{teamToUnbind?.ownerEmail}</strong>) dari tim <strong>{teamToUnbind?.name}</strong>? Pengguna tersebut tidak akan bisa lagi mengedit jadwal tim ini.</p>} 
+        confirmText="Unbind Sekarang"
+        confirmButtonClass="bg-orange-600 text-white hover:bg-orange-700"
+      />
     </div>
   );
 };

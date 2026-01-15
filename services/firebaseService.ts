@@ -122,34 +122,43 @@ export const uploadMatchProof = async (file: File): Promise<string> => {
 
 export const saveTournamentData = async (mode: TournamentMode, state: TournamentState) => {
   try {
+    console.log(`Attempting to save ${mode} data and global settings...`);
+    
     const modeData = {
-        teams: state.teams,
-        groups: state.groups,
-        matches: state.matches,
-        knockoutStage: state.knockoutStage,
-        status: state.status,
-        history: state.history,
-        isRegistrationOpen: state.isRegistrationOpen,
-        isDoubleRoundRobin: state.isDoubleRoundRobin,
+        teams: state.teams || [],
+        groups: state.groups || [],
+        matches: state.matches || [],
+        knockoutStage: state.knockoutStage || null,
+        status: state.status || 'active',
+        history: state.history || [],
+        isRegistrationOpen: state.isRegistrationOpen ?? true,
+        isDoubleRoundRobin: state.isDoubleRoundRobin ?? true,
         mode: state.mode
     };
 
     const globalData = {
-        banners: state.banners,
-        partners: state.partners,
-        rules: state.rules,
-        headerLogoUrl: state.headerLogoUrl
+        banners: state.banners || [],
+        partners: state.partners || [],
+        rules: state.rules || '',
+        headerLogoUrl: state.headerLogoUrl || ''
     };
 
     const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
 
-    await setDoc(modeDocRef, sanitizeData(modeData));
-    await setDoc(settingsDocRef, sanitizeData(globalData));
+    // Save both documents in parallel
+    await Promise.all([
+        setDoc(modeDocRef, sanitizeData(modeData)),
+        setDoc(settingsDocRef, sanitizeData(globalData))
+    ]);
     
+    console.log("Save successful!");
   } catch (error: any) {
-    if (error.code === 'permission-denied') return;
-    console.warn(`Firestore: Could not save data`, error);
+    console.error(`Firestore Error: Failed to save data`, error);
+    if (error.code === 'permission-denied') {
+        console.warn("Permission denied. Ensure you are logged in as an allowed admin.");
+    }
+    throw error; // Re-throw to be caught by hook
   }
 };
 
@@ -166,7 +175,6 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
     const globalData = settingsSnap.exists() ? settingsSnap.data() : {};
     
     // Jika modeSnap tidak ada, kita tetap kirimkan data default + data global
-    // agar data global tidak terhapus di useTournament state
     const modeData = modeSnap.exists() ? modeSnap.data() : {
         teams: [],
         groups: [],

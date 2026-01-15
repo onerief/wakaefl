@@ -62,6 +62,7 @@ type Action =
   | { type: 'ADD_TEAM'; payload: Team }
   | { type: 'UPDATE_TEAM'; payload: Team }
   | { type: 'DELETE_TEAM'; payload: string }
+  | { type: 'UNBIND_TEAM'; payload: string }
   | { type: 'RESOLVE_CLAIM'; payload: { teamId: string; approved: boolean } }
   | { type: 'GENERATE_GROUPS'; payload: { groups: Group[], matches: Match[], knockoutStage: KnockoutStageRounds | null } }
   | { type: 'UPDATE_MATCH_SCORE'; payload: { matchId: string; scoreA: number; scoreB: number; proofUrl?: string } }
@@ -80,7 +81,6 @@ type Action =
 
 const calculateStandings = (teams: Team[], matches: Match[], groupId: string, groupName: string): Standing[] => {
   const standings: { [key: string]: Standing } = teams.reduce((acc, team) => {
-    // Fixed: Changed 'font' to 'form' to match the Standing interface definition.
     acc[team.id] = { team, played: 0, wins: 0, draws: 0, losses: 0, goalDifference: 0, points: 0, form: [] };
     return acc;
   }, {} as { [key: string]: Standing });
@@ -129,6 +129,18 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
       break;
     case 'DELETE_TEAM':
       newState = { ...state, teams: state.teams.filter(t => t.id !== action.payload) };
+      break;
+    case 'UNBIND_TEAM':
+      newState = { 
+        ...state, 
+        teams: state.teams.map(t => {
+          if (t.id === action.payload) {
+            const { ownerEmail, requestedOwnerEmail, ...rest } = t;
+            return rest;
+          }
+          return t;
+        }) 
+      };
       break;
     case 'RESOLVE_CLAIM': {
         const { teamId, approved } = action.payload;
@@ -202,24 +214,48 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   const [state, dispatch] = useReducer(tournamentReducer, createInitialState(activeMode));
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  
+  // Refs for reliable sync
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isInitialMount = useRef(true);
+  const stateRef = useRef(state);
 
+  // Update ref whenever state changes for access inside timeout
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  // Initial Load Effect
   useEffect(() => {
     setIsLoading(true);
+    isInitialMount.current = true; // Mark as loading to prevent immediate re-save
     getTournamentData(activeMode).then(data => {
       if (data) dispatch({ type: 'SET_STATE', payload: data });
-      setIsLoading(false);
+      // Use a small delay before allowing sync to prevent initial load from triggering a save
+      setTimeout(() => {
+          setIsLoading(false);
+          isInitialMount.current = false;
+      }, 500);
     });
   }, [activeMode]);
 
+  // Sync / Auto-Save Effect
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && !isInitialMount.current) {
        setIsSyncing(true);
        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+       
+       // Debounce for 800ms (faster than before to prevent cancellation on nav)
        saveTimeoutRef.current = setTimeout(async () => { 
-           await saveTournamentData(activeMode, state); 
-           setIsSyncing(false);
-       }, 1500);
+           try {
+               await saveTournamentData(activeMode, stateRef.current); 
+           } catch (e) {
+               console.error("Auto-save failed:", e);
+           } finally {
+               setIsSyncing(false);
+           }
+       }, 800);
+       
        return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
     }
   }, [state, isLoading, activeMode]);
@@ -234,6 +270,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       updateTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean, ownerEmail?: string) => 
         dispatch({ type: 'UPDATE_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber, isTopSeed, ownerEmail } }),
       deleteTeam: (id: string) => dispatch({ type: 'DELETE_TEAM', payload: id }),
+      unbindTeam: (id: string) => dispatch({ type: 'UNBIND_TEAM', payload: id }),
       resolveTeamClaim: (teamId: string, approved: boolean) => dispatch({ type: 'RESOLVE_CLAIM', payload: { teamId, approved } }),
       updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => 
         dispatch({ type: 'UPDATE_MATCH_SCORE', payload: { matchId, scoreA, scoreB, proofUrl } }),
