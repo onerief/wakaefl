@@ -62,6 +62,7 @@ type Action =
   | { type: 'ADD_TEAM'; payload: Team }
   | { type: 'UPDATE_TEAM'; payload: Team }
   | { type: 'DELETE_TEAM'; payload: string }
+  | { type: 'RESOLVE_CLAIM'; payload: { teamId: string; approved: boolean } }
   | { type: 'GENERATE_GROUPS'; payload: { groups: Group[], matches: Match[], knockoutStage: KnockoutStageRounds | null } }
   | { type: 'UPDATE_MATCH_SCORE'; payload: { matchId: string; scoreA: number; scoreB: number; proofUrl?: string } }
   | { type: 'ADD_MATCH_COMMENT'; payload: { matchId: string; comment: MatchComment } }
@@ -79,6 +80,7 @@ type Action =
 
 const calculateStandings = (teams: Team[], matches: Match[], groupId: string, groupName: string): Standing[] => {
   const standings: { [key: string]: Standing } = teams.reduce((acc, team) => {
+    // Fixed: Changed 'font' to 'form' to match the Standing interface definition.
     acc[team.id] = { team, played: 0, wins: 0, draws: 0, losses: 0, goalDifference: 0, points: 0, form: [] };
     return acc;
   }, {} as { [key: string]: Standing });
@@ -128,6 +130,22 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'DELETE_TEAM':
       newState = { ...state, teams: state.teams.filter(t => t.id !== action.payload) };
       break;
+    case 'RESOLVE_CLAIM': {
+        const { teamId, approved } = action.payload;
+        newState = {
+            ...state,
+            teams: state.teams.map(t => {
+                if (t.id !== teamId) return t;
+                const newTeam = { ...t };
+                if (approved && t.requestedOwnerEmail) {
+                    newTeam.ownerEmail = t.requestedOwnerEmail;
+                }
+                delete newTeam.requestedOwnerEmail;
+                return newTeam;
+            })
+        };
+        break;
+    }
     case 'GENERATE_GROUPS':
       newState = { ...state, ...action.payload };
       break;
@@ -216,6 +234,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       updateTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean, ownerEmail?: string) => 
         dispatch({ type: 'UPDATE_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber, isTopSeed, ownerEmail } }),
       deleteTeam: (id: string) => dispatch({ type: 'DELETE_TEAM', payload: id }),
+      resolveTeamClaim: (teamId: string, approved: boolean) => dispatch({ type: 'RESOLVE_CLAIM', payload: { teamId, approved } }),
       updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => 
         dispatch({ type: 'UPDATE_MATCH_SCORE', payload: { matchId, scoreA, scoreB, proofUrl } }),
       addMatchComment: (matchId: string, userId: string, userName: string, userEmail: string, text: string, isAdmin: boolean = false) =>

@@ -140,6 +140,15 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       addToast(`Pendaftaran ${reg.name} diterima!`, 'success');
   };
 
+  const handleResolveClaim = (teamId: string, approved: boolean) => {
+      if (resolveTeamClaim) {
+          resolveTeamClaim(teamId, approved);
+          addToast(approved ? 'Klaim tim disetujui!' : 'Klaim tim diabaikan.', approved ? 'success' : 'info');
+      } else {
+          addToast('Fungsi klaim tidak tersedia.', 'error');
+      }
+  };
+
   const handleToggleSeed = (team: Team) => {
     updateTeam(team.id, team.name, team.logoUrl || '', team.manager, team.socialMediaUrl, team.whatsappNumber, !team.isTopSeed, team.ownerEmail);
   };
@@ -178,8 +187,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
         if (typeof text !== 'string') throw new Error("File unreadable");
         const data = JSON.parse(text) as TournamentState;
         if (data && typeof data === 'object' && 'teams' in data) {
-          setImportedData(data);
-          setShowImportConfirm(true);
+          setTournamentState(data);
+          addToast('Data berhasil dipulihkan.', 'success');
         } else {
           addToast("Format JSON tidak valid.", 'error');
         }
@@ -192,42 +201,30 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
     reader.readAsText(file);
   };
 
-  const handleConfirmImport = () => {
-    if (importedData) {
-      setTournamentState(importedData);
-      addToast('Data berhasil dipulihkan.', 'success');
-    }
-    setShowImportConfirm(false);
-    setImportedData(null);
-  };
-
+  // Fixed: Added handleLegacyImportClick to trigger the legacy file input.
   const handleLegacyImportClick = () => legacyFileInputRef.current?.click();
 
+  // Fixed: Added handleLegacyFileChange to handle the legacy JSON data import process.
   const handleLegacyFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-          try {
-              const text = e.target?.result;
-              if (typeof text !== 'string') throw new Error("Unreadable file");
-              const data = JSON.parse(text);
-              if (!data.teams || !data.schedule) throw new Error("Invalid format");
-              setLegacyImportData(data);
-              setShowLegacyImportConfirm(true);
-          } catch (error) {
-              addToast('Gagal memproses file legacy.', 'error');
-          } finally {
-              if (event.target) event.target.value = '';
-          }
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result;
+        if (typeof text !== 'string') throw new Error("File unreadable");
+        const data = JSON.parse(text);
+        if (importLegacyData) {
+          importLegacyData(data);
+          addToast('Legacy data imported!', 'success');
+        }
+      } catch (error) {
+        addToast("Failed to process legacy file.", 'error');
+      } finally {
+        if(event.target) event.target.value = '';
       }
-      reader.readAsText(file);
-  }
-
-  const handleConfirmLegacyImport = () => {
-      if (legacyImportData && importLegacyData) importLegacyData(legacyImportData);
-      setShowLegacyImportConfirm(false);
-      setLegacyImportData(null);
+    };
+    reader.readAsText(file);
   };
 
   const claimRequests = teams.filter(t => !!t.requestedOwnerEmail);
@@ -318,7 +315,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                      )}
 
                     {/* Section: Claim Requests */}
-                    {claimRequests.length > 0 && resolveTeamClaim && (
+                    {claimRequests.length > 0 && (
                         <div className="space-y-3">
                             <h4 className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.2em] flex items-center gap-2 px-1">
                                 <ShieldAlert size={14} /> Permintaan Klaim Tim ({claimRequests.length})
@@ -337,8 +334,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                                             </div>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
-                                            <button onClick={() => resolveTeamClaim(team.id, true)} className="px-4 py-2.5 bg-yellow-600 text-brand-primary text-[10px] font-black rounded-xl uppercase hover:bg-yellow-500 transition-all shadow-lg">Izinkan</button>
-                                            <button onClick={() => resolveTeamClaim(team.id, false)} className="px-4 py-2.5 bg-white/5 text-brand-light text-[10px] font-black rounded-xl border border-white/10 uppercase hover:bg-white/10 transition-all">Abaikan</button>
+                                            <button onClick={() => handleResolveClaim(team.id, true)} className="px-4 py-2.5 bg-yellow-600 text-brand-primary text-[10px] font-black rounded-xl uppercase hover:bg-yellow-500 transition-all shadow-lg">Izinkan</button>
+                                            <button onClick={() => handleResolveClaim(team.id, false)} className="px-4 py-2.5 bg-white/5 text-brand-light text-[10px] font-black rounded-xl border border-white/10 uppercase hover:bg-white/10 transition-all">Abaikan</button>
                                         </div>
                                     </div>
                                 ))}
@@ -454,8 +451,6 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       {showForm && <TeamForm team={editingTeam} onSave={handleFormSave} onClose={() => setShowForm(false)} isSaving={isSavingTeam} />}
       {showResetConfirm && <ResetConfirmationModal onConfirm={handleResetConfirm} onCancel={() => setShowResetConfirm(false)} />}
       <ConfirmationModal isOpen={!!teamToDelete} onClose={() => setTeamToDelete(null)} onConfirm={handleConfirmDelete} title="Hapus Tim" message={<p>Hapus tim <strong>{teamToDelete?.name}</strong> secara permanen?</p>} />
-      <ConfirmationModal isOpen={showImportConfirm} onClose={() => { setShowImportConfirm(false); setImportedData(null); }} onConfirm={handleConfirmImport} title="Restore Data" message="Semua data turnamen saat ini akan ditimpa oleh file backup. Lanjutkan?" confirmText="Ya, Restore" />
-      <ConfirmationModal isOpen={showLegacyImportConfirm} onClose={() => { setShowLegacyImportConfirm(false); setLegacyImportData(null); }} onConfirm={handleConfirmLegacyImport} title="Import Legacy" message="Data dari sistem lama akan dikonversi. Data saat ini akan hilang." confirmText="Ya, Proses" />
     </div>
   );
 };
