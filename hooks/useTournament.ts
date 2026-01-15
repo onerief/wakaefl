@@ -23,11 +23,6 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
   headerLogoUrl: '', 
 });
 
-/**
- * SOURCE OF TRUTH FIX:
- * Memastikan setiap referensi tim di manapun (Grup, Klasemen, Jadwal) 
- * selalu mengambil data terbaru (Nama & Logo) dari master state.teams.
- */
 const hydrateTournamentData = (state: FullTournamentState): FullTournamentState => {
     const teamMap = new Map(state.teams.map(t => [t.id, t]));
     
@@ -91,7 +86,6 @@ const calculateStandings = (teams: Team[], matches: Match[], groupId: string, gr
   const groupLetter = groupName.replace('Group ', '').trim();
 
   matches.forEach(match => {
-    // Filter match milik grup ini
     const isMatchInGroup = match.group === groupId || match.group === groupLetter || match.group === groupName;
     if (!isMatchInGroup || match.status !== 'finished' || match.scoreA === null || match.scoreB === null) return;
     
@@ -189,6 +183,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
 export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   const [state, dispatch] = useReducer(tournamentReducer, createInitialState(activeMode));
   const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -201,8 +196,12 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
 
   useEffect(() => {
     if (!isLoading) {
+       setIsSyncing(true);
        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-       saveTimeoutRef.current = setTimeout(() => { saveTournamentData(activeMode, state); }, 2000);
+       saveTimeoutRef.current = setTimeout(async () => { 
+           await saveTournamentData(activeMode, state); 
+           setIsSyncing(false);
+       }, 1500);
        return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
     }
   }, [state, isLoading, activeMode]);
@@ -210,6 +209,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   return { 
       ...state, 
       isLoading,
+      isSyncing,
       setMode: (m: TournamentMode) => dispatch({ type: 'SET_MODE', payload: m }),
       addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => 
         dispatch({ type: 'ADD_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber, ownerEmail } }),
@@ -234,9 +234,9 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           if (champ) {
               const entry: SeasonHistory = { seasonId: `s-${Date.now()}`, seasonName: `Season ${state.history.length+1}`, champion: champ, dateCompleted: Date.now(), mode: state.mode };
               dispatch({ type: 'FINALIZE_SEASON', payload: entry });
-              return { success: true, message: 'Season Ended' };
+              return { success: true, message: 'Musim Berakhir' };
           }
-          return { success: false, message: 'No Champion' };
+          return { success: false, message: 'Tidak Ada Juara' };
       },
       resumeSeason: () => dispatch({ type: 'SET_STATUS', payload: 'active' }),
       startNewSeason: () => dispatch({ type: 'START_NEW_SEASON' }),
@@ -266,7 +266,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           const newMatches: Match[] = [];
           state.groups.forEach(g => {
               const groupID = g.id;
-              const groupLetter = g.name.replace('Group ', '').trim();
               for (let i = 0; i < g.teams.length; i++) {
                   for (let j = i+1; j < g.teams.length; j++) {
                       newMatches.push({
@@ -282,7 +281,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           });
           dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups, matches: newMatches, knockoutStage: state.knockoutStage } });
       },
-      generateKnockoutBracket: () => ({ success: true }),
       initializeEmptyKnockoutStage: () => dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups, matches: state.matches, knockoutStage: { 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': [] } } }),
       addKnockoutMatch: (r: keyof KnockoutStageRounds, tA: string | null, tB: string | null, pA: string, pB: string, num: number) => {
           const m: KnockoutMatch = { 

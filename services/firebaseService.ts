@@ -69,30 +69,20 @@ const isPlainObject = (obj: any): boolean => {
   return proto === Object.prototype || proto === null;
 };
 
-/**
- * Robust sanitizer to prevent "Converting circular structure to JSON"
- */
 export const sanitizeData = (data: any, seen = new WeakSet()): any => {
   if (data === null || typeof data !== 'object') return data;
-  
   if (seen.has(data)) return "[Circular]"; 
-
   if (Array.isArray(data)) {
     seen.add(data);
     return data.map(item => sanitizeData(item, seen));
   }
-
   if (data instanceof Date) return data.toISOString();
-  
-  // Handle Firestore/Firebase objects that might have circular refs or complex prototypes
   if (!isPlainObject(data)) {
-      // If it has a custom constructor, try to convert to a plain string or specific known fields
       if (data.constructor && data.constructor.name === 'Timestamp') {
           return data.toMillis();
       }
       return String(data);
   }
-
   seen.add(data);
   const result: any = {};
   for (const key in data) {
@@ -106,7 +96,6 @@ export const sanitizeData = (data: any, seen = new WeakSet()): any => {
   return result;
 };
 
-// --- Storage Functions ---
 export const uploadTeamLogo = async (file: File): Promise<string> => {
   try {
     const fileName = `logos/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
@@ -130,8 +119,6 @@ export const uploadMatchProof = async (file: File): Promise<string> => {
     throw new Error("Gagal mengupload bukti pertandingan.");
   }
 };
-
-// --- Database Functions ---
 
 export const saveTournamentData = async (mode: TournamentMode, state: TournamentState) => {
   try {
@@ -157,7 +144,6 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
     const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
 
-    // Using the refined sanitizeData
     await setDoc(modeDocRef, sanitizeData(modeData));
     await setDoc(settingsDocRef, sanitizeData(globalData));
     
@@ -177,10 +163,21 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
         getDoc(settingsDocRef)
     ]);
 
-    if (!modeSnap.exists()) return null;
-
-    const modeData = modeSnap.data();
     const globalData = settingsSnap.exists() ? settingsSnap.data() : {};
+    
+    // Jika modeSnap tidak ada, kita tetap kirimkan data default + data global
+    // agar data global tidak terhapus di useTournament state
+    const modeData = modeSnap.exists() ? modeSnap.data() : {
+        teams: [],
+        groups: [],
+        matches: [],
+        knockoutStage: null,
+        status: 'active',
+        history: [],
+        isRegistrationOpen: true,
+        isDoubleRoundRobin: true,
+        mode: mode
+    };
 
     return {
         ...modeData,
@@ -196,7 +193,6 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
   }
 };
 
-// --- Auth & Other Functions ---
 export const onAuthChange = (callback: (user: User | null) => void) => onAuthStateChanged(auth, callback);
 export const signOutUser = () => signOut(auth);
 export const signInUser = (email: string, password: string) => signInWithEmailAndPassword(auth, email, password);

@@ -5,7 +5,7 @@ import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ChevronDown, Check, Menu, Lock, Unlock, Crown, Image as ImageIcon, ShieldCheck, HelpCircle, Bell, ChevronRight, LayoutGrid } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ChevronDown, Check, Menu, Lock, Unlock, Crown, Image as ImageIcon, ShieldCheck, HelpCircle, Bell, ChevronRight, LayoutGrid, CloudCheck, RefreshCw } from 'lucide-react';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { useToast } from '../shared/Toast';
 import { Card } from '../shared/Card';
@@ -31,6 +31,7 @@ interface AdminPanelProps {
   status: TournamentStatus;
   history: SeasonHistory[];
   isDoubleRoundRobin: boolean;
+  isSyncing?: boolean; // New prop
   setMode: (mode: TournamentMode) => void;
   setRoundRobin: (isDouble: boolean) => void;
   updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => void;
@@ -95,7 +96,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
   const [showStartNewSeasonConfirm, setShowStartNewSeasonConfirm] = useState(false);
   
-  // Mobile accordion state for settings
   const [openSettingsSection, setOpenSettingsSection] = useState<string | null>('branding');
 
   const { addToast } = useToast();
@@ -109,7 +109,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       isRegistrationOpen, 
       setRegistrationStatus,
       deleteKnockoutMatch, updateKnockoutMatchDetails, updateMatchSchedule,
-      headerLogoUrl, updateHeaderLogo, history, addHistoryEntry, deleteHistoryEntry
+      headerLogoUrl, updateHeaderLogo, history, addHistoryEntry, deleteHistoryEntry,
+      isSyncing
   } = props;
 
   const AccordionItem = ({ id, label, icon: Icon, children }: React.PropsWithChildren<{ id: string, label: string, icon: any }>) => {
@@ -165,7 +166,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
 
   const handleStartNewSeason = () => {
       startNewSeason();
-      addToast("New season started! History has been preserved.", 'success');
+      addToast("Musim baru dimulai! Data histori telah diamankan.", 'success');
       setShowStartNewSeasonConfirm(false);
   }
 
@@ -615,6 +616,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       </aside>
 
       <main className="flex-1 bg-brand-secondary/20 backdrop-blur-sm border border-white/5 rounded-[2rem] shadow-2xl relative overflow-hidden flex flex-col min-h-[500px]">
+        {/* Sync Indicator Header */}
+        <div className="bg-black/40 border-b border-white/5 px-6 py-2 flex justify-between items-center z-20 shrink-0">
+             <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-yellow-400 animate-pulse' : 'bg-green-500'}`}></div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-brand-light">
+                    {isSyncing ? 'Sinkronisasi...' : 'Data Terpusat'}
+                </span>
+             </div>
+             {isSyncing ? (
+                 <RefreshCw size={12} className="text-yellow-400 animate-spin" />
+             ) : (
+                 <CloudCheck size={14} className="text-green-500" />
+             )}
+        </div>
+
         <div className="relative z-10 flex-1 overflow-y-auto custom-scrollbar p-3 md:p-8">
              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 pb-24 lg:pb-0">
                 {renderContent()}

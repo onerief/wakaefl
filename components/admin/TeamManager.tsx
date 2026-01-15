@@ -4,7 +4,7 @@ import type { Team, Group, Match, KnockoutStageRounds, TournamentState } from '.
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search, Bell, Settings as SettingsIcon, LayoutGrid, Info } from 'lucide-react';
+import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search, Bell, Settings as SettingsIcon, LayoutGrid, Info, ShieldCheck } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { GenerateGroupsConfirmationModal } from './GenerateGroupsConfirmationModal';
 import { useToast } from '../shared/Toast';
@@ -247,9 +247,9 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
               onClick={() => setActiveSubTab('requests')}
               className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-lg transition-all relative ${activeSubTab === 'requests' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
           >
-              <Bell size={16} /> Request {totalRequestsCount > 0 && `(${totalRequestsCount})`}
+              <Bell size={16} /> Request
               {totalRequestsCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[8px] flex items-center justify-center rounded-full animate-bounce font-bold border border-brand-primary">
+                  <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-red-500 text-white text-[9px] flex items-center justify-center rounded-full animate-bounce font-black border-2 border-brand-primary">
                       {totalRequestsCount}
                   </span>
               )}
@@ -266,85 +266,94 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       {activeSubTab === 'requests' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
              
-             {/* Unified Section Header */}
-             <div className="bg-brand-vibrant/10 p-4 rounded-2xl border border-brand-vibrant/20 flex items-center gap-3">
-                 <div className="p-2 bg-brand-vibrant/20 rounded-lg text-brand-vibrant">
-                     <Bell size={20} />
+             {/* Integrated Header */}
+             <div className="bg-brand-vibrant/10 p-5 rounded-2xl border border-brand-vibrant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                 <div className="flex items-center gap-4">
+                     <div className="p-3 bg-brand-vibrant/20 rounded-2xl text-brand-vibrant shadow-inner">
+                         <ShieldCheck size={28} />
+                     </div>
+                     <div>
+                         <h3 className="text-lg font-black text-white uppercase tracking-wider italic leading-tight">Antrian Persetujuan</h3>
+                         <p className="text-[11px] text-brand-light font-medium max-w-xs">Tinjau pendaftaran baru dan klaim tim dari member komunitas.</p>
+                     </div>
                  </div>
-                 <div>
-                     <h3 className="text-sm font-black text-white uppercase tracking-wider">Pusat Persetujuan</h3>
-                     <p className="text-[10px] text-brand-light">Tinjau pendaftaran tim baru dan permintaan klaim manager.</p>
-                 </div>
+                 {totalRequestsCount > 0 && (
+                     <div className="px-4 py-2 bg-brand-vibrant rounded-xl text-white font-black text-xs uppercase tracking-widest text-center">
+                         {totalRequestsCount} Total Menunggu
+                     </div>
+                 )}
              </div>
 
-             {/* Section: New Registrations */}
-             <div className="space-y-3">
-                <h4 className="text-[10px] font-black text-brand-vibrant uppercase tracking-[0.2em] flex items-center gap-2 px-1">
-                    Pendaftaran Tim Baru ({newRegistrations.length})
-                </h4>
-                {newRegistrations.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {newRegistrations.map(reg => (
-                            <div key={reg.id} className="flex flex-col bg-brand-secondary/40 p-4 rounded-2xl border border-white/10 gap-4 shadow-xl">
-                                <div className="flex items-center gap-4">
-                                    <TeamLogo logoUrl={reg.logoUrl} teamName={reg.name || 'New Team'} className="w-14 h-14 ring-2 ring-brand-vibrant/20" />
-                                    <div className="flex flex-col min-w-0">
-                                        <span className="font-black text-white text-sm uppercase leading-tight">{reg.name || 'Tim Tanpa Nama'}</span>
-                                        <div className="flex flex-col mt-1 gap-0.5">
-                                            <span className="text-[10px] text-brand-vibrant font-black uppercase tracking-widest">Mgr: {reg.manager || 'N/A'}</span>
-                                            <span className="text-[9px] text-brand-light italic">{reg.ownerEmail || 'No Email'}</span>
+             {/* Combined List Logic */}
+             {(newRegistrations.length > 0 || claimRequests.length > 0) ? (
+                 <div className="space-y-8">
+                     
+                     {/* Section: New Registrations */}
+                     {newRegistrations.length > 0 && (
+                        <div className="space-y-3">
+                            <h4 className="text-[10px] font-black text-brand-vibrant uppercase tracking-[0.2em] flex items-center gap-2 px-1">
+                                <Plus size={14} /> Pendaftaran Tim Baru ({newRegistrations.length})
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {newRegistrations.map(reg => (
+                                    <div key={reg.id} className="flex flex-col bg-brand-secondary/40 p-4 rounded-2xl border border-white/10 gap-4 shadow-xl hover:border-brand-vibrant/30 transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <TeamLogo logoUrl={reg.logoUrl} teamName={reg.name || 'New Team'} className="w-14 h-14 ring-2 ring-brand-vibrant/20" />
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-black text-white text-sm uppercase leading-tight">{reg.name || 'Tim Tanpa Nama'}</span>
+                                                <div className="flex flex-col mt-1 gap-0.5">
+                                                    <span className="text-[10px] text-brand-vibrant font-black uppercase tracking-widest">Mgr: {reg.manager || 'N/A'}</span>
+                                                    <span className="text-[9px] text-brand-light italic truncate">{reg.ownerEmail || 'No Email'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+                                            <button onClick={() => handleApproveRegistration(reg)} className="px-4 py-2.5 bg-green-600 text-white text-[10px] font-black rounded-xl uppercase hover:bg-green-500 transition-all shadow-lg">Terima</button>
+                                            <button onClick={() => deleteRegistration(reg.id)} className="px-4 py-2.5 bg-red-500/10 text-red-400 text-[10px] font-black rounded-xl border border-red-500/20 uppercase hover:bg-red-500/20 transition-all">Tolak</button>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
-                                    <button onClick={() => handleApproveRegistration(reg)} className="px-4 py-2.5 bg-green-600 text-white text-[10px] font-black rounded-xl uppercase hover:bg-green-500 transition-all shadow-lg">Terima</button>
-                                    <button onClick={() => deleteRegistration(reg.id)} className="px-4 py-2.5 bg-red-500/10 text-red-400 text-[10px] font-black rounded-xl border border-red-500/20 uppercase hover:bg-red-500/20 transition-all">Tolak</button>
-                                </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-6 bg-black/10 rounded-xl border border-dashed border-white/5 italic text-[10px] text-brand-light/30 uppercase tracking-widest">Tidak ada pendaftaran tim baru</div>
-                )}
-             </div>
+                        </div>
+                     )}
 
-            {/* Section: Claim Requests */}
-            <div className="space-y-3 pt-4">
-                <h4 className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.2em] flex items-center gap-2 px-1">
-                    Permintaan Klaim Tim ({claimRequests.length})
-                </h4>
-                {claimRequests.length > 0 && resolveTeamClaim ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {claimRequests.map(team => (
-                            <div key={team.id} className="flex flex-col bg-brand-secondary/40 p-4 rounded-2xl border border-yellow-500/20 gap-4 shadow-xl">
-                                <div className="flex items-center gap-4">
-                                    <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-14 h-14 ring-2 ring-yellow-500/20" />
-                                    <div className="flex flex-col min-w-0">
-                                        <span className="font-black text-white text-sm uppercase leading-tight">{team.name}</span>
-                                        <div className="flex flex-col mt-1 gap-0.5">
-                                            <span className="text-[10px] text-yellow-400 font-black uppercase tracking-widest">Calon Manager:</span>
-                                            <span className="text-[9px] text-brand-light font-bold truncate">{team.requestedOwnerEmail}</span>
+                    {/* Section: Claim Requests */}
+                    {claimRequests.length > 0 && resolveTeamClaim && (
+                        <div className="space-y-3">
+                            <h4 className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.2em] flex items-center gap-2 px-1">
+                                <ShieldAlert size={14} /> Permintaan Klaim Tim ({claimRequests.length})
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {claimRequests.map(team => (
+                                    <div key={team.id} className="flex flex-col bg-brand-secondary/40 p-4 rounded-2xl border border-yellow-500/20 gap-4 shadow-xl hover:border-yellow-500/50 transition-all">
+                                        <div className="flex items-center gap-4">
+                                            <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-14 h-14 ring-2 ring-yellow-500/20" />
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="font-black text-white text-sm uppercase leading-tight">{team.name}</span>
+                                                <div className="flex flex-col mt-1 gap-0.5">
+                                                    <span className="text-[10px] text-yellow-400 font-black uppercase tracking-widest italic">Pengeklaim:</span>
+                                                    <span className="text-[10px] text-brand-light font-bold truncate">{team.requestedOwnerEmail}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+                                            <button onClick={() => resolveTeamClaim(team.id, true)} className="px-4 py-2.5 bg-yellow-600 text-brand-primary text-[10px] font-black rounded-xl uppercase hover:bg-yellow-500 transition-all shadow-lg">Izinkan</button>
+                                            <button onClick={() => resolveTeamClaim(team.id, false)} className="px-4 py-2.5 bg-white/5 text-brand-light text-[10px] font-black rounded-xl border border-white/10 uppercase hover:bg-white/10 transition-all">Abaikan</button>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
-                                    <button onClick={() => resolveTeamClaim(team.id, true)} className="px-4 py-2.5 bg-yellow-600 text-brand-primary text-[10px] font-black rounded-xl uppercase hover:bg-yellow-500 transition-all shadow-lg">Izinkan</button>
-                                    <button onClick={() => resolveTeamClaim(team.id, false)} className="px-4 py-2.5 bg-white/5 text-brand-light text-[10px] font-black rounded-xl border border-white/10 uppercase hover:bg-white/10 transition-all">Abaikan</button>
-                                </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-6 bg-black/10 rounded-xl border border-dashed border-white/5 italic text-[10px] text-brand-light/30 uppercase tracking-widest">Tidak ada permintaan klaim tim</div>
-                )}
-            </div>
-            
-            {totalRequestsCount === 0 && (
+                        </div>
+                    )}
+                 </div>
+             ) : (
                 <div className="flex flex-col items-center justify-center py-20 bg-black/10 rounded-3xl border border-dashed border-white/5 opacity-50">
                     <Check size={48} className="text-brand-light/10 mb-4" />
-                    <p className="text-brand-light/30 italic text-sm font-bold uppercase tracking-widest">Semua Bersih! Tidak ada antrian.</p>
+                    <p className="text-brand-light/30 italic text-sm font-bold uppercase tracking-widest text-center px-4">
+                        Semua Bersih! Tidak ada permintaan pendaftaran atau klaim saat ini.
+                    </p>
                 </div>
-            )}
+             )}
           </div>
       )}
 
