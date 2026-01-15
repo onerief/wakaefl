@@ -193,7 +193,31 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     }
     case 'ADD_MATCH_COMMENT': {
         const { matchId, comment } = action.payload;
-        return { ...state, matches: state.matches.map(m => m.id === matchId ? { ...m, comments: [...(m.comments || []), deepCloneClean(comment)] } : m) };
+        // Check regular matches
+        let matchUpdated = false;
+        const updatedMatches = state.matches.map(m => {
+            if (m.id === matchId) {
+                matchUpdated = true;
+                return { ...m, comments: [...(m.comments || []), deepCloneClean(comment)] };
+            }
+            return m;
+        });
+
+        // Check knockout matches if not found in regular
+        let updatedKnockout = state.knockoutStage;
+        if (!matchUpdated && updatedKnockout) {
+            updatedKnockout = { ...updatedKnockout };
+            (Object.keys(updatedKnockout) as Array<keyof KnockoutStageRounds>).forEach(round => {
+                updatedKnockout![round] = updatedKnockout![round].map(km => {
+                    if (km.id === matchId) {
+                        return { ...km, comments: [...(km.comments || []), deepCloneClean(comment)] };
+                    }
+                    return km;
+                });
+            });
+        }
+
+        return { ...state, matches: updatedMatches, knockoutStage: updatedKnockout };
     }
     case 'RESET':
       return deepCloneClean(action.payload);
@@ -227,7 +251,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
         const { matchId, teamAId, teamBId, placeholderA, placeholderB, matchNumber } = action.payload;
         const round = Object.keys(state.knockoutStage).find(r => state.knockoutStage![r as keyof KnockoutStageRounds].some(m => m.id === matchId)) as keyof KnockoutStageRounds | undefined;
         if (!round) return state;
-        return { ...state, knockoutStage: { ...state.knockoutStage, [round]: state.knockoutStage[round].map(m => m.id === matchId ? { ...m, teamA: teamAId ? (state.teams.find(t => t.id === teamAId) || null) : null, teamB: teamBId ? (state.teams.find(t => t.id === teamBId) || null) : null, placeholderA, placeholderB, matchNumber, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null } : m) } };
+        return { ...state, knockoutStage: { ...state.knockoutStage, [round]: state.knockoutStage[round].map(m => m.id === matchId ? { ...m, teamA: teamAId ? (state.teams.find(t => t.id === teamAId) || null) : null, teamB: teamBId ? (state.teams.find(t => t.id === teamBId) || null) : null, placeholderA, placeholderB, matchNumber, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, comments: [] } : m) } };
     }
     case 'UPDATE_MATCH_SCHEDULE': {
         const { matchId, teamAId, teamBId } = action.payload;
@@ -347,10 +371,10 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           const sB = [...groupB.standings].sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
           if (sA.length < 2 || sB.length < 2) return { success: false, message: "Not enough teams." };
           const sf: KnockoutMatch[] = [
-              { id: 'sf-1', round: 'Semi-finals', matchNumber: 1, teamA: sA[0].team, teamB: sB[1].team, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'final', placeholderA: 'Winner A1', placeholderB: 'Winner B2' },
-              { id: 'sf-2', round: 'Semi-finals', matchNumber: 2, teamA: sB[0].team, teamB: sA[1].team, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'final', placeholderA: 'Winner B1', placeholderB: 'Winner A2' }
+              { id: 'sf-1', round: 'Semi-finals', matchNumber: 1, teamA: sA[0].team, teamB: sB[1].team, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'final', placeholderA: 'Winner A1', placeholderB: 'Winner B2', comments: [] },
+              { id: 'sf-2', round: 'Semi-finals', matchNumber: 2, teamA: sB[0].team, teamB: sA[1].team, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'final', placeholderA: 'Winner B1', placeholderB: 'Winner A2', comments: [] }
           ];
-          dispatch({ type: 'GENERATE_KNOCKOUT_BRACKET', payload: { knockoutStage: { 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': sf, 'Final': [{ id: 'final', round: 'Final', matchNumber: 3, teamA: null, teamB: null, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null, placeholderA: 'Winner SF1', placeholderB: 'Winner SF2' }] } } });
+          dispatch({ type: 'GENERATE_KNOCKOUT_BRACKET', payload: { knockoutStage: { 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': sf, 'Final': [{ id: 'final', round: 'Final', matchNumber: 3, teamA: null, teamB: null, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null, placeholderA: 'Winner SF1', placeholderB: 'Winner SF2', comments: [] }] } } });
           return { success: true };
       }
       return { success: false, message: "Only available for 2-Wilayah mode." };
@@ -392,7 +416,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       initializeEmptyKnockoutStage: () => dispatch({ type: 'INITIALIZE_EMPTY_KNOCKOUT' }),
       setTournamentState: (s: FullTournamentState) => dispatch({ type: 'SET_STATE', payload: s }),
       addKnockoutMatch: (r: keyof KnockoutStageRounds, tA: string | null, tB: string | null, pA: string, pB: string, matchNumber: number) => {
-          const match: KnockoutMatch = { id: `km-${Date.now()}`, round: r, matchNumber: matchNumber, teamA: state.teams.find(t => t.id === tA) || null, teamB: state.teams.find(t => t.id === tB) || null, placeholderA: pA, placeholderB: pB, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null };
+          const match: KnockoutMatch = { id: `km-${Date.now()}`, round: r, matchNumber: matchNumber, teamA: state.teams.find(t => t.id === tA) || null, teamB: state.teams.find(t => t.id === tB) || null, placeholderA: pA, placeholderB: pB, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null, comments: [] };
           dispatch({ type: 'ADD_KNOCKOUT_MATCH', payload: { round: r, match } });
       },
       requestTeamClaim: (teamId: string, userEmail: string) => dispatch({ type: 'REQUEST_TEAM_CLAIM', payload: { teamId, userEmail } }),
