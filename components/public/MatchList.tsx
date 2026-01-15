@@ -121,7 +121,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     {/* Team A */}
                     <button onClick={() => onSelectTeam(match.teamA)} className="flex flex-col items-center gap-2 flex-1 min-w-0 z-10">
                         <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-14 h-14 sm:w-20 sm:h-20 shadow-lg" />
-                        <span className="text-[10px] sm:text-sm font-black text-white truncate w-full text-center uppercase tracking-tighter">{match.teamA.name}</span>
+                        <span className="text-[10px] sm:text-sm font-black text-white w-full text-center uppercase tracking-tighter break-words leading-tight px-1">{match.teamA.name}</span>
                         {isAdminMode && <QuickScoreControl val={editScoreA} setVal={setEditScoreA} />}
                     </button>
 
@@ -147,7 +147,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     {/* Team B */}
                     <button onClick={() => onSelectTeam(match.teamB)} className="flex flex-col items-center gap-2 flex-1 min-w-0 z-10">
                         <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-14 h-14 sm:w-20 sm:h-20 shadow-lg" />
-                        <span className="text-[10px] sm:text-sm font-black text-white truncate w-full text-center uppercase tracking-tighter">{match.teamB.name}</span>
+                        <span className="text-[10px] sm:text-sm font-black text-white w-full text-center uppercase tracking-tighter break-words leading-tight px-1">{match.teamB.name}</span>
                         {isAdminMode && <QuickScoreControl val={editScoreB} setVal={setEditScoreB} />}
                     </button>
                 </div>

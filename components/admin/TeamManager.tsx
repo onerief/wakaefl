@@ -4,7 +4,7 @@ import type { Team, Group, Match, KnockoutStageRounds, TournamentState } from '.
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search, Bell, Settings as SettingsIcon, LayoutGrid } from 'lucide-react';
+import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search, Bell, Settings as SettingsIcon, LayoutGrid, Info } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { GenerateGroupsConfirmationModal } from './GenerateGroupsConfirmationModal';
 import { useToast } from '../shared/Toast';
@@ -91,7 +91,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
 
   const handleDeleteClick = (team: Team) => {
     if (isTeamInUse(team.id)) {
-        addToast("Cannot delete a team that is part of a group.", 'error');
+        addToast("Tidak bisa menghapus tim yang sudah masuk grup.", 'error');
         return;
     }
     setTeamToDelete(team);
@@ -100,7 +100,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const handleConfirmDelete = () => {
     if (!teamToDelete) return;
     deleteTeam(teamToDelete.id);
-    addToast(`Team "${teamToDelete.name}" has been deleted.`, 'success');
+    addToast(`Tim "${teamToDelete.name}" telah dihapus.`, 'success');
     setTeamToDelete(null);
   };
 
@@ -117,17 +117,17 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
     try {
         if (editingTeam) {
             updateTeam(editingTeam.id, details.name, details.logoUrl, details.manager, details.socialMediaUrl, details.whatsappNumber, editingTeam.isTopSeed, details.ownerEmail);
-            addToast('Team details updated!', 'success');
+            addToast('Profil tim diperbarui!', 'success');
         } else {
             const newTeamId = `t${Date.now()}`;
             addTeam(newTeamId, details.name, details.logoUrl, details.manager, details.socialMediaUrl, details.whatsappNumber, details.ownerEmail);
-            addToast('New team added successfully!', 'success');
+            addToast('Tim baru berhasil ditambahkan!', 'success');
         }
         setShowForm(false);
         setEditingTeam(null);
     } catch (error) {
         console.error("Error saving team:", error);
-        addToast('Failed to save team.', 'error');
+        addToast('Gagal menyimpan tim.', 'error');
     } finally {
         setIsSavingTeam(false);
     }
@@ -135,9 +135,9 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
 
   const handleApproveRegistration = async (reg: any) => {
       const newTeamId = `t${Date.now()}`;
-      addTeam(newTeamId, reg.name, reg.logoUrl, reg.manager, reg.socialMediaUrl, reg.whatsappNumber, reg.ownerEmail);
+      addTeam(newTeamId, reg.name || 'Tim Tanpa Nama', reg.logoUrl || '', reg.manager || 'Tanpa Manager', reg.socialMediaUrl || '', reg.whatsappNumber || '', reg.ownerEmail || '');
       await deleteRegistration(reg.id);
-      addToast(`Approved ${reg.name}!`, 'success');
+      addToast(`Pendaftaran ${reg.name} diterima!`, 'success');
   };
 
   const handleToggleSeed = (team: Team) => {
@@ -147,7 +147,6 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const handleBackupData = () => {
     try {
         const backupData = { teams, groups, matches, knockoutStage, rules };
-        // FIX: Sanitize before stringify to prevent circular errors
         const sanitized = sanitizeData(backupData);
         const jsonString = JSON.stringify(sanitized, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
@@ -160,10 +159,10 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        addToast('Backup downloaded.', 'success');
+        addToast('Backup berhasil diunduh.', 'success');
     } catch (error) {
         console.error("Backup failed", error);
-        addToast('Failed to create backup.', 'error');
+        addToast('Gagal membuat backup.', 'error');
     }
   };
 
@@ -182,10 +181,10 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
           setImportedData(data);
           setShowImportConfirm(true);
         } else {
-          addToast("Invalid JSON format.", 'error');
+          addToast("Format JSON tidak valid.", 'error');
         }
       } catch (error) {
-        addToast("Failed to parse backup file.", 'error');
+        addToast("Gagal memproses file backup.", 'error');
       } finally {
           if(event.target) event.target.value = '';
       }
@@ -196,7 +195,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const handleConfirmImport = () => {
     if (importedData) {
       setTournamentState(importedData);
-      addToast('Data restored.', 'success');
+      addToast('Data berhasil dipulihkan.', 'success');
     }
     setShowImportConfirm(false);
     setImportedData(null);
@@ -217,7 +216,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
               setLegacyImportData(data);
               setShowLegacyImportConfirm(true);
           } catch (error) {
-              addToast('Failed to parse legacy file.', 'error');
+              addToast('Gagal memproses file legacy.', 'error');
           } finally {
               if (event.target) event.target.value = '';
           }
@@ -231,110 +230,141 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       setLegacyImportData(null);
   };
 
-  const claimRequests = teams.filter(t => t.requestedOwnerEmail);
-  const totalRequests = newRegistrations.length + claimRequests.length;
+  const claimRequests = teams.filter(t => !!t.requestedOwnerEmail);
+  const totalRequestsCount = newRegistrations.length + claimRequests.length;
 
   return (
     <div className="space-y-6">
-      {/* Mobile Sub-Tabs */}
-      <div className="flex lg:hidden bg-brand-primary/50 p-1 rounded-xl border border-white/5 mb-4">
+      {/* Sub-Tabs Selector */}
+      <div className="flex bg-brand-primary/50 p-1 rounded-xl border border-white/5 mb-4 overflow-hidden">
           <button 
               onClick={() => setActiveSubTab('list')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${activeSubTab === 'list' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light'}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-lg transition-all ${activeSubTab === 'list' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
           >
-              <Users size={14} /> Team List
+              <Users size={16} /> Daftar Tim
           </button>
           <button 
               onClick={() => setActiveSubTab('requests')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all relative ${activeSubTab === 'requests' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light'}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-lg transition-all relative ${activeSubTab === 'requests' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
           >
-              <Bell size={14} /> Requests
-              {totalRequests > 0 && <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
+              <Bell size={16} /> Request {totalRequestsCount > 0 && `(${totalRequestsCount})`}
+              {totalRequestsCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[8px] flex items-center justify-center rounded-full animate-bounce font-bold border border-brand-primary">
+                      {totalRequestsCount}
+                  </span>
+              )}
           </button>
           <button 
               onClick={() => setActiveSubTab('setup')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${activeSubTab === 'setup' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light'}`}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-lg transition-all ${activeSubTab === 'setup' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
           >
-              <LayoutGrid size={14} /> Setup
+              <LayoutGrid size={16} /> Pengaturan
           </button>
       </div>
 
-      {/* VIEW: REQUESTS (MOBILE) or INTEGRATED (DESKTOP) */}
-      {(activeSubTab === 'requests' || window.innerWidth >= 1024) && (
-          <div className={`${activeSubTab === 'requests' ? 'block' : 'hidden lg:block'} space-y-4`}>
-             {newRegistrations.length > 0 && (
-                <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-                    <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                        <Bell size={16} /> New Applications ({newRegistrations.length})
-                    </h4>
-                    <div className="space-y-3">
-                        {newRegistrations.map(reg => (
-                            <div key={reg.id} className="flex flex-col sm:flex-row justify-between items-center bg-black/30 p-3 rounded-lg border border-blue-500/20 gap-3">
-                                <div className="flex items-center gap-3 w-full sm:w-auto">
-                                    <TeamLogo logoUrl={reg.logoUrl} teamName={reg.name} className="w-10 h-10" />
-                                    <div className="flex flex-col min-w-0">
-                                        <span className="font-bold text-white text-xs truncate">{reg.name}</span>
-                                        <span className="text-[9px] text-brand-light truncate uppercase tracking-widest">Mgr: {reg.manager}</span>
-                                    </div>
-                                </div>
-                                <div className="flex gap-2 w-full sm:w-auto">
-                                    <button onClick={() => handleApproveRegistration(reg)} className="flex-1 px-3 py-1.5 bg-green-600 text-white text-[10px] font-bold rounded-lg uppercase">Approve</button>
-                                    <button onClick={() => deleteRegistration(reg.id)} className="flex-1 px-3 py-1.5 bg-red-500/20 text-red-400 text-[10px] font-bold rounded-lg border border-red-500/30 uppercase">Reject</button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
+      {/* VIEW: REQUESTS */}
+      {activeSubTab === 'requests' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+             
+             {/* Unified Section Header */}
+             <div className="bg-brand-vibrant/10 p-4 rounded-2xl border border-brand-vibrant/20 flex items-center gap-3">
+                 <div className="p-2 bg-brand-vibrant/20 rounded-lg text-brand-vibrant">
+                     <Bell size={20} />
+                 </div>
+                 <div>
+                     <h3 className="text-sm font-black text-white uppercase tracking-wider">Pusat Persetujuan</h3>
+                     <p className="text-[10px] text-brand-light">Tinjau pendaftaran tim baru dan permintaan klaim manager.</p>
+                 </div>
+             </div>
 
-            {claimRequests.length > 0 && resolveTeamClaim && (
-                <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-                    <h4 className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                        <ShieldAlert size={16} /> Claim Requests ({claimRequests.length})
-                    </h4>
-                    <div className="space-y-3">
-                        {claimRequests.map(team => (
-                            <div key={team.id} className="flex flex-col sm:flex-row justify-between items-center bg-black/30 p-3 rounded-lg border border-yellow-500/20 gap-3">
-                                <div className="flex items-center gap-3 w-full sm:w-auto">
-                                    <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-10 h-10" />
+             {/* Section: New Registrations */}
+             <div className="space-y-3">
+                <h4 className="text-[10px] font-black text-brand-vibrant uppercase tracking-[0.2em] flex items-center gap-2 px-1">
+                    Pendaftaran Tim Baru ({newRegistrations.length})
+                </h4>
+                {newRegistrations.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {newRegistrations.map(reg => (
+                            <div key={reg.id} className="flex flex-col bg-brand-secondary/40 p-4 rounded-2xl border border-white/10 gap-4 shadow-xl">
+                                <div className="flex items-center gap-4">
+                                    <TeamLogo logoUrl={reg.logoUrl} teamName={reg.name || 'New Team'} className="w-14 h-14 ring-2 ring-brand-vibrant/20" />
                                     <div className="flex flex-col min-w-0">
-                                        <span className="font-bold text-white text-xs truncate">{team.name}</span>
-                                        <span className="text-[9px] text-brand-light truncate">{team.requestedOwnerEmail}</span>
+                                        <span className="font-black text-white text-sm uppercase leading-tight">{reg.name || 'Tim Tanpa Nama'}</span>
+                                        <div className="flex flex-col mt-1 gap-0.5">
+                                            <span className="text-[10px] text-brand-vibrant font-black uppercase tracking-widest">Mgr: {reg.manager || 'N/A'}</span>
+                                            <span className="text-[9px] text-brand-light italic">{reg.ownerEmail || 'No Email'}</span>
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="flex gap-2 w-full sm:w-auto">
-                                    <button onClick={() => resolveTeamClaim(team.id, true)} className="flex-1 px-3 py-1.5 bg-green-600 text-white text-[10px] font-bold rounded-lg uppercase">Approve</button>
-                                    <button onClick={() => resolveTeamClaim(team.id, false)} className="flex-1 px-3 py-1.5 bg-red-500/20 text-red-400 text-[10px] font-bold rounded-lg border border-red-500/30 uppercase">Reject</button>
+                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+                                    <button onClick={() => handleApproveRegistration(reg)} className="px-4 py-2.5 bg-green-600 text-white text-[10px] font-black rounded-xl uppercase hover:bg-green-500 transition-all shadow-lg">Terima</button>
+                                    <button onClick={() => deleteRegistration(reg.id)} className="px-4 py-2.5 bg-red-500/10 text-red-400 text-[10px] font-black rounded-xl border border-red-500/20 uppercase hover:bg-red-500/20 transition-all">Tolak</button>
                                 </div>
                             </div>
                         ))}
                     </div>
-                </div>
-            )}
+                ) : (
+                    <div className="text-center py-6 bg-black/10 rounded-xl border border-dashed border-white/5 italic text-[10px] text-brand-light/30 uppercase tracking-widest">Tidak ada pendaftaran tim baru</div>
+                )}
+             </div>
+
+            {/* Section: Claim Requests */}
+            <div className="space-y-3 pt-4">
+                <h4 className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.2em] flex items-center gap-2 px-1">
+                    Permintaan Klaim Tim ({claimRequests.length})
+                </h4>
+                {claimRequests.length > 0 && resolveTeamClaim ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {claimRequests.map(team => (
+                            <div key={team.id} className="flex flex-col bg-brand-secondary/40 p-4 rounded-2xl border border-yellow-500/20 gap-4 shadow-xl">
+                                <div className="flex items-center gap-4">
+                                    <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-14 h-14 ring-2 ring-yellow-500/20" />
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="font-black text-white text-sm uppercase leading-tight">{team.name}</span>
+                                        <div className="flex flex-col mt-1 gap-0.5">
+                                            <span className="text-[10px] text-yellow-400 font-black uppercase tracking-widest">Calon Manager:</span>
+                                            <span className="text-[9px] text-brand-light font-bold truncate">{team.requestedOwnerEmail}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+                                    <button onClick={() => resolveTeamClaim(team.id, true)} className="px-4 py-2.5 bg-yellow-600 text-brand-primary text-[10px] font-black rounded-xl uppercase hover:bg-yellow-500 transition-all shadow-lg">Izinkan</button>
+                                    <button onClick={() => resolveTeamClaim(team.id, false)} className="px-4 py-2.5 bg-white/5 text-brand-light text-[10px] font-black rounded-xl border border-white/10 uppercase hover:bg-white/10 transition-all">Abaikan</button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-6 bg-black/10 rounded-xl border border-dashed border-white/5 italic text-[10px] text-brand-light/30 uppercase tracking-widest">Tidak ada permintaan klaim tim</div>
+                )}
+            </div>
             
-            {activeSubTab === 'requests' && totalRequests === 0 && (
-                <div className="text-center py-12 text-brand-light/30 italic text-sm">No pending requests.</div>
+            {totalRequestsCount === 0 && (
+                <div className="flex flex-col items-center justify-center py-20 bg-black/10 rounded-3xl border border-dashed border-white/5 opacity-50">
+                    <Check size={48} className="text-brand-light/10 mb-4" />
+                    <p className="text-brand-light/30 italic text-sm font-bold uppercase tracking-widest">Semua Bersih! Tidak ada antrian.</p>
+                </div>
             )}
           </div>
       )}
 
       {/* VIEW: TEAM LIST */}
-      {(activeSubTab === 'list' || window.innerWidth >= 1024) && (
-          <div className={activeSubTab === 'list' ? 'block' : 'hidden lg:block'}>
-              <Card className="!p-4 sm:!p-6">
+      {activeSubTab === 'list' && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Card className="!p-4 sm:!p-6 overflow-visible">
                 <div className="flex flex-col gap-4 mb-6">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-xl font-black italic uppercase text-brand-text">All Teams <span className="text-brand-vibrant">({teams.length})</span></h3>
-                        <Button onClick={handleAddClick} className="!py-2 !px-4 !text-xs"><Plus size={14} /> Add Team</Button>
+                        <h3 className="text-lg sm:text-xl font-black italic uppercase text-brand-text">Semua Tim <span className="text-brand-vibrant">({teams.length})</span></h3>
+                        <Button onClick={handleAddClick} className="!py-2 !px-4 !text-[10px] font-black uppercase tracking-widest"><Plus size={14} /> Tambah Tim</Button>
                     </div>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" size={16} />
                         <input
                             type="text"
-                            placeholder="Search teams or managers..."
+                            placeholder="Cari tim atau manager..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 bg-brand-primary border border-brand-accent rounded-xl text-sm outline-none focus:border-brand-vibrant transition-all"
+                            className="w-full pl-10 pr-4 py-3 bg-brand-primary border border-brand-accent rounded-xl text-sm font-bold outline-none focus:border-brand-vibrant transition-all shadow-inner"
                         />
                     </div>
                 </div>
@@ -343,35 +373,35 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                     {filteredTeams.length > 0 ? filteredTeams.map(team => {
                     const currentGroup = groups.find(g => g.teams.some(t => t.id === team.id));
                     return (
-                        <div key={team.id} className="flex flex-row items-center justify-between gap-3 bg-brand-primary/40 p-2.5 rounded-xl border border-white/5 hover:border-brand-vibrant/30 transition-all group">
+                        <div key={team.id} className="flex flex-row items-center justify-between gap-3 bg-brand-primary/40 p-3 rounded-xl border border-white/5 hover:border-brand-vibrant/30 transition-all group">
                             <div className="flex items-center gap-3 min-w-0">
                                 <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-10 h-10 sm:w-11 sm:h-11" />
                                 <div className="flex-grow min-w-0">
                                     <div className="flex items-center gap-1.5">
-                                        <span className="font-bold text-white truncate text-xs sm:text-sm uppercase tracking-tight">{team.name}</span>
+                                        <span className="font-black text-white truncate text-xs sm:text-sm uppercase tracking-tight">{team.name}</span>
                                         {team.isTopSeed && <Star size={10} className="fill-yellow-400 text-yellow-400 shrink-0" />}
                                     </div>
-                                    <p className="text-[10px] text-brand-light truncate uppercase tracking-widest">Mgr: {team.manager || 'N/A'}</p>
+                                    <p className="text-[9px] text-brand-light truncate uppercase tracking-widest font-bold opacity-60">Mgr: {team.manager || 'N/A'}</p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => handleToggleSeed(team)} className={`p-1.5 rounded-lg ${team.isTopSeed ? 'text-yellow-400 bg-yellow-400/10' : 'text-brand-light hover:text-white bg-white/5'}`} title="Top Seed">
-                                    <Star size={14} />
+                            <div className="flex items-center gap-1 shrink-0">
+                                <button onClick={() => handleToggleSeed(team)} className={`p-2 rounded-lg transition-colors ${team.isTopSeed ? 'text-yellow-400 bg-yellow-400/10' : 'text-brand-light hover:text-white bg-white/5'}`} title="Top Seed">
+                                    <Star size={16} />
                                 </button>
-                                <button onClick={() => handleEditClick(team)} className="p-1.5 text-brand-light hover:text-white bg-white/5 rounded-lg"><Edit size={14} /></button>
-                                <button onClick={() => handleDeleteClick(team)} className="p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 rounded-lg disabled:opacity-20" disabled={!!currentGroup}><Trash2 size={14} /></button>
+                                <button onClick={() => handleEditClick(team)} className="p-2 text-brand-light hover:text-white bg-white/5 rounded-lg transition-colors"><Edit size={16} /></button>
+                                <button onClick={() => handleDeleteClick(team)} className="p-2 text-red-400 hover:text-red-300 bg-red-500/10 rounded-lg disabled:opacity-10 transition-colors" disabled={!!currentGroup}><Trash2 size={16} /></button>
                             </div>
                         </div>
                     )
-                    }) : <div className="text-center py-12 text-brand-light/30 italic">No teams matching your search.</div>}
+                    }) : <div className="text-center py-12 text-brand-light/30 italic">Tidak ada tim yang cocok dengan pencarian.</div>}
                 </div>
               </Card>
           </div>
       )}
 
-      {/* VIEW: SETUP & TOOLS */}
-      {(activeSubTab === 'setup' || window.innerWidth >= 1024) && (
-          <div className={`${activeSubTab === 'setup' ? 'block' : 'hidden lg:block'} space-y-6`}>
+      {/* VIEW: SETUP */}
+      {activeSubTab === 'setup' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <Card className="!p-4 sm:!p-6 border-brand-accent/30">
                   <h3 className="text-sm font-black italic text-brand-text uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                       <LayoutGrid size={18} className="text-brand-vibrant" /> Manual Group Setup
@@ -391,11 +421,11 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
 
               <Card className="!p-4 sm:!p-6 border-brand-vibrant/20">
                   <h3 className="text-sm font-black italic text-brand-text uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                      <SettingsIcon size={18} className="text-brand-special" /> Data Tools & Disaster Recovery
+                      <SettingsIcon size={18} className="text-brand-special" /> Data Disaster Recovery
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <Button onClick={handleBackupData} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest"><Download size={14} /> Download Backup</Button>
-                    <Button onClick={handleRestoreClick} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest"><Upload size={14} /> Restore from File</Button>
+                    <Button onClick={handleBackupData} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest"><Download size={14} /> Unduh Backup</Button>
+                    <Button onClick={handleRestoreClick} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest"><Upload size={14} /> Pulihkan Data</Button>
                     {importLegacyData && <Button onClick={handleLegacyImportClick} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest sm:col-span-2"><FileJson size={14} /> Legacy JSON Import</Button>}
                   </div>
                   
@@ -414,9 +444,9 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
 
       {showForm && <TeamForm team={editingTeam} onSave={handleFormSave} onClose={() => setShowForm(false)} isSaving={isSavingTeam} />}
       {showResetConfirm && <ResetConfirmationModal onConfirm={handleResetConfirm} onCancel={() => setShowResetConfirm(false)} />}
-      <ConfirmationModal isOpen={!!teamToDelete} onClose={() => setTeamToDelete(null)} onConfirm={handleConfirmDelete} title="Delete Team" message={<p>Delete <strong>{teamToDelete?.name}</strong>? This cannot be undone.</p>} />
-      <ConfirmationModal isOpen={showImportConfirm} onClose={() => { setShowImportConfirm(false); setImportedData(null); }} onConfirm={handleConfirmImport} title="Confirm Data Restore" message="This will overwrite all current tournament data with the selected backup file. Continue?" confirmText="Yes, Restore Data" />
-      <ConfirmationModal isOpen={showLegacyImportConfirm} onClose={() => { setShowLegacyImportConfirm(false); setLegacyImportData(null); }} onConfirm={handleConfirmLegacyImport} title="Legacy Data Import" message="Convert and overwrite with data from legacy system format? Current data will be lost." confirmText="Yes, Proceed" />
+      <ConfirmationModal isOpen={!!teamToDelete} onClose={() => setTeamToDelete(null)} onConfirm={handleConfirmDelete} title="Hapus Tim" message={<p>Hapus tim <strong>{teamToDelete?.name}</strong> secara permanen?</p>} />
+      <ConfirmationModal isOpen={showImportConfirm} onClose={() => { setShowImportConfirm(false); setImportedData(null); }} onConfirm={handleConfirmImport} title="Restore Data" message="Semua data turnamen saat ini akan ditimpa oleh file backup. Lanjutkan?" confirmText="Ya, Restore" />
+      <ConfirmationModal isOpen={showLegacyImportConfirm} onClose={() => { setShowLegacyImportConfirm(false); setLegacyImportData(null); }} onConfirm={handleConfirmLegacyImport} title="Import Legacy" message="Data dari sistem lama akan dikonversi. Data saat ini akan hilang." confirmText="Ya, Proses" />
     </div>
   );
 };

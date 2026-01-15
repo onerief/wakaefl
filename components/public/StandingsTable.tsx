@@ -42,7 +42,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSel
                         {index + 1}
                     </span>
                   </td>
-                  <td className="py-3 pl-2 font-medium text-brand-text truncate">
+                  <td className="py-3 pl-2 font-medium text-brand-text">
                     <button 
                         onClick={() => onSelectTeam(standing.team)} 
                         className="flex items-center gap-3 text-left group w-full overflow-hidden"
@@ -52,7 +52,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSel
                         teamName={standing.team.name} 
                         className="w-8 h-8 sm:w-10 sm:h-10 flex-shrink-0 shadow-lg ring-1 ring-white/5"
                       />
-                      <span className="truncate text-xs sm:text-sm font-black text-white group-hover:text-brand-vibrant transition-colors leading-tight tracking-tight uppercase italic">
+                      <span className="text-[10px] sm:text-sm font-black text-white group-hover:text-brand-vibrant transition-colors leading-tight tracking-tight uppercase italic break-words line-clamp-2">
                         {standing.team.name || "Nama Tim Hilang"}
                       </span>
                     </button>
