@@ -177,6 +177,9 @@ export const PublicView: React.FC<PublicViewProps> = ({
                                                 onSelectTeam={onSelectTeam}
                                                 isAdminMode={isAdminModeActive}
                                                 onUpdateScore={onUpdateMatchScore}
+                                                currentUser={currentUser}
+                                                onAddComment={onAddMatchComment}
+                                                isAdmin={isAdmin}
                                             />
                                         ))
                                     ) : (

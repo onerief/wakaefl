@@ -1,8 +1,8 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import type { Match, Team, MatchComment } from '../../types';
 import { Card } from '../shared/Card';
-import { MonitorPlay, MessageSquare, Send, ChevronDown, ChevronUp, UserCircle, Save, Plus, Minus, Camera, Loader } from 'lucide-react';
+import { MonitorPlay, MessageSquare, Send, ChevronDown, ChevronUp, UserCircle, Save, Plus, Minus, Camera, Loader, Shield, Lock } from 'lucide-react';
 import { ProofModal } from './ProofModal';
 import { TeamLogo } from '../shared/TeamLogo';
 import type { User } from 'firebase/auth';
@@ -16,10 +16,11 @@ interface MatchCardProps {
     onAddComment?: (matchId: string, text: string) => void;
     isAdminMode?: boolean;
     onUpdateScore?: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => void;
+    isAdmin?: boolean;
 }
 
 export const MatchCard: React.FC<MatchCardProps> = ({ 
-    match, onSelectTeam, currentUser, onAddComment, isAdminMode, onUpdateScore 
+    match, onSelectTeam, currentUser, onAddComment, isAdminMode, onUpdateScore, isAdmin 
 }) => {
     const [showProof, setShowProof] = useState(false);
     const [showComments, setShowComments] = useState(false);
@@ -35,32 +36,35 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const { addToast } = useToast();
 
     const isFinished = match.status === 'finished' && match.scoreA !== null && match.scoreB !== null;
-    const canComment = !!currentUser && !!onAddComment;
     const hasComments = match.comments && match.comments.length > 0;
+
+    // Logic: Who can chat?
+    const chatPermissions = useMemo(() => {
+        if (!currentUser) return { canChat: false, reason: 'Login untuk chat' };
+        if (isAdmin) return { canChat: true, reason: 'Admin Access' };
+        
+        // If match finished, everyone logged in can chat
+        if (isFinished) return { canChat: true, reason: 'Public Discussion' };
+
+        // If not finished, only involved managers
+        const userEmail = currentUser.email?.toLowerCase();
+        const isManagerA = match.teamA.ownerEmail?.toLowerCase() === userEmail;
+        const isManagerB = match.teamB.ownerEmail?.toLowerCase() === userEmail;
+
+        if (isManagerA || isManagerB) {
+            return { canChat: true, reason: 'Team Coordinator' };
+        }
+
+        return { canChat: false, reason: 'Hanya untuk Manager Tim' };
+    }, [currentUser, isAdmin, isFinished, match.teamA.ownerEmail, match.teamB.ownerEmail]);
 
     const handleSubmitComment = (e: React.FormEvent) => {
         e.preventDefault();
-        if (newComment.trim() && onAddComment) {
+        if (newComment.trim() && onAddComment && chatPermissions.canChat) {
             onAddComment(match.id, newComment.trim());
             setNewComment('');
         }
     }
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        
-        setIsUploading(true);
-        try {
-            const url = await uploadMatchProof(file);
-            setEditProofUrl(url);
-            addToast('Bukti pertandingan diunggah!', 'success');
-        } catch (err: any) {
-            addToast(err.message || 'Gagal mengupload.', 'error');
-        } finally {
-            setIsUploading(false);
-        }
-    };
 
     const handleQuickUpdate = async () => {
         if (!onUpdateScore) return;
@@ -95,7 +99,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     return (
         <>
-            <Card className={`!p-0 group border-l-4 transition-all duration-300 ${isAdminMode ? 'border-l-brand-special bg-brand-special/5' : 'border-l-transparent'}`}>
+            <Card className={`!p-0 group border-l-4 transition-all duration-300 overflow-visible ${isAdminMode ? 'border-l-brand-special bg-brand-special/5' : 'border-l-transparent'}`}>
                 {/* Header Info */}
                 <div className="flex items-center justify-between px-2.5 py-1 bg-black/30 text-[8px] sm:text-xs text-brand-light border-b border-white/5">
                     <span className="font-black uppercase tracking-widest opacity-60">
@@ -147,6 +151,91 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         {isAdminMode && <QuickScoreControl val={editScoreB} setVal={setEditScoreB} />}
                     </button>
                 </div>
+
+                {/* Footer Actions */}
+                <div className="flex items-center justify-between px-3 py-2 bg-black/20 border-t border-white/5">
+                    <div className="flex gap-2">
+                        {match.proofUrl && (
+                            <button 
+                                onClick={() => setShowProof(true)}
+                                className="flex items-center gap-1 text-[8px] sm:text-[10px] font-black text-brand-vibrant uppercase hover:text-white transition-colors"
+                            >
+                                <MonitorPlay size={12} /> Bukti
+                            </button>
+                        )}
+                    </div>
+                    
+                    <button 
+                        onClick={() => setShowComments(!showComments)}
+                        className={`flex items-center gap-1.5 text-[8px] sm:text-[10px] font-black uppercase transition-all ${showComments ? 'text-brand-vibrant' : 'text-brand-light hover:text-white'}`}
+                    >
+                        <div className="relative">
+                            <MessageSquare size={14} />
+                            {hasComments && !showComments && (
+                                <span className="absolute -top-1 -right-1 w-2 h-2 bg-brand-vibrant rounded-full"></span>
+                            )}
+                        </div>
+                        {match.comments?.length || 0} Chat
+                    </button>
+                </div>
+
+                {/* Comments Section */}
+                {showComments && (
+                    <div className="bg-black/40 border-t border-white/5 animate-in slide-in-from-top-2 duration-300">
+                        {/* Messages List */}
+                        <div className="max-h-48 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+                            {hasComments ? (
+                                match.comments?.map((comment) => (
+                                    <div key={comment.id} className="flex gap-2">
+                                        <div className="flex-shrink-0 mt-0.5">
+                                            <UserCircle size={14} className={comment.isAdmin ? 'text-brand-special' : 'text-brand-vibrant'} />
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className={`text-[9px] font-black uppercase truncate ${comment.isAdmin ? 'text-brand-special' : 'text-brand-light'}`}>
+                                                    {comment.userName}
+                                                </span>
+                                                <span className="text-[8px] text-brand-light/30">
+                                                    {new Date(comment.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] text-brand-text leading-relaxed break-words">{comment.text}</p>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-[10px] text-brand-light/30 italic text-center py-2">Belum ada obrolan.</p>
+                            )}
+                        </div>
+
+                        {/* Input Field */}
+                        <div className="p-2 bg-brand-secondary/30 border-t border-white/5">
+                            {chatPermissions.canChat ? (
+                                <form onSubmit={handleSubmitComment} className="flex gap-2">
+                                    <input 
+                                        type="text"
+                                        value={newComment}
+                                        onChange={(e) => setNewComment(e.target.value)}
+                                        placeholder="Ketik pesan..."
+                                        className="flex-grow bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-brand-vibrant transition-all"
+                                    />
+                                    <button 
+                                        type="submit"
+                                        disabled={!newComment.trim()}
+                                        className="p-2 bg-brand-vibrant text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:grayscale transition-all"
+                                    >
+                                        <Send size={14} />
+                                    </button>
+                                </form>
+                            ) : (
+                                <div className="flex items-center justify-center gap-2 py-2 text-[10px] font-bold text-brand-light/50 bg-black/20 rounded-lg border border-dashed border-white/5">
+                                    {currentUser ? <Lock size={12} /> : <UserCircle size={12} />}
+                                    {chatPermissions.reason}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {match.summary && (
                     <div className="bg-white/[0.02] px-2.5 py-1.5 border-t border-white/5">
