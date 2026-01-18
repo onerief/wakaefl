@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy, useMemo } from 'react';
 import { Header } from './components/Header';
 // Lazy load components for code splitting
 const PublicView = lazy(() => import('./components/public/PublicView').then(module => ({ default: module.PublicView })));
@@ -8,14 +8,14 @@ const HallOfFame = lazy(() => import('./components/public/HallOfFame').then(modu
 const AdminPanel = lazy(() => import('./components/admin/AdminPanel').then(module => ({ default: module.AdminPanel })));
 
 import { useTournament } from './hooks/useTournament';
-import type { View, Team, TournamentMode, SeasonHistory } from './types';
+import type { View, Team, TournamentMode, SeasonHistory, Match } from './types';
 import { Login } from './components/admin/Login';
 import { UserAuthModal } from './components/auth/UserAuthModal';
 import { ToastProvider } from './components/shared/Toast';
 import { TeamProfileModal } from './components/public/TeamProfileModal';
 import { UserProfileModal } from './components/public/UserProfileModal';
 import { TeamRegistrationModal } from './components/public/TeamRegistrationModal';
-import { onAuthChange, signOutUser, getGlobalStats, getTournamentData } from './services/firebaseService';
+import { onAuthChange, signOutUser, getGlobalStats, getTournamentData, getUserTeams } from './services/firebaseService';
 import { useToast } from './components/shared/Toast';
 import { Spinner } from './components/shared/Spinner';
 import { DashboardSkeleton } from './components/shared/Skeleton';
@@ -24,7 +24,7 @@ import type { User } from 'firebase/auth';
 import { GlobalChat } from './components/public/GlobalChat';
 
 // HANYA email di bawah ini yang bisa mengakses panel admin
-const ADMIN_EMAILS = ['admin@banjit.com', 'admin@baradatu.com'];
+const ADMIN_EMAILS = ['admin@banjit.com', 'admin@baradatu.com', 'admin@waykanan.com'];
 
 function AppContent() {
   const [view, setView] = useState<View>('home');
@@ -33,6 +33,9 @@ function AppContent() {
   // Auth States
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
+  
+  // User Teams States
+  const [userOwnedTeams, setUserOwnedTeams] = useState<{ mode: TournamentMode, team: Team }[]>([]);
   
   // Modals
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -49,27 +52,30 @@ function AppContent() {
   const { addToast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = onAuthChange((user) => {
+    const unsubscribe = onAuthChange(async (user) => {
       setCurrentUser(user);
       if (user && user.email) {
-          // Pengecekan ketat: harus terdaftar di array ADMIN_EMAILS
           const isAllowedAdmin = ADMIN_EMAILS.includes(user.email.toLowerCase());
           setIsAdminAuthenticated(isAllowedAdmin);
           
-          // Jika user mencoba masuk view admin tapi tidak punya hak, tendang ke home
           if (!isAllowedAdmin && view === 'admin') {
               setView('home');
               addToast('Akses ditolak. Anda bukan admin.', 'error');
           }
+
+          // Fetch user owned teams for intelligent scheduling
+          const owned = await getUserTeams(user.email);
+          setUserOwnedTeams(owned);
       } else {
           setIsAdminAuthenticated(false);
+          setUserOwnedTeams([]);
           if (view === 'admin') setView('home');
       }
     });
     return () => unsubscribe();
   }, [view]);
 
-  // Combined History Logic for Global Hall of Fame
+  // Combined History Logic
   useEffect(() => {
       const fetchAllHistory = async () => {
           const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
@@ -79,20 +85,18 @@ function AppContent() {
           let combined: SeasonHistory[] = [];
           results.forEach((data, idx) => {
               if (data && data.history) {
-                  // Add mode info if missing
                   const modeHistory = data.history.map(h => ({ ...h, mode: h.mode || modes[idx] }));
                   combined = [...combined, ...modeHistory];
               }
           });
           
-          // Sort by date completed newest first
           setAllHistory(combined.sort((a, b) => b.dateCompleted - a.dateCompleted));
       };
 
       if (view === 'hall_of_fame' || view === 'home') {
           fetchAllHistory();
       }
-  }, [view, tournament.status]); // Refresh when view changes or season ends
+  }, [view, tournament.status]);
 
   useEffect(() => {
       const fetchStats = async () => {
@@ -137,6 +141,8 @@ function AppContent() {
       else setShowTeamRegistration(true);
   }
 
+  const userOwnedTeamIds = useMemo(() => userOwnedTeams.map(t => t.team.id), [userOwnedTeams]);
+
   let currentLeader: Team | null = null;
   if (tournament.groups.length > 0 && activeMode === 'league') {
       const allStandings = tournament.groups.flatMap(g => g.standings).sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
@@ -165,7 +171,16 @@ function AppContent() {
           ) : (
             <>
               {view === 'home' && (
-                <HomeDashboard onSelectMode={handleSelectMode} teamCount={globalStats.teamCount} partnerCount={globalStats.partnerCount} banners={tournament.banners} onRegisterTeam={handleRegisterTeamRequest} isRegistrationOpen={tournament.isRegistrationOpen} />
+                <HomeDashboard 
+                    onSelectMode={handleSelectMode} 
+                    teamCount={globalStats.teamCount} 
+                    partnerCount={globalStats.partnerCount} 
+                    banners={tournament.banners} 
+                    onRegisterTeam={handleRegisterTeamRequest} 
+                    isRegistrationOpen={tournament.isRegistrationOpen} 
+                    userOwnedTeams={userOwnedTeams}
+                    allMatches={tournament.matches}
+                />
               )}
               {(view === 'league' || view === 'wakacl' || view === 'two_leagues') && (
                 <PublicView 
@@ -180,6 +195,7 @@ function AppContent() {
                     isAdmin={isAdminAuthenticated}
                     onUpdateMatchScore={tournament.updateMatchScore}
                     onUpdateKnockoutScore={(id, data) => tournament.updateKnockoutMatch(id, { ...tournament.knockoutStage![data.round].find(m => m.id === id)!, ...data })}
+                    userOwnedTeamIds={userOwnedTeamIds}
                 />
               )}
               {view === 'hall_of_fame' && (

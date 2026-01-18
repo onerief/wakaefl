@@ -1,9 +1,10 @@
 
-import React from 'react';
-import { Trophy, ListOrdered, ChevronRight, Gamepad2, Users, Star, Crown, Globe, PlusCircle } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Trophy, ListOrdered, ChevronRight, Gamepad2, Users, Star, Crown, Globe, PlusCircle, Calendar, ArrowRight } from 'lucide-react';
 import { Card } from '../shared/Card';
-import { TournamentMode } from '../../types';
+import { TournamentMode, Team, Match } from '../../types';
 import { BannerCarousel } from './BannerCarousel';
+import { TeamLogo } from '../shared/TeamLogo';
 
 interface HomeDashboardProps {
   onSelectMode: (mode: TournamentMode | 'hall_of_fame') => void;
@@ -12,9 +13,46 @@ interface HomeDashboardProps {
   banners?: string[];
   onRegisterTeam?: () => void;
   isRegistrationOpen?: boolean;
+  userOwnedTeams?: { mode: TournamentMode, team: Team }[];
+  allMatches?: Match[];
 }
 
-export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, teamCount, partnerCount, banners, onRegisterTeam, isRegistrationOpen = true }) => {
+export const HomeDashboard: React.FC<HomeDashboardProps> = ({ 
+    onSelectMode, 
+    teamCount, 
+    partnerCount, 
+    banners, 
+    onRegisterTeam, 
+    isRegistrationOpen = true,
+    userOwnedTeams = [],
+    allMatches = []
+}) => {
+  
+  // Spotlight logic: Find the very next upcoming match for any of the user's teams
+  const nextMatchInfo = useMemo(() => {
+    if (userOwnedTeams.length === 0 || allMatches.length === 0) return null;
+    
+    const userTeamIds = userOwnedTeams.map(t => t.team.id);
+    const upcoming = allMatches.filter(m => 
+        m.status === 'scheduled' && 
+        (userTeamIds.includes(m.teamA.id) || userTeamIds.includes(m.teamB.id))
+    ).sort((a, b) => {
+        // Sort by matchday/leg logic if available
+        const dayA = a.matchday || 1;
+        const dayB = b.matchday || 1;
+        return dayA - dayB;
+    });
+
+    if (upcoming.length === 0) return null;
+
+    const match = upcoming[0];
+    const userTeamMode = userOwnedTeams.find(ut => 
+        ut.team.id === match.teamA.id || ut.team.id === match.teamB.id
+    )?.mode;
+
+    return { match, mode: userTeamMode };
+  }, [userOwnedTeams, allMatches]);
+
   return (
     <div className="space-y-4 md:space-y-10 py-2 md:py-4 animate-in fade-in duration-700 relative z-10">
       
@@ -70,7 +108,54 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({ onSelectMode, team
         </div>
       </div>
 
-      {/* Mode Selection Row - Updated Layout with Horizontal Text */}
+      {/* INTELLIGENT SPOTLIGHT: Next Match */}
+      {nextMatchInfo && (
+          <div className="animate-in slide-in-from-left duration-700">
+              <h3 className="text-xs font-black text-brand-light uppercase tracking-[0.2em] mb-4 flex items-center gap-2 px-1">
+                  <Calendar size={14} className="text-brand-vibrant" /> Jadwal Terdekat Anda
+              </h3>
+              <Card 
+                onClick={() => onSelectMode(nextMatchInfo.mode!)}
+                className="!p-0 overflow-hidden !bg-gradient-to-r from-brand-vibrant/20 to-transparent border-brand-vibrant/30 group cursor-pointer"
+              >
+                  <div className="flex flex-col md:flex-row md:items-center">
+                      <div className="bg-brand-vibrant p-4 md:p-8 flex flex-col items-center justify-center text-white shrink-0">
+                          <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Matchday</span>
+                          <span className="text-3xl font-black italic">{nextMatchInfo.match.matchday || 1}</span>
+                      </div>
+                      
+                      <div className="p-4 md:p-6 flex-grow flex items-center justify-center gap-4 md:gap-12">
+                          <div className="flex flex-col items-center gap-2 text-center flex-1">
+                              <TeamLogo logoUrl={nextMatchInfo.match.teamA.logoUrl} teamName={nextMatchInfo.match.teamA.name} className="w-12 h-12 md:w-16 md:h-16" />
+                              <span className="text-[10px] md:text-xs font-black text-white uppercase">{nextMatchInfo.match.teamA.name}</span>
+                          </div>
+                          
+                          <div className="flex flex-col items-center">
+                              <span className="text-[10px] font-black text-brand-vibrant uppercase italic mb-1">VS</span>
+                              <div className="w-8 h-px bg-white/10"></div>
+                          </div>
+
+                          <div className="flex flex-col items-center gap-2 text-center flex-1">
+                              <TeamLogo logoUrl={nextMatchInfo.match.teamB.logoUrl} teamName={nextMatchInfo.match.teamB.name} className="w-12 h-12 md:w-16 md:h-16" />
+                              <span className="text-[10px] md:text-xs font-black text-white uppercase">{nextMatchInfo.match.teamB.name}</span>
+                          </div>
+                      </div>
+
+                      <div className="px-6 py-4 md:py-0 border-t md:border-t-0 md:border-l border-white/5 flex items-center justify-between md:justify-center gap-4">
+                          <div className="flex flex-col md:items-center">
+                                <span className="text-[8px] font-bold text-brand-light uppercase tracking-widest">Kompetisi</span>
+                                <span className="text-xs font-black text-white uppercase">{nextMatchInfo.mode === 'league' ? 'Liga Reguler' : nextMatchInfo.mode === 'wakacl' ? 'WAKACL' : '2 Wilayah'}</span>
+                          </div>
+                          <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-brand-vibrant group-hover:bg-brand-vibrant group-hover:text-white transition-all">
+                              <ArrowRight size={20} />
+                          </div>
+                      </div>
+                  </div>
+              </Card>
+          </div>
+      )}
+
+      {/* Mode Selection Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 relative z-30">
         
         {/* Reguler Liga */}

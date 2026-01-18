@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import type { KnockoutStageRounds, KnockoutMatch, Team } from '../../types';
 import { Card } from '../shared/Card';
-import { Trophy, Crown, ArrowRight, Zap, Save, Plus, Minus, Camera, Loader, MonitorPlay, Sparkles } from 'lucide-react';
+import { Trophy, Crown, ArrowRight, Zap, Save, Plus, Minus, Camera, Loader, MonitorPlay, Sparkles, Star } from 'lucide-react';
 import { TeamLogo } from '../shared/TeamLogo';
 import { useToast } from '../shared/Toast';
 import { uploadMatchProof } from '../../services/firebaseService';
@@ -13,6 +13,7 @@ interface KnockoutStageViewProps {
   onSelectTeam: (team: Team) => void;
   isAdminMode?: boolean;
   onUpdateScore?: (matchId: string, data: Partial<KnockoutMatch> & { round: keyof KnockoutStageRounds }) => void;
+  userOwnedTeamIds?: string[];
 }
 
 interface KnockoutMatchTeamProps {
@@ -24,10 +25,11 @@ interface KnockoutMatchTeamProps {
   isAdminMode?: boolean;
   editScore?: number;
   onAdjust?: (delta: number) => void;
+  isMyTeam?: boolean;
 }
 
 const KnockoutMatchTeam: React.FC<KnockoutMatchTeamProps> = ({ 
-    team, placeholder, isWinner, onSelectTeam, isLoser, isAdminMode, editScore, onAdjust 
+    team, placeholder, isWinner, onSelectTeam, isLoser, isAdminMode, editScore, onAdjust, isMyTeam
 }) => {
     const hasTeam = !!team;
     const Wrapper = hasTeam ? 'button' : 'div';
@@ -42,7 +44,9 @@ const KnockoutMatchTeam: React.FC<KnockoutMatchTeamProps> = ({
                         ? 'bg-brand-vibrant/20 border-brand-vibrant shadow-[0_0_20px_rgba(37,99,235,0.3)] z-10 scale-[1.03] ring-1 ring-white/20' 
                         : isLoser 
                             ? 'opacity-30 grayscale border-transparent bg-black/10 scale-95'
-                            : 'border-white/5 bg-white/5 hover:bg-white/10'
+                            : isMyTeam 
+                                ? 'border-brand-vibrant/50 bg-brand-vibrant/5'
+                                : 'border-white/5 bg-white/5 hover:bg-white/10'
                     }
                 `} 
                 {...wrapperProps}
@@ -50,22 +54,29 @@ const KnockoutMatchTeam: React.FC<KnockoutMatchTeamProps> = ({
                 {team ? (
                     <>
                         <div className="relative shrink-0">
-                            <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className={`w-8 h-8 sm:w-11 sm:h-11 transition-all duration-700 ${isWinner ? 'animate-float-mini' : ''}`} />
+                            <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className={`w-8 h-8 sm:w-11 sm:h-11 transition-all duration-700 ${isWinner ? 'animate-float-mini' : ''} ${isMyTeam ? 'ring-2 ring-brand-vibrant' : ''}`} />
                             {isWinner && (
                                 <div className="absolute -top-1.5 -right-1.5 bg-brand-special rounded-full p-0.5 shadow-lg animate-bounce">
                                     <Crown size={10} className="text-brand-primary" />
                                 </div>
                             )}
+                            {isMyTeam && !isWinner && (
+                                <div className="absolute -top-1.5 -right-1.5 bg-brand-vibrant rounded-full p-0.5 shadow-lg">
+                                    <Star size={10} className="text-white fill-white" />
+                                </div>
+                            )}
                         </div>
                         <div className="flex-grow min-w-0">
-                            <span className={`block text-[10px] sm:text-sm truncate uppercase tracking-tight font-black transition-colors duration-500 ${isWinner ? 'text-white' : 'text-brand-light'}`}>
+                            <span className={`block text-[10px] sm:text-sm truncate uppercase tracking-tight font-black transition-colors duration-500 ${isWinner || isMyTeam ? 'text-white' : 'text-brand-light'}`}>
                                 {team.name}
                             </span>
-                            {isWinner && (
+                            {isWinner ? (
                                 <div className="flex items-center gap-1">
                                     <span className="text-[7px] sm:text-[8px] font-black text-brand-special uppercase tracking-[0.2em] animate-pulse">Winner</span>
                                     <Sparkles size={8} className="text-brand-special animate-pulse" />
                                 </div>
+                            ) : isMyTeam && (
+                                <span className="text-[7px] sm:text-[8px] font-black text-brand-vibrant uppercase tracking-[0.2em]">Tim Anda</span>
                             )}
                         </div>
                     </>
@@ -101,8 +112,9 @@ const KnockoutMatchCard: React.FC<{
     match: KnockoutMatch, 
     onSelectTeam: (team: Team) => void, 
     isAdminMode?: boolean,
-    onUpdateScore?: (matchId: string, data: Partial<KnockoutMatch> & { round: keyof KnockoutStageRounds }) => void
-}> = ({ match, onSelectTeam, isAdminMode, onUpdateScore }) => {
+    onUpdateScore?: (matchId: string, data: Partial<KnockoutMatch> & { round: keyof KnockoutStageRounds }) => void,
+    userOwnedTeamIds?: string[]
+}> = ({ match, onSelectTeam, isAdminMode, onUpdateScore, userOwnedTeamIds = [] }) => {
     const isFinal = match.round === 'Final';
     const sA1 = match.scoreA1;
     const sB1 = match.scoreB1;
@@ -129,6 +141,8 @@ const KnockoutMatchCard: React.FC<{
     const isTeamBWinner = isFinished && match.winnerId === match.teamB?.id;
     const isTeamALoser = isFinished && !isTeamAWinner && !!match.teamA;
     const isTeamBLoser = isFinished && !isTeamBWinner && !!match.teamB;
+    
+    const isMyMatch = (match.teamA && userOwnedTeamIds.includes(match.teamA.id)) || (match.teamB && userOwnedTeamIds.includes(match.teamB.id));
 
     const handleSave = async () => {
         if (!onUpdateScore) return;
@@ -153,7 +167,7 @@ const KnockoutMatchCard: React.FC<{
             <Card className="!p-0 border-none bg-transparent overflow-visible">
                 <div className={`
                     relative bg-brand-secondary/40 backdrop-blur-md rounded-2xl border transition-all duration-500 overflow-hidden
-                    ${isAdminMode ? 'border-brand-special' : 'border-white/5'}
+                    ${isAdminMode ? 'border-brand-special' : isMyMatch ? 'border-brand-vibrant shadow-[0_0_20px_rgba(37,99,235,0.1)]' : 'border-white/5'}
                     ${isFinished ? 'ring-1 ring-white/5 shadow-[0_0_30px_rgba(0,0,0,0.3)]' : ''}
                     ${isFinal && isFinished ? 'ring-2 ring-brand-special shadow-brand-special/20' : ''}
                 `}>
@@ -164,6 +178,12 @@ const KnockoutMatchCard: React.FC<{
                                 <button onClick={() => setShowProof(true)} className="text-brand-vibrant hover:text-white transition-colors">
                                     <MonitorPlay size={10} />
                                 </button>
+                             )}
+                             {isMyMatch && (
+                                 <div className="flex items-center gap-1 text-brand-vibrant animate-pulse">
+                                     <Star size={8} className="fill-brand-vibrant" />
+                                     <span className="text-[7px] font-black uppercase">Tim Anda</span>
+                                 </div>
                              )}
                         </div>
                         {isAdminMode && (
@@ -189,6 +209,7 @@ const KnockoutMatchCard: React.FC<{
                             isAdminMode={isAdminMode}
                             editScore={eA1}
                             onAdjust={(d) => setEA1(v => Math.max(0, v + d))}
+                            isMyTeam={match.teamA ? userOwnedTeamIds.includes(match.teamA.id) : false}
                         />
                         
                         <div className="flex justify-center items-center py-1">
@@ -224,6 +245,7 @@ const KnockoutMatchCard: React.FC<{
                             isAdminMode={isAdminMode}
                             editScore={eB1}
                             onAdjust={(d) => setEB1(v => Math.max(0, v + d))}
+                            isMyTeam={match.teamB ? userOwnedTeamIds.includes(match.teamB.id) : false}
                         />
                     </div>
                 </div>
@@ -244,7 +266,7 @@ const KnockoutMatchCard: React.FC<{
     )
 }
 
-export const KnockoutStageView: React.FC<KnockoutStageViewProps> = ({ knockoutStage, onSelectTeam, isAdminMode, onUpdateScore }) => {
+export const KnockoutStageView: React.FC<KnockoutStageViewProps> = ({ knockoutStage, onSelectTeam, isAdminMode, onUpdateScore, userOwnedTeamIds = [] }) => {
   const roundOrder: Array<keyof KnockoutStageRounds> = ['Round of 16', 'Quarter-finals', 'Semi-finals', 'Final'];
 
   return (
@@ -306,6 +328,7 @@ export const KnockoutStageView: React.FC<KnockoutStageViewProps> = ({ knockoutSt
                         onSelectTeam={onSelectTeam} 
                         isAdminMode={isAdminMode}
                         onUpdateScore={onUpdateScore}
+                        userOwnedTeamIds={userOwnedTeamIds}
                     />
                 ))}
                 

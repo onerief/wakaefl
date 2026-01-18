@@ -2,7 +2,7 @@
 import { useReducer, useCallback, useState, useEffect, useRef } from 'react';
 import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment, SeasonHistory } from '../types';
 import { generateSummary } from '../services/geminiService';
-import { getTournamentData, saveTournamentData } from '../services/firebaseService';
+import { subscribeToTournamentData, saveTournamentData } from '../services/firebaseService';
 import { useToast } from '../components/shared/Toast';
 
 export const SPECIAL_TEAM_ID = 't13';
@@ -215,37 +215,42 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   
-  // Refs for reliable sync
+  // Refs for reliable sync and state tracking
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isInitialMount = useRef(true);
+  const isUpdatingFromServer = useRef(false);
   const stateRef = useRef(state);
 
-  // Update ref whenever state changes for access inside timeout
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
 
-  // Initial Load Effect
+  // Real-time listener: Handles incoming updates (like team claims)
   useEffect(() => {
     setIsLoading(true);
-    isInitialMount.current = true; // Mark as loading to prevent immediate re-save
-    getTournamentData(activeMode).then(data => {
-      if (data) dispatch({ type: 'SET_STATE', payload: data });
-      // Use a small delay before allowing sync to prevent initial load from triggering a save
-      setTimeout(() => {
-          setIsLoading(false);
-          isInitialMount.current = false;
-      }, 500);
+    const unsubscribe = subscribeToTournamentData(activeMode, (serverData) => {
+        isUpdatingFromServer.current = true;
+        dispatch({ type: 'SET_STATE', payload: serverData });
+        
+        // Small delay to ensure isUpdatingFromServer remains true during the re-render triggered by dispatch
+        setTimeout(() => {
+            isUpdatingFromServer.current = false;
+            setIsLoading(false);
+        }, 100);
     });
+    
+    return () => unsubscribe();
   }, [activeMode]);
 
-  // Sync / Auto-Save Effect
+  // Sync / Auto-Save Effect (Admin only)
   useEffect(() => {
-    if (!isLoading && !isInitialMount.current) {
+    // Only save if:
+    // 1. User is admin
+    // 2. Not currently loading initial data
+    // 3. The change was NOT caused by a server update (to prevent loops and accidental overwrites)
+    if (isAdmin && !isLoading && !isUpdatingFromServer.current) {
        setIsSyncing(true);
        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
        
-       // Debounce for 800ms (faster than before to prevent cancellation on nav)
        saveTimeoutRef.current = setTimeout(async () => { 
            try {
                await saveTournamentData(activeMode, stateRef.current); 
@@ -254,11 +259,11 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
            } finally {
                setIsSyncing(false);
            }
-       }, 800);
+       }, 1000);
        
        return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
     }
-  }, [state, isLoading, activeMode]);
+  }, [state, isLoading, activeMode, isAdmin]);
 
   return { 
       ...state, 

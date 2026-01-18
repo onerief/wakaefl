@@ -122,8 +122,6 @@ export const uploadMatchProof = async (file: File): Promise<string> => {
 
 export const saveTournamentData = async (mode: TournamentMode, state: TournamentState) => {
   try {
-    console.log(`Attempting to save ${mode} data and global settings...`);
-    
     const modeData = {
         teams: state.teams || [],
         groups: state.groups || [],
@@ -146,19 +144,13 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
     const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
 
-    // Save both documents in parallel
     await Promise.all([
         setDoc(modeDocRef, sanitizeData(modeData)),
         setDoc(settingsDocRef, sanitizeData(globalData))
     ]);
-    
-    console.log("Save successful!");
   } catch (error: any) {
     console.error(`Firestore Error: Failed to save data`, error);
-    if (error.code === 'permission-denied') {
-        console.warn("Permission denied. Ensure you are logged in as an allowed admin.");
-    }
-    throw error; // Re-throw to be caught by hook
+    throw error;
   }
 };
 
@@ -173,18 +165,8 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
     ]);
 
     const globalData = settingsSnap.exists() ? settingsSnap.data() : {};
-    
-    // Jika modeSnap tidak ada, kita tetap kirimkan data default + data global
     const modeData = modeSnap.exists() ? modeSnap.data() : {
-        teams: [],
-        groups: [],
-        matches: [],
-        knockoutStage: null,
-        status: 'active',
-        history: [],
-        isRegistrationOpen: true,
-        isDoubleRoundRobin: true,
-        mode: mode
+        teams: [], groups: [], matches: [], knockoutStage: null, status: 'active', history: [], isRegistrationOpen: true, isDoubleRoundRobin: true, mode: mode
     };
 
     return {
@@ -194,11 +176,42 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
         rules: globalData.rules || modeData.rules || '',
         headerLogoUrl: globalData.headerLogoUrl || modeData.headerLogoUrl || '',
     } as TournamentState;
-
   } catch (error: any) {
     console.warn(`Firestore: Failed to get data`, error);
     return null;
   }
+};
+
+export const subscribeToTournamentData = (mode: TournamentMode, callback: (data: TournamentState) => void) => {
+    const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+    const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
+    
+    let modeData: any = null;
+    let globalData: any = null;
+
+    const emit = () => {
+        if (modeData && globalData) {
+            callback({
+                ...modeData,
+                banners: globalData.banners || [],
+                partners: globalData.partners || [],
+                rules: globalData.rules || modeData.rules || '',
+                headerLogoUrl: globalData.headerLogoUrl || modeData.headerLogoUrl || '',
+            });
+        }
+    };
+
+    const unsubMode = onSnapshot(modeDocRef, (snap) => {
+        modeData = snap.exists() ? snap.data() : { teams: [], groups: [], matches: [], knockoutStage: null, status: 'active', history: [], isRegistrationOpen: true, isDoubleRoundRobin: true, mode };
+        emit();
+    });
+
+    const unsubGlobal = onSnapshot(settingsDocRef, (snap) => {
+        globalData = snap.exists() ? snap.data() : { banners: [], partners: [], rules: '', headerLogoUrl: '' };
+        emit();
+    });
+
+    return () => { unsubMode(); unsubGlobal(); };
 };
 
 export const onAuthChange = (callback: (user: User | null) => void) => onAuthStateChanged(auth, callback);
