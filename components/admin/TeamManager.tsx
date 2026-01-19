@@ -4,7 +4,7 @@ import type { Team, Group, Match, KnockoutStageRounds, TournamentState } from '.
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search, Bell, Settings as SettingsIcon, LayoutGrid, Info, ShieldCheck, UserMinus } from 'lucide-react';
+import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search, Bell, Settings as SettingsIcon, LayoutGrid, Info, ShieldCheck, UserMinus } from 'lucide-center';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { GenerateGroupsConfirmationModal } from './GenerateGroupsConfirmationModal';
 import { useToast } from '../shared/Toast';
@@ -55,10 +55,6 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const [teamToUnbind, setTeamToUnbind] = useState<Team | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [newRegistrations, setNewRegistrations] = useState<any[]>([]);
-  const [showImportConfirm, setShowImportConfirm] = useState(false);
-  const [importedData, setImportedData] = useState<TournamentState | null>(null);
-  const [showLegacyImportConfirm, setShowLegacyImportConfirm] = useState(false);
-  const [legacyImportData, setLegacyImportData] = useState<any>(null);
   const [isSavingTeam, setIsSavingTeam] = useState(false);
 
   const { addToast } = useToast();
@@ -194,10 +190,16 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       try {
         const text = e.target?.result;
         if (typeof text !== 'string') throw new Error("File unreadable");
-        const data = JSON.parse(text) as TournamentState;
-        if (data && typeof data === 'object' && 'teams' in data) {
-          setTournamentState(data);
-          addToast('Data berhasil dipulihkan.', 'success');
+        
+        // Parse JSON
+        const rawData = JSON.parse(text);
+        
+        // Bersihkan data yang di-import sebelum dimasukkan ke state
+        const cleanedData = sanitizeData(rawData) as TournamentState;
+        
+        if (cleanedData && typeof cleanedData === 'object' && 'teams' in cleanedData) {
+          setTournamentState(cleanedData);
+          addToast('Data berhasil dipulihkan dari JSON! Tim yang TBD akan dipulihkan secara otomatis jika ID cocok.', 'success');
         } else {
           addToast("Format JSON tidak valid.", 'error');
         }
