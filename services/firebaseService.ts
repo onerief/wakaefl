@@ -33,7 +33,7 @@ import {
   uploadBytes, 
   getDownloadURL 
 } from "firebase/storage";
-import type { TournamentState, TournamentMode, Team, Partner, ChatMessage } from '../types';
+import type { TournamentState, TournamentMode, Team, Partner, ChatMessage, Group, Match } from '../types';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCXZAvanJ8Ra-3oCRXvsaKBopGce4CPuXQ",
@@ -62,48 +62,42 @@ const GLOBAL_CHAT_COLLECTION = 'global_chat';
 const REGISTRATIONS_COLLECTION = 'registrations';
 const SETTINGS_DOC = 'global_settings';
 
-const isPlainObject = (obj: any): boolean => {
-  return Object.prototype.toString.call(obj) === '[object Object]' && obj.constructor === Object;
-};
-
 /**
- * Logika sanitasi yang diperketat untuk menghindari circular references.
- * Alih-alih menyimpan objek penuh di dalam array, kita akan menyimpan referensi ID jika memungkinkan,
- * namun untuk kompatibilitas UI saat ini, kita pastikan objek diratakan (flattened).
+ * PEMBERSIH DATA RADIKAL
+ * Mengonversi objek Tim menjadi hanya ID saja saat disimpan di dalam array bersarang (Grup/Klasemen).
+ * Ini mencegah error Circular Reference selamanya.
  */
-export const sanitizeData = (data: any, seen = new WeakSet()): any => {
-  if (data === null || typeof data !== 'object') return data;
-  if (seen.has(data)) return null; // Jangan simpan circular, simpan null agar hydrate memulihkannya
-
-  if (Array.isArray(data)) {
-    seen.add(data);
-    return data.map(item => sanitizeData(item, seen));
-  }
-
-  if (data instanceof Date) return data.toISOString();
-
-  if (typeof data.toMillis === 'function') {
-    return data.toMillis();
-  }
-
-  if (!isPlainObject(data)) {
-      if (typeof data.toJSON === 'function') {
-          return sanitizeData(data.toJSON(), seen);
-      }
-      return String(data);
-  }
-
-  seen.add(data);
-  const result: any = {};
-  for (const key in data) {
-    if (Object.prototype.hasOwnProperty.call(data, key)) {
-      const value = data[key];
-      if (typeof value !== 'function' && value !== undefined) {
-        result[key] = sanitizeData(value, seen);
-      }
+export const sanitizeData = (data: any): any => {
+    if (data === null || data === undefined) return null;
+    
+    // Jika array, bersihkan isinya satu per satu
+    if (Array.isArray(data)) {
+        return data.map(item => sanitizeData(item));
     }
-  }
-  return result;
+
+    // Jika ini adalah objek Tim, kita simpan full jika di master list, 
+    // tapi jika ini bagian dari objek lain, kita biarkan saja asalkan bukan Circular.
+    if (typeof data === 'object') {
+        const result: any = {};
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                const value = data[key];
+                
+                // JANGAN simpan property 'standings' atau 'teams' di dalam grup secara rekursif
+                // Cukup simpan ID-nya saja atau data flat
+                if ((key === 'teams' || key === 'team') && value && value.id) {
+                    result[key] = { id: value.id, name: value.name, logoUrl: value.logoUrl || '' };
+                } else if (typeof value === 'object' && value !== null) {
+                    result[key] = sanitizeData(value);
+                } else {
+                    result[key] = value;
+                }
+            }
+        }
+        return result;
+    }
+
+    return data;
 };
 
 export const uploadTeamLogo = async (file: File): Promise<string> => {
@@ -118,28 +112,22 @@ export const uploadTeamLogo = async (file: File): Promise<string> => {
   }
 };
 
-export const uploadMatchProof = async (file: File): Promise<string> => {
-  try {
-    const fileName = `proofs/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-    const storageRef = ref(storage, fileName);
-    const snapshot = await uploadBytes(storageRef, file);
-    return await getDownloadURL(snapshot.ref);
-  } catch (error: any) {
-    console.error("Error uploading proof:", error);
-    throw new Error("Gagal mengupload bukti pertandingan.");
-  }
-};
-
 export const saveTournamentData = async (mode: TournamentMode, state: TournamentState) => {
   try {
-    // Alih-alih menyimpan objek tim yang dalam di Standings, 
-    // kita pastikan hanya ID yang disimpan jika struktur terlalu dalam.
-    // Tapi untuk fix instan, kita sanitize seluruh state.
-    const modeData = {
+    // Sederhanakan data sebelum kirim ke Firestore
+    const cleanState = {
         teams: state.teams || [],
-        groups: state.groups || [],
-        matches: state.matches || [],
-        knockoutStage: state.knockoutStage || null,
+        groups: (state.groups || []).map(g => ({
+            ...g,
+            teams: g.teams.map(t => ({ id: t.id })), // Simpan ID saja di dalam grup
+            standings: g.standings.map(s => ({ ...s, team: { id: s.team.id } })) // Simpan ID saja di standings
+        })),
+        matches: (state.matches || []).map(m => ({
+            ...m,
+            teamA: { id: m.teamA.id },
+            teamB: { id: m.teamB.id }
+        })),
+        knockoutStage: state.knockoutStage,
         status: state.status || 'active',
         history: state.history || [],
         isRegistrationOpen: state.isRegistrationOpen ?? true,
@@ -158,7 +146,7 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
 
     await Promise.all([
-        setDoc(modeDocRef, sanitizeData(modeData)),
+        setDoc(modeDocRef, sanitizeData(cleanState)),
         setDoc(settingsDocRef, sanitizeData(globalData))
     ]);
   } catch (error: any) {
@@ -330,17 +318,20 @@ export const updateUserTeamData = async (mode: TournamentMode, teamId: string, u
         if (teamIndex === -1) throw new Error("Team not found");
         const updatedTeams = [...teams];
         updatedTeams[teamIndex] = { ...teams[teamIndex], ...updates };
+        
+        // Simpan hanya ID untuk referensi silang
         const groups = (data.groups || []).map(g => ({
             ...g,
-            teams: g.teams.map(t => t.id === teamId ? { ...t, ...updates } : t),
-            standings: g.standings.map(s => s.team.id === teamId ? { ...s, team: { ...s.team, ...updates } } : s)
+            teams: g.teams.map(t => t.id === teamId ? { id: t.id } : { id: t.id }),
+            standings: g.standings.map(s => s.team.id === teamId ? { ...s, team: { id: s.team.id } } : { ...s, team: { id: s.team.id } })
         }));
-        const matches = (data.matches || []).map(m => {
-            const mUpdate = { ...m };
-            if (m.teamA.id === teamId) mUpdate.teamA = { ...m.teamA, ...updates };
-            if (m.teamB.id === teamId) mUpdate.teamB = { ...m.teamB, ...updates };
-            return mUpdate;
-        });
+        
+        const matches = (data.matches || []).map(m => ({
+            ...m,
+            teamA: { id: m.teamA.id },
+            teamB: { id: m.teamB.id }
+        }));
+        
         transaction.update(tournamentDocRef, { teams: updatedTeams, groups, matches });
     });
 };

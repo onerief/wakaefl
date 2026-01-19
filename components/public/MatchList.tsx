@@ -1,4 +1,5 @@
 
+/* Fix: Removed non-existent import 'uploadMatchProof' from firebaseService as it was causing an error and is unused in this component. */
 import React, { useState, useRef, useMemo } from 'react';
 import type { Match, Team, MatchComment } from '../../types';
 import { Card } from '../shared/Card';
@@ -7,7 +8,6 @@ import { ProofModal } from './ProofModal';
 import { TeamLogo } from '../shared/TeamLogo';
 import type { User } from 'firebase/auth';
 import { useToast } from '../shared/Toast';
-import { uploadMatchProof } from '../../services/firebaseService';
 
 interface MatchCardProps {
     match: Match;

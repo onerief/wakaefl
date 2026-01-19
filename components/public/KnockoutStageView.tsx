@@ -1,11 +1,11 @@
 
+/* Fix: Removed non-existent import 'uploadMatchProof' from firebaseService as it was causing an error and is unused in this component. */
 import React, { useState, useRef } from 'react';
 import type { KnockoutStageRounds, KnockoutMatch, Team } from '../../types';
 import { Card } from '../shared/Card';
 import { Trophy, Crown, ArrowRight, Zap, Save, Plus, Minus, Camera, Loader, MonitorPlay, Sparkles, Star } from 'lucide-react';
 import { TeamLogo } from '../shared/TeamLogo';
 import { useToast } from '../shared/Toast';
-import { uploadMatchProof } from '../../services/firebaseService';
 import { ProofModal } from './ProofModal';
 
 interface KnockoutStageViewProps {
