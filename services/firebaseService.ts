@@ -209,6 +209,8 @@ export const subscribeToTournamentData = (mode: TournamentMode, callback: (data:
             modeData = snap.data();
             emit();
         }
+    }, (error) => {
+        console.error("Mode sub error:", error);
     });
 
     const unsubGlobal = onSnapshot(settingsDocRef, (snap) => {
@@ -216,6 +218,8 @@ export const subscribeToTournamentData = (mode: TournamentMode, callback: (data:
             globalData = snap.data();
             emit();
         }
+    }, (error) => {
+        console.error("Global sub error:", error);
     });
 
     return () => { unsubMode(); unsubGlobal(); };
@@ -229,20 +233,34 @@ export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 export const updateUserProfile = (user: User, displayName: string) => updateProfile(user, { displayName });
 
 export const submitNewTeamRegistration = async (teamData: any, userEmail: string) => {
-    await addDoc(collection(firestore, REGISTRATIONS_COLLECTION), {
-        ...teamData,
-        submittedBy: userEmail,
-        timestamp: Date.now(),
-        status: 'pending'
-    });
+    console.log("Mencoba mengirim pendaftaran ke Firestore...", teamData);
+    try {
+        const docRef = await addDoc(collection(firestore, REGISTRATIONS_COLLECTION), {
+            ...teamData,
+            submittedBy: userEmail,
+            timestamp: Date.now(),
+            status: 'pending'
+        });
+        console.log("Pendaftaran terkirim dengan ID:", docRef.id);
+        return docRef.id;
+    } catch (error) {
+        console.error("Error saat submitNewTeamRegistration:", error);
+        throw error;
+    }
 };
 
-export const subscribeToRegistrations = (callback: (registrations: any[]) => void) => {
-    const q = query(collection(firestore, REGISTRATIONS_COLLECTION), orderBy('timestamp', 'desc'));
+export const subscribeToRegistrations = (callback: (registrations: any[]) => void, onError?: (err: any) => void) => {
+    // Menghapus orderBy() dari server untuk menghindari error "Missing Index".
+    // Kita akan melakukan sorting di sisi client/frontend.
+    const q = query(collection(firestore, REGISTRATIONS_COLLECTION));
+    
     return onSnapshot(q, (snapshot) => {
         const regs: any[] = [];
         snapshot.forEach((doc) => regs.push({ id: doc.id, ...doc.data() }));
         callback(regs);
+    }, (error) => {
+        console.error("Firestore Registrations Error:", error);
+        if (onError) onError(error);
     });
 };
 

@@ -1,11 +1,11 @@
 
 // Fix: Added React to the import to resolve 'Cannot find namespace React' errors in FC and Event types
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Team, Group, Match, KnockoutStageRounds, TournamentState, TournamentMode } from '../../types';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, RefreshCw, Download, Star, Upload, Users, ShieldAlert, Check, Search, Bell, Settings as SettingsIcon, LayoutGrid, ShieldCheck, UserMinus, FileJson, CloudUpload, X, Instagram, MessageCircle, Trophy, ExternalLink } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Download, Star, Upload, Users, ShieldAlert, Check, Search, Bell, Settings as SettingsIcon, LayoutGrid, ShieldCheck, UserMinus, FileJson, CloudUpload, X, Instagram, MessageCircle, Trophy, ExternalLink, AlertTriangle } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { useToast } from '../shared/Toast';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -57,17 +57,30 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const [newRegistrations, setNewRegistrations] = useState<any[]>([]);
   const [isSavingTeam, setIsSavingTeam] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [isRefreshingRegs, setIsRefreshingRegs] = useState(false);
+  const [regError, setRegError] = useState<string | null>(null);
 
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const legacyFileInputRef = useRef<HTMLInputElement>(null);
   
+  // Real-time subscription to registrations
   useEffect(() => {
+      setRegError(null);
       const unsubscribe = subscribeToRegistrations((regs) => {
           setNewRegistrations(regs);
+          setIsRefreshingRegs(false);
+      }, (err) => {
+          setRegError("Gagal memuat data pendaftaran. Mungkin masalah koneksi.");
+          setIsRefreshingRegs(false);
       });
       return () => unsubscribe();
   }, []);
+
+  // Sort registrations by timestamp (newest first) locally
+  const sortedRegistrations = useMemo(() => {
+      return [...newRegistrations].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  }, [newRegistrations]);
 
   const isTeamInUse = (teamId: string) => {
     return groups.some(g => g.teams.some(t => t.id === teamId));
@@ -153,19 +166,6 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       }
   };
 
-  const handleResolveClaim = (teamId: string, approved: boolean) => {
-      if (resolveTeamClaim) {
-          resolveTeamClaim(teamId, approved);
-          addToast(approved ? 'Klaim tim disetujui!' : 'Klaim tim diabaikan.', approved ? 'success' : 'info');
-      } else {
-          addToast('Fungsi klaim tidak tersedia.', 'error');
-      }
-  };
-
-  const handleToggleSeed = (team: Team) => {
-    updateTeam(team.id, team.name, team.logoUrl || '', team.manager, team.socialMediaUrl, team.whatsappNumber, !team.isTopSeed, team.ownerEmail);
-  };
-
   const handleBackupData = () => {
     try {
         const backupData = { teams, groups, matches, knockoutStage, rules };
@@ -200,67 +200,22 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
         if (typeof text !== 'string') throw new Error("File unreadable");
         
         let data = JSON.parse(text);
-        
-        // 1. Validasi struktur
         if (!data || !data.teams) {
             addToast("Format JSON tidak valid.", 'error');
             return;
         }
 
-        // 2. Buat Map dari Master Teams
-        const teamMap = new Map<string, Team>();
-        data.teams.forEach((t: any) => {
-            if (t && t.id && typeof t !== 'string') teamMap.set(t.id, t);
-        });
-
-        const getFullTeam = (val: any): Team | null => {
-            if (!val) return null;
-            const id = (typeof val === 'object') ? val.id : (typeof val === 'string' && val !== "[Circular]" ? val : null);
-            return id ? teamMap.get(id) || null : null;
-        };
-
-        // 3. Perbaiki Matches & Groups (Solusi Masalah TBD)
-        if (data.matches) {
-            data.matches = data.matches.map((m: any) => ({
-                ...m,
-                teamA: getFullTeam(m.teamA),
-                teamB: getFullTeam(m.teamB)
-            })).filter((m: any) => m.teamA && m.teamB);
-        }
-
-        if (data.groups) {
-            data.groups = data.groups.map((g: any) => {
-                const groupLetter = g.name.replace('Group ', '').trim();
-                const teamIdsInThisGroup = new Set<string>();
-                if (data.matches) {
-                    data.matches.forEach((m: any) => {
-                        if (m.group === g.id || m.group === groupLetter || m.group === g.name) {
-                            if (m.teamA?.id) teamIdsInThisGroup.add(m.teamA.id);
-                            if (m.teamB?.id) teamIdsInThisGroup.add(m.teamB.id);
-                        }
-                    });
-                }
-                const reconstructedTeams = Array.from(teamIdsInThisGroup).map(id => teamMap.get(id)).filter((t): t is Team => !!t);
-                return { ...g, teams: reconstructedTeams, standings: [] };
-            });
-        }
-
-        // 4. Update State Lokal
         const finalData = {
             ...data,
-            mode: mode, // Tetapkan mode saat ini
+            mode: mode,
             status: data.status || 'active',
             isRegistrationOpen: data.isRegistrationOpen ?? true
         } as TournamentState;
         
         setTournamentState(finalData);
-
-        // 5. FORCE SAVE KE CLOUD (Solusi data tidak tersimpan)
         addToast('Mempersinkronkan data ke Cloud...', 'info');
         await saveTournamentData(mode, finalData);
-        
-        addToast('RESTORASI BERHASIL: Data telah diperbaiki dan disimpan permanen di database.', 'success');
-        
+        addToast('Restorasi berhasil disimpan ke cloud.', 'success');
       } catch (error) {
         console.error("Restore error:", error);
         addToast("Gagal memproses file backup.", 'error');
@@ -343,18 +298,6 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                                 </div>
                             </div>
                             <div className="flex items-center gap-1 shrink-0">
-                                <button onClick={() => handleToggleSeed(team)} className={`p-2 rounded-lg transition-colors ${team.isTopSeed ? 'text-yellow-400 bg-yellow-400/10' : 'text-brand-light hover:text-white bg-white/5'}`} title="Top Seed">
-                                    <Star size={16} />
-                                </button>
-                                {team.ownerEmail && (
-                                    <button 
-                                        onClick={() => setTeamToUnbind(team)} 
-                                        className="p-2 text-orange-400 hover:text-orange-300 bg-orange-500/10 rounded-lg transition-colors"
-                                        title="Unbind Manager Account"
-                                    >
-                                        <UserMinus size={16} />
-                                    </button>
-                                )}
                                 <button onClick={() => handleEditClick(team)} className="p-2 text-brand-light hover:text-white bg-white/5 rounded-lg transition-colors"><Edit size={16} /></button>
                                 <button onClick={() => handleDeleteClick(team)} className="p-2 text-red-400 hover:text-red-300 bg-red-500/10 rounded-lg disabled:opacity-10 transition-colors" disabled={!!currentGroup} title="Hapus Tim"><Trash2 size={16} /></button>
                             </div>
@@ -369,16 +312,32 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       {activeSubTab === 'requests' && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
               <Card className="!p-4 sm:!p-6">
-                <div className="mb-6">
-                    <h3 className="text-lg sm:text-xl font-black italic uppercase text-brand-text flex items-center gap-3">
-                        <Bell size={24} className="text-brand-vibrant" />
-                        Pendaftaran Masuk <span className="text-brand-vibrant">({newRegistrations.length})</span>
-                    </h3>
-                    <p className="text-[10px] text-brand-light uppercase tracking-widest mt-1 opacity-60">Tinjau dan setujui pendaftaran tim baru di sini.</p>
+                <div className="mb-6 flex justify-between items-start">
+                    <div>
+                        <h3 className="text-lg sm:text-xl font-black italic uppercase text-brand-text flex items-center gap-3">
+                            <Bell size={24} className="text-brand-vibrant" />
+                            Pendaftaran Masuk <span className="text-brand-vibrant">({newRegistrations.length})</span>
+                        </h3>
+                        <p className="text-[10px] text-brand-light uppercase tracking-widest mt-1 opacity-60">Tinjau dan setujui pendaftaran tim baru di sini.</p>
+                    </div>
+                    <button 
+                        onClick={() => { setIsRefreshingRegs(true); window.location.reload(); }}
+                        className={`p-2 bg-white/5 hover:bg-white/10 rounded-xl text-brand-light transition-all ${isRefreshingRegs ? 'animate-spin text-brand-vibrant' : ''}`}
+                        title="Refresh Manual"
+                    >
+                        <RefreshCw size={20} />
+                    </button>
                 </div>
 
+                {regError && (
+                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-start gap-3 text-red-400">
+                        <ShieldAlert className="shrink-0" size={20} />
+                        <p className="text-xs font-bold">{regError}</p>
+                    </div>
+                )}
+
                 <div className="space-y-4">
-                    {newRegistrations.length > 0 ? newRegistrations.map((reg) => (
+                    {sortedRegistrations.length > 0 ? sortedRegistrations.map((reg) => (
                         <div key={reg.id} className="bg-brand-primary/40 border border-white/5 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 group hover:border-brand-vibrant/30 transition-all shadow-lg relative overflow-hidden">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                 <div className="flex items-center gap-4">
@@ -433,7 +392,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                                 </div>
                             </div>
                             
-                            <div className="absolute top-0 right-0 p-1">
+                            <div className="absolute top-0 right-0 p-1 flex items-center gap-2">
+                                <span className="text-[7px] text-brand-light/40 font-black uppercase">{new Date(reg.timestamp).toLocaleString()}</span>
                                 <span className="text-[7px] text-brand-light/20 font-black uppercase">Ref: {reg.id.slice(-6)}</span>
                             </div>
                         </div>
@@ -443,6 +403,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                                 <Bell size={32} />
                             </div>
                             <p className="text-sm font-bold text-brand-light/30 uppercase tracking-widest italic">Belum ada pendaftaran baru</p>
+                            <p className="text-[10px] text-brand-light/20 mt-2">Pastikan pendaftar telah menekan tombol "Kirim Pendaftaran" di formulir.</p>
                         </div>
                     )}
                 </div>
@@ -479,29 +440,15 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                         {isRestoring ? <RefreshCw className="animate-spin" size={14} /> : <Upload size={14} />} 
                         Pulihkan & Simpan ke Cloud
                     </Button>
-                    {importLegacyData && <Button onClick={() => legacyFileInputRef.current?.click()} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest sm:col-span-2"><FileJson size={14} /> Legacy JSON Import</Button>}
                   </div>
                   
                   <div className="mt-6 pt-6 border-t border-white/5">
                       <Button onClick={() => setShowResetConfirm(true)} variant="danger" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest bg-red-600/10 hover:bg-red-600">
                           <RefreshCw size={14} /> Hard Reset Tournament
                       </Button>
-                      <p className="text-[9px] text-red-400/50 mt-2 text-center uppercase tracking-wider font-bold">⚠️ Perhatian: Tindakan ini tidak dapat dibatalkan!</p>
                   </div>
                   
                   <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="application/json" />
-                  <input type="file" ref={legacyFileInputRef} onChange={(e) => {
-                       const file = e.target.files?.[0];
-                       if (!file) return;
-                       const reader = new FileReader();
-                       reader.onload = (ev) => {
-                           try {
-                               const data = JSON.parse(ev.target?.result as string);
-                               if (importLegacyData) importLegacyData(data);
-                           } catch (err) { addToast("Failed to process legacy file.", 'error'); }
-                       };
-                       reader.readAsText(file);
-                  }} className="hidden" accept="application/json" />
               </Card>
           </div>
       )}

@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { X, Upload, UserCircle, MessageCircle, Instagram, Loader, Send, Trophy, ChevronDown, Phone } from 'lucide-react';
+import { X, Upload, UserCircle, MessageCircle, Instagram, Loader, Send, Trophy, ChevronDown, Phone, AlertCircle } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { uploadTeamLogo, submitNewTeamRegistration } from '../../services/firebaseService';
 import { TeamLogo } from '../shared/TeamLogo';
@@ -23,6 +23,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
     const [preferredMode, setPreferredMode] = useState<TournamentMode>('league');
     const [isUploading, setIsUploading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
     
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { addToast } = useToast();
@@ -50,14 +51,18 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setSubmitError(null);
+
         if (!name.trim()) {
             addToast('Nama tim wajib diisi.', 'error');
             return;
         }
 
         setIsSubmitting(true);
+        console.log("Submitting team registration...");
+
         try {
-            await submitNewTeamRegistration({
+            const registrationId = await submitNewTeamRegistration({
                 name: name.trim(),
                 manager: manager.trim(),
                 whatsappNumber: whatsappNumber.trim(),
@@ -67,10 +72,12 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                 preferredMode: preferredMode
             }, currentUser.email || '');
             
+            console.log("Registration complete! ID:", registrationId);
             addToast('Formulir pendaftaran berhasil dikirim! Tunggu persetujuan admin.', 'success');
             onClose();
-        } catch (error) {
-            console.error(error);
+        } catch (error: any) {
+            console.error("Submit Error:", error);
+            setSubmitError(`Gagal mengirim: ${error.message || 'Masalah Jaringan'}`);
             addToast('Gagal mengirim pendaftaran.', 'error');
         } finally {
             setIsSubmitting(false);
@@ -93,6 +100,13 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                     </div>
 
                     <div className="p-6">
+                        {submitError && (
+                            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3 text-red-400">
+                                <AlertCircle size={20} />
+                                <p className="text-xs font-bold">{submitError}</p>
+                            </div>
+                        )}
+
                         <form onSubmit={handleSubmit} className="space-y-6">
                             
                             {/* Logo Upload */}
@@ -120,7 +134,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                         disabled={isUploading}
                                         className="w-full flex justify-center text-xs"
                                     >
-                                        <Upload size={14} /> Upload Logo
+                                        <Upload size={14} /> {logoUrl ? 'Ganti Logo' : 'Upload Logo'}
                                     </Button>
                                 </div>
                             </div>
@@ -145,7 +159,6 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                             <ChevronDown size={16} />
                                         </div>
                                     </div>
-                                    <p className="text-[10px] text-brand-light mt-1 ml-1">Pilih turnamen yang ingin Anda ikuti.</p>
                                 </div>
 
                                 <div>
@@ -202,16 +215,6 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                             />
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <div className="p-3 bg-brand-vibrant/10 border border-brand-vibrant/20 rounded-lg">
-                                    <p className="text-[10px] text-brand-light flex items-start gap-2">
-                                        <Phone size={12} className="text-brand-vibrant mt-0.5" />
-                                        <span>
-                                            Butuh bantuan pendaftaran? Hubungi Admin (WA: <strong>089646800884</strong>). 
-                                            Pendaftaran akan ditinjau Admin sebelum disetujui.
-                                        </span>
-                                    </p>
                                 </div>
                             </div>
 
