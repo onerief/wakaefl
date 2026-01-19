@@ -5,7 +5,7 @@ import type { Team, Group, Match, KnockoutStageRounds, TournamentState, Tourname
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, RefreshCw, Download, Star, Upload, Users, ShieldAlert, Check, Search, Bell, Settings as SettingsIcon, LayoutGrid, ShieldCheck, UserMinus, FileJson, CloudUpload } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Download, Star, Upload, Users, ShieldAlert, Check, Search, Bell, Settings as SettingsIcon, LayoutGrid, ShieldCheck, UserMinus, FileJson, CloudUpload, X, Instagram, MessageCircle, Trophy, ExternalLink } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { useToast } from '../shared/Toast';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -143,7 +143,14 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       const newTeamId = `t${Date.now()}`;
       addTeam(newTeamId, reg.name || 'Tim Tanpa Nama', reg.logoUrl || '', reg.manager || 'Tanpa Manager', reg.socialMediaUrl || '', reg.whatsappNumber || '', reg.ownerEmail || '');
       await deleteRegistration(reg.id);
-      addToast(`Pendaftaran ${reg.name} diterima!`, 'success');
+      addToast(`Pendaftaran ${reg.name} diterima! Tim telah ditambahkan ke database.`, 'success');
+  };
+
+  const handleRejectRegistration = async (regId: string, regName: string) => {
+      if (window.confirm(`Hapus/Tolak pendaftaran tim "${regName}"?`)) {
+          await deleteRegistration(regId);
+          addToast('Pendaftaran dihapus.', 'info');
+      }
   };
 
   const handleResolveClaim = (teamId: string, approved: boolean) => {
@@ -354,6 +361,90 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                         </div>
                     )
                     }) : <div className="text-center py-12 text-brand-light/30 italic">Tidak ada tim yang cocok dengan pencarian.</div>}
+                </div>
+              </Card>
+          </div>
+      )}
+
+      {activeSubTab === 'requests' && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <Card className="!p-4 sm:!p-6">
+                <div className="mb-6">
+                    <h3 className="text-lg sm:text-xl font-black italic uppercase text-brand-text flex items-center gap-3">
+                        <Bell size={24} className="text-brand-vibrant" />
+                        Pendaftaran Masuk <span className="text-brand-vibrant">({newRegistrations.length})</span>
+                    </h3>
+                    <p className="text-[10px] text-brand-light uppercase tracking-widest mt-1 opacity-60">Tinjau dan setujui pendaftaran tim baru di sini.</p>
+                </div>
+
+                <div className="space-y-4">
+                    {newRegistrations.length > 0 ? newRegistrations.map((reg) => (
+                        <div key={reg.id} className="bg-brand-primary/40 border border-white/5 rounded-2xl p-4 sm:p-5 flex flex-col gap-4 group hover:border-brand-vibrant/30 transition-all shadow-lg relative overflow-hidden">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="flex items-center gap-4">
+                                    <TeamLogo logoUrl={reg.logoUrl} teamName={reg.name} className="w-14 h-14 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-white/5" />
+                                    <div className="min-w-0">
+                                        <h4 className="text-lg font-black text-white uppercase italic tracking-tight truncate">{reg.name}</h4>
+                                        <div className="flex flex-wrap gap-2 mt-1">
+                                            <span className="flex items-center gap-1 px-2 py-0.5 bg-brand-vibrant/10 text-brand-vibrant text-[8px] font-black uppercase rounded-lg border border-brand-vibrant/20">
+                                                <Trophy size={10} /> {reg.preferredMode === 'league' ? 'Liga' : reg.preferredMode === 'wakacl' ? 'WAKACL' : '2 Region'}
+                                            </span>
+                                            <span className="flex items-center gap-1 px-2 py-0.5 bg-white/5 text-brand-light text-[8px] font-black uppercase rounded-lg border border-white/10">
+                                                <ShieldCheck size={10} /> Mgr: {reg.manager}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex items-center gap-2 sm:self-center bg-black/40 p-2 rounded-xl border border-white/5">
+                                    <button 
+                                        onClick={() => handleApproveRegistration(reg)}
+                                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-[10px] font-black uppercase transition-all shadow-lg shadow-green-900/20 active:scale-95"
+                                    >
+                                        <Check size={14} /> Approve
+                                    </button>
+                                    <button 
+                                        onClick={() => handleRejectRegistration(reg.id, reg.name)}
+                                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-lg text-[10px] font-black uppercase transition-all active:scale-95"
+                                    >
+                                        <X size={14} /> Tolak
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-3 border-t border-white/5">
+                                <div className="flex items-center gap-2 px-3 py-2 bg-black/20 rounded-xl border border-white/5">
+                                    <MessageCircle size={14} className="text-green-500" />
+                                    <span className="text-[10px] text-brand-light font-bold truncate">WA: {reg.whatsappNumber || 'N/A'}</span>
+                                    {reg.whatsappNumber && (
+                                        <a href={`https://wa.me/${reg.whatsappNumber.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="ml-auto p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+                                            <ExternalLink size={12} className="text-brand-vibrant" />
+                                        </a>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2 px-3 py-2 bg-black/20 rounded-xl border border-white/5">
+                                    <Instagram size={14} className="text-pink-500" />
+                                    <span className="text-[10px] text-brand-light font-bold truncate">IG: {reg.socialMediaUrl || 'N/A'}</span>
+                                    {reg.socialMediaUrl && (
+                                        <a href={reg.socialMediaUrl} target="_blank" rel="noreferrer" className="ml-auto p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+                                            <ExternalLink size={12} className="text-brand-vibrant" />
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="absolute top-0 right-0 p-1">
+                                <span className="text-[7px] text-brand-light/20 font-black uppercase">Ref: {reg.id.slice(-6)}</span>
+                            </div>
+                        </div>
+                    )) : (
+                        <div className="text-center py-20 bg-brand-primary/20 rounded-3xl border border-dashed border-white/5 flex flex-col items-center">
+                            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-brand-light/10 mb-4">
+                                <Bell size={32} />
+                            </div>
+                            <p className="text-sm font-bold text-brand-light/30 uppercase tracking-widest italic">Belum ada pendaftaran baru</p>
+                        </div>
+                    )}
                 </div>
               </Card>
           </div>
