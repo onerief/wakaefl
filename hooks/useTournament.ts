@@ -24,72 +24,115 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
 });
 
 /**
- * Logika Pemulihan Data (Self-Healing)
- * Memperbaiki grup C, D, E yang bertuliskan [Circular] dengan mengambil data asli dari Master Teams
- * dan membangun kembali daftar tim grup jika hilang.
+ * Fungsi pembantu untuk menghitung klasemen.
+ * Dipindahkan ke luar agar bisa digunakan oleh hydrateTournamentData.
+ */
+const calculateStandings = (teams: Team[], matches: Match[], groupId: string, groupName: string): Standing[] => {
+  const standings: { [key: string]: Standing } = {};
+  
+  // Inisialisasi setiap tim yang ada di grup
+  teams.forEach(team => {
+      if (team && team.id && typeof team !== 'string') {
+        standings[team.id] = { 
+            team: { ...team }, 
+            played: 0, wins: 0, draws: 0, losses: 0, goalDifference: 0, points: 0, form: [] 
+        };
+      }
+  });
+
+  const groupLetter = groupName.replace('Group ', '').trim();
+
+  // Proses setiap pertandingan untuk grup ini
+  matches.forEach(match => {
+    const isMatchInGroup = match.group === groupId || match.group === groupLetter || match.group === groupName;
+    if (!isMatchInGroup || match.status !== 'finished' || match.scoreA === null || match.scoreB === null) return;
+    
+    const { teamA, teamB, scoreA, scoreB } = match;
+    
+    // Pastikan teamA dan teamB ada di list klasemen grup ini
+    if (teamA && standings[teamA.id]) {
+      const s = standings[teamA.id];
+      s.played++;
+      s.goalDifference += (scoreA - scoreB);
+      if (scoreA > scoreB) { s.wins++; s.points += 3; }
+      else if (scoreA === scoreB) { s.draws++; s.points += 1; }
+      else { s.losses++; }
+    }
+    
+    if (teamB && standings[teamB.id]) {
+      const s = standings[teamB.id];
+      s.played++;
+      s.goalDifference += (scoreB - scoreA);
+      if (scoreB > scoreA) { s.wins++; s.points += 3; }
+      else if (scoreB === scoreA) { s.draws++; s.points += 1; }
+      else { s.losses++; }
+    }
+  });
+
+  // Urutkan berdasarkan poin lalu selisih gol
+  return Object.values(standings).sort((a, b) => (b.points - a.points) || (b.goalDifference - a.goalDifference));
+};
+
+/**
+ * Logika Pemulihan Data (Self-Healing - Aggressive Version)
+ * Membangun ulang seluruh struktur grup dan klasemen dari Master Teams dan Matches.
  */
 const hydrateTournamentData = (state: FullTournamentState): FullTournamentState => {
     if (!state.teams || state.teams.length === 0) return state;
 
-    // 1. Buat Map Tim dari Master List
+    // 1. Map Master Tim untuk referensi data lengkap (Nama, Logo)
     const teamMap = new Map<string, Team>();
     state.teams.forEach(t => {
         if (t && t.id && typeof t !== 'string') teamMap.set(t.id, t);
     });
     
-    const getLatestTeam = (team: any): Team | null => {
+    const getFullTeam = (team: any): Team | null => {
         if (!team) return null;
-        const id = typeof team === 'string' ? null : team.id;
+        const id = typeof team === 'string' ? (team === "[Circular]" ? null : team) : team.id;
         if (!id) return null;
-        const master = teamMap.get(id);
-        return master ? { ...master } : (typeof team !== 'string' ? { ...team } : null);
+        return teamMap.get(id) || (typeof team !== 'string' ? { ...team } : null);
     };
 
-    // 2. Perbaiki Daftar Pertandingan terlebih dahulu (karena ini sumber data terpercaya)
+    // 2. Bersihkan Matches (Hubungkan ID ke Data Master)
     const cleanMatches = (state.matches || []).map((m: any) => {
-        const teamA = getLatestTeam(m.teamA);
-        const teamB = getLatestTeam(m.teamB);
+        const teamA = getFullTeam(m.teamA);
+        const teamB = getFullTeam(m.teamB);
         return { ...m, teamA, teamB };
     }).filter(m => m.teamA && m.teamB);
 
-    // 3. Bangun ulang Grup
+    // 3. Bangun Ulang Groups & Standings
     const cleanGroups = (state.groups || []).map((g: Group) => {
-        let groupTeams = (g.teams || [])
-            .filter(t => t && typeof t !== 'string' && t.id) // Hapus "[Circular]"
-            .map(t => getLatestTeam(t))
-            .filter(t => t !== null) as Team[];
-
         const groupLetter = g.name.replace('Group ', '').trim();
+        
+        // Cari semua tim yang pernah bertanding di grup ini dari daftar matches
+        // Ini cara paling aman jika daftar teams[] di grup tersebut korup
+        const teamsInMatches = new Set<string>();
+        cleanMatches.forEach(m => {
+            if (m.group === g.id || m.group === groupLetter || m.group === g.name) {
+                if (m.teamA) teamsInMatches.add(m.teamA.id);
+                if (m.teamB) teamsInMatches.add(m.teamB.id);
+            }
+        });
 
-        // JIKA tim di grup hilang (kasus Group A/B di JSON Anda), 
-        // cari tim yang bertanding di grup ini dari daftar matches
-        if (groupTeams.length === 0) {
-            const teamsInMatches = new Set<string>();
-            cleanMatches.forEach(m => {
-                if (m.group === g.id || m.group === groupLetter || m.group === g.name) {
-                    if (m.teamA) teamsInMatches.add(m.teamA.id);
-                    if (m.teamB) teamsInMatches.add(m.teamB.id);
-                }
-            });
-            groupTeams = Array.from(teamsInMatches)
-                .map(id => teamMap.get(id))
-                .filter(t => !!t) as Team[];
-        }
+        // Ambil data tim lengkap dari master list
+        const groupTeams = Array.from(teamsInMatches)
+            .map(id => teamMap.get(id))
+            .filter((t): t is Team => !!t);
 
         return {
             ...g,
             teams: groupTeams,
-            // Hitung ulang klasemen dari nol untuk memastikan tidak ada "[Circular]"
+            // PAKSA hitung ulang klasemen agar TBD hilang
             standings: calculateStandings(groupTeams, cleanMatches, g.id, g.name)
         };
     });
 
-    // 4. Perbaiki Knockout Stage
+    // 4. Bersihkan Knockout Stage
     const cleanKnockout = state.knockoutStage ? {
-        'Round of 16': (state.knockoutStage['Round of 16'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getLatestTeam(m.teamA), teamB: getLatestTeam(m.teamB) })),
-        'Quarter-finals': (state.knockoutStage['Quarter-finals'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getLatestTeam(m.teamA), teamB: getLatestTeam(m.teamB) })),
-        'Semi-finals': (state.knockoutStage['Semi-finals'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getLatestTeam(m.teamA), teamB: getLatestTeam(m.teamB) })),
-        'Final': (state.knockoutStage['Final'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getLatestTeam(m.teamA), teamB: getLatestTeam(m.teamB) }))
+        'Round of 16': (state.knockoutStage['Round of 16'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getFullTeam(m.teamA), teamB: getFullTeam(m.teamB) })),
+        'Quarter-finals': (state.knockoutStage['Quarter-finals'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getFullTeam(m.teamA), teamB: getFullTeam(m.teamB) })),
+        'Semi-finals': (state.knockoutStage['Semi-finals'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getFullTeam(m.teamA), teamB: getFullTeam(m.teamB) })),
+        'Final': (state.knockoutStage['Final'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getFullTeam(m.teamA), teamB: getFullTeam(m.teamB) }))
     } : null;
 
     return {
@@ -98,41 +141,6 @@ const hydrateTournamentData = (state: FullTournamentState): FullTournamentState 
         matches: cleanMatches,
         knockoutStage: cleanKnockout
     };
-};
-
-const calculateStandings = (teams: Team[], matches: Match[], groupId: string, groupName: string): Standing[] => {
-  const standings: { [key: string]: Standing } = {};
-  
-  teams.forEach(team => {
-      if (team && team.id) {
-        standings[team.id] = { team, played: 0, wins: 0, draws: 0, losses: 0, goalDifference: 0, points: 0, form: [] };
-      }
-  });
-
-  const groupLetter = groupName.replace('Group ', '').trim();
-
-  matches.forEach(match => {
-    const isMatchInGroup = match.group === groupId || match.group === groupLetter || match.group === groupName;
-    if (!isMatchInGroup || match.status !== 'finished' || match.scoreA === null || match.scoreB === null) return;
-    
-    const { teamA, teamB, scoreA, scoreB } = match;
-    if (teamA && standings[teamA.id]) {
-      standings[teamA.id].played++;
-      standings[teamA.id].goalDifference += scoreA - scoreB;
-      if (scoreA > scoreB) { standings[teamA.id].wins++; standings[teamA.id].points += 3; }
-      else if (scoreA === scoreB) { standings[teamA.id].draws++; standings[teamA.id].points += 1; }
-      else { standings[teamA.id].losses++; }
-    }
-    if (teamB && standings[teamB.id]) {
-      standings[teamB.id].played++;
-      standings[teamB.id].goalDifference += scoreB - scoreA;
-      if (scoreB > scoreA) { standings[teamB.id].wins++; standings[teamB.id].points += 3; }
-      else if (scoreB === scoreA) { standings[teamB.id].draws++; standings[teamB.id].points += 1; }
-      else { standings[teamB.id].losses++; }
-    }
-  });
-
-  return Object.values(standings).sort((a, b) => (b.points - a.points) || (b.goalDifference - a.goalDifference));
 };
 
 type Action =
@@ -154,9 +162,9 @@ type Action =
   | { type: 'UPDATE_RULES', payload: string }
   | { type: 'UPDATE_BANNERS', payload: string[] }
   | { type: 'UPDATE_PARTNERS', payload: Partner[] }
-  | { type: 'SET_REGISTRATION_STATUS'; payload: boolean }
-  | { type: 'UPDATE_HEADER_LOGO'; payload: string }
-  | { type: 'DELETE_HISTORY_ENTRY'; payload: string };
+  | { type: 'SET_REGISTRATION_STATUS', payload: boolean }
+  | { type: 'UPDATE_HEADER_LOGO', payload: string }
+  | { type: 'DELETE_HISTORY_ENTRY', payload: string };
 
 const tournamentReducer = (state: FullTournamentState, action: Action): FullTournamentState => {
   let newState: FullTournamentState;
@@ -298,7 +306,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
            } finally {
                setIsSyncing(false);
            }
-       }, 1500); 
+       }, 2000); // Waktu jeda lebih lama untuk sinkronisasi yang stabil
        
        return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
     }
