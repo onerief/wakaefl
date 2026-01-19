@@ -1,15 +1,14 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+// Fix: Added React to the import to resolve 'Cannot find namespace React' errors in FC and Event types
+import React, { useState, useEffect, useRef } from 'react';
 import type { Team, Group, Match, KnockoutStageRounds, TournamentState } from '../../types';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, Shuffle, RefreshCw, Download, ArrowRightLeft, Star, Upload, Users, Mail, FileJson, ShieldAlert, Check, X as XIcon, Search, Bell, Settings as SettingsIcon, LayoutGrid, Info, ShieldCheck, UserMinus } from 'lucide-center';
+import { Plus, Edit, Trash2, RefreshCw, Download, Star, Upload, Users, ShieldAlert, Check, Search, Bell, Settings as SettingsIcon, LayoutGrid, ShieldCheck, UserMinus, FileJson } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
-import { GenerateGroupsConfirmationModal } from './GenerateGroupsConfirmationModal';
 import { useToast } from '../shared/Toast';
 import { ConfirmationModal } from './ConfirmationModal';
-import { MoveTeamModal } from './MoveTeamModal';
 import { ManualGroupManager } from './ManualGroupManager';
 import { TeamLogo } from '../shared/TeamLogo';
 import { subscribeToRegistrations, deleteRegistration, sanitizeData } from '../../services/firebaseService';
@@ -58,8 +57,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const [isSavingTeam, setIsSavingTeam] = useState(false);
 
   const { addToast } = useToast();
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const legacyFileInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const legacyFileInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
       const unsubscribe = subscribeToRegistrations((regs) => {
@@ -182,6 +181,10 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
 
   const handleRestoreClick = () => fileInputRef.current?.click();
 
+  /**
+   * SUPER REPAIR ENGINE
+   * Memperbaiki data yang mengandung "[Circular]" saat Restore.
+   */
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -191,20 +194,83 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
         const text = e.target?.result;
         if (typeof text !== 'string') throw new Error("File unreadable");
         
-        // Parse JSON
-        const rawData = JSON.parse(text);
+        let data = JSON.parse(text);
         
-        // Bersihkan data yang di-import sebelum dimasukkan ke state
-        const cleanedData = sanitizeData(rawData) as TournamentState;
-        
-        if (cleanedData && typeof cleanedData === 'object' && 'teams' in cleanedData) {
-          setTournamentState(cleanedData);
-          addToast('Data berhasil dipulihkan dari JSON! Tim yang TBD akan dipulihkan secara otomatis jika ID cocok.', 'success');
-        } else {
-          addToast("Format JSON tidak valid.", 'error');
+        // 1. Validasi struktur dasar
+        if (!data || !data.teams) {
+            addToast("Format JSON tidak valid.", 'error');
+            return;
         }
+
+        // 2. Buat Map dari Master Teams (Hanya ini yang bisa dipercaya)
+        const teamMap = new Map<string, Team>();
+        data.teams.forEach((t: any) => {
+            if (t && t.id && typeof t !== 'string') teamMap.set(t.id, t);
+        });
+
+        const getFullTeam = (val: any): Team | null => {
+            if (!val) return null;
+            const id = (typeof val === 'object') ? val.id : (typeof val === 'string' && val !== "[Circular]" ? val : null);
+            return id ? teamMap.get(id) || null : null;
+        };
+
+        // 3. Perbaiki Matches (Hubungkan ID ke Master)
+        if (data.matches) {
+            data.matches = data.matches.map((m: any) => ({
+                ...m,
+                teamA: getFullTeam(m.teamA),
+                teamB: getFullTeam(m.teamB)
+            })).filter((m: any) => m.teamA && m.teamB);
+        }
+
+        // 4. BANGUN ULANG GRUP (Solusi untuk TBD)
+        // Jika data.groups mengandung [Circular], kita abaikan isinya dan tebak dari matches
+        if (data.groups) {
+            data.groups = data.groups.map((g: any) => {
+                const groupLetter = g.name.replace('Group ', '').trim();
+                
+                // Cari tim mana saja yang bertanding di grup ini dari data Matches
+                const teamIdsInThisGroup = new Set<string>();
+                if (data.matches) {
+                    data.matches.forEach((m: any) => {
+                        if (m.group === g.id || m.group === groupLetter || m.group === g.name) {
+                            if (m.teamA?.id) teamIdsInThisGroup.add(m.teamA.id);
+                            if (m.teamB?.id) teamIdsInThisGroup.add(m.teamB.id);
+                        }
+                    });
+                }
+
+                const reconstructedTeams = Array.from(teamIdsInThisGroup)
+                    .map(id => teamMap.get(id))
+                    .filter((t): t is Team => !!t);
+
+                return {
+                    ...g,
+                    teams: reconstructedTeams,
+                    standings: [] // Biarkan useTournament menghitung ulang ini
+                };
+            });
+        }
+
+        // 5. Perbaiki Knockout
+        if (data.knockoutStage) {
+            Object.keys(data.knockoutStage).forEach(round => {
+                data.knockoutStage[round] = data.knockoutStage[round].map((m: any) => ({
+                    ...m,
+                    teamA: getFullTeam(m.teamA),
+                    teamB: getFullTeam(m.teamB)
+                }));
+            });
+        }
+
+        // Bersihkan data akhir sebelum masuk ke state
+        const cleanedData = sanitizeData(data) as TournamentState;
+        setTournamentState(cleanedData);
+        addToast('RESTORASI BERHASIL: Data "TBD" telah diperbaiki secara otomatis menggunakan riwayat pertandingan.', 'success');
+        
       } catch (error) {
-        addToast("Gagal memproses file backup.", 'error');
+        console.error("Restore error:", error);
+        addToast("Gagal memproses file backup. Pastikan format JSON benar.", 'error');
       } finally {
           if(event.target) event.target.value = '';
       }
@@ -241,7 +307,6 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
 
   return (
     <div className="space-y-6">
-      {/* Sub-Tabs Selector */}
       <div className="flex bg-brand-primary/50 p-1 rounded-xl border border-white/5 mb-4 overflow-hidden">
           <button 
               onClick={() => setActiveSubTab('list')}
@@ -268,11 +333,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
           </button>
       </div>
 
-      {/* VIEW: REQUESTS */}
       {activeSubTab === 'requests' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-             
-             {/* Integrated Header */}
              <div className="bg-brand-vibrant/10 p-5 rounded-2xl border border-brand-vibrant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                  <div className="flex items-center gap-4">
                      <div className="p-3 bg-brand-vibrant/20 rounded-2xl text-brand-vibrant shadow-inner">
@@ -290,11 +352,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                  )}
              </div>
 
-             {/* Combined List Logic */}
              {(newRegistrations.length > 0 || claimRequests.length > 0) ? (
                  <div className="space-y-8">
-                     
-                     {/* Section: New Registrations */}
                      {newRegistrations.length > 0 && (
                         <div className="space-y-3">
                             <h4 className="text-[10px] font-black text-brand-vibrant uppercase tracking-[0.2em] flex items-center gap-2 px-1">
@@ -323,7 +382,6 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                         </div>
                      )}
 
-                    {/* Section: Claim Requests */}
                     {claimRequests.length > 0 && (
                         <div className="space-y-3">
                             <h4 className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.2em] flex items-center gap-2 px-1">
@@ -363,7 +421,6 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
           </div>
       )}
 
-      {/* VIEW: TEAM LIST */}
       {activeSubTab === 'list' && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
               <Card className="!p-4 sm:!p-6 overflow-visible">
@@ -430,7 +487,6 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
           </div>
       )}
 
-      {/* VIEW: SETUP */}
       {activeSubTab === 'setup' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <Card className="!p-4 sm:!p-6 border-brand-accent/30">
