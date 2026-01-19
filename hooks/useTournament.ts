@@ -23,15 +23,11 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
   headerLogoUrl: '', 
 });
 
-/**
- * Fungsi penghitung klasemen yang sangat toleran terhadap data korup.
- */
 const calculateStandings = (teams: Team[], matches: Match[], groupId: string, groupName: string): Standing[] => {
   const standings: { [key: string]: Standing } = {};
   
-  // Inisialisasi tim
   teams.forEach(team => {
-      if (team && team.id && typeof team !== 'string') {
+      if (team && team.id) {
         standings[team.id] = { 
             team: { ...team }, 
             played: 0, wins: 0, draws: 0, losses: 0, goalDifference: 0, points: 0, form: [] 
@@ -42,27 +38,27 @@ const calculateStandings = (teams: Team[], matches: Match[], groupId: string, gr
   const groupLetter = groupName.replace('Group ', '').trim();
 
   matches.forEach(match => {
-    // Cek apakah match ini milik grup ini (berdasarkan ID grup atau Huruf grup)
     const isMatchInGroup = match.group === groupId || match.group === groupLetter || match.group === groupName;
     if (!isMatchInGroup || match.status !== 'finished' || match.scoreA === null || match.scoreB === null) return;
     
-    const { teamA, teamB, scoreA, scoreB } = match;
+    const idA = match.teamA?.id;
+    const idB = match.teamB?.id;
     
-    if (teamA && standings[teamA.id]) {
-      const s = standings[teamA.id];
+    if (idA && standings[idA]) {
+      const s = standings[idA];
       s.played++;
-      s.goalDifference += (scoreA - scoreB);
-      if (scoreA > scoreB) { s.wins++; s.points += 3; }
-      else if (scoreA === scoreB) { s.draws++; s.points += 1; }
+      s.goalDifference += (match.scoreA! - match.scoreB!);
+      if (match.scoreA! > match.scoreB!) { s.wins++; s.points += 3; }
+      else if (match.scoreA! === match.scoreB!) { s.draws++; s.points += 1; }
       else { s.losses++; }
     }
     
-    if (teamB && standings[teamB.id]) {
-      const s = standings[teamB.id];
+    if (idB && standings[idB]) {
+      const s = standings[idB];
       s.played++;
-      s.goalDifference += (scoreB - scoreA);
-      if (scoreB > scoreA) { s.wins++; s.points += 3; }
-      else if (scoreB === scoreA) { s.draws++; s.points += 1; }
+      s.goalDifference += (match.scoreB! - match.scoreA!);
+      if (match.scoreB! > match.scoreA!) { s.wins++; s.points += 3; }
+      else if (match.scoreB! === match.scoreA!) { s.draws++; s.points += 1; }
       else { s.losses++; }
     }
   });
@@ -71,75 +67,49 @@ const calculateStandings = (teams: Team[], matches: Match[], groupId: string, gr
 };
 
 /**
- * LOGIKA PEMULIHAN TOTAL (RECONSTRUCTION MODE)
- * Masalah: Di JSON, "groups[].teams" berisi "[Circular]". 
- * Solusi: Scan "matches" karena "matches" masih punya data tim yang benar.
+ * RECONSTRUCTION ENGINE
+ * Memastikan data match dan grup selalu menggunakan data tim terbaru dari master list.
  */
 const hydrateTournamentData = (state: FullTournamentState): FullTournamentState => {
-    // Jika master list tim kosong, kita tidak bisa melakukan apa-apa
-    if (!state.teams || state.teams.length === 0) return state;
+    if (!state.teams) return state;
 
-    // 1. Buat Map dari Master Teams (Satu-satunya sumber kebenaran untuk Nama & Logo)
     const teamMap = new Map<string, Team>();
     state.teams.forEach(t => {
-        if (t && t.id && typeof t !== 'string') teamMap.set(t.id, t);
+        if (t && t.id) teamMap.set(t.id, t);
     });
     
-    const getFullTeam = (team: any): Team | null => {
-        if (!team) return null;
-        // Cari ID: bisa dari properti .id atau jika tim itu sendiri adalah string ID
-        const id = (typeof team === 'object' && team !== null) ? team.id : (typeof team === 'string' && team !== "[Circular]" ? team : null);
-        if (!id) return null;
-        return teamMap.get(id) || null;
+    const getFullTeam = (val: any): Team => {
+        const id = (val && typeof val === 'object') ? val.id : val;
+        return teamMap.get(id) || { id, name: 'TBD' } as Team;
     };
 
-    // 2. Perbaiki Matches (Hubungkan kembali ke Master Teams)
-    // Matches biasanya masih sehat karena mereka tidak bersarang sedalam Standings
-    const cleanMatches = (state.matches || []).map((m: any) => {
-        const teamA = getFullTeam(m.teamA);
-        const teamB = getFullTeam(m.teamB);
-        return { ...m, teamA, teamB };
-    }).filter(m => m.teamA && m.teamB);
+    const hydratedMatches = (state.matches || []).map(m => ({
+        ...m,
+        teamA: getFullTeam(m.teamA),
+        teamB: getFullTeam(m.teamB)
+    }));
 
-    // 3. BANGUN ULANG GRUP DARI MATCHES (Mengabaikan groups[].teams yang korup)
-    const reconstructedGroups = (state.groups || []).map((g: Group) => {
-        const groupLetter = g.name.replace('Group ', '').trim();
-        
-        // Cari tim mana saja yang bertanding di grup ini berdasarkan data 'cleanMatches'
-        const teamIdsInGroup = new Set<string>();
-        cleanMatches.forEach(m => {
-            if (m.group === g.id || m.group === groupLetter || m.group === g.name) {
-                if (m.teamA) teamIdsInGroup.add(m.teamA.id);
-                if (m.teamB) teamIdsInGroup.add(m.teamB.id);
-            }
-        });
-
-        // Ambil objek tim lengkap untuk tim-tim tersebut
-        const groupTeams = Array.from(teamIdsInGroup)
-            .map(id => teamMap.get(id))
-            .filter((t): t is Team => !!t);
-
+    const hydratedGroups = (state.groups || []).map(g => {
+        const groupTeams = (g.teams || []).map(t => getFullTeam(t));
         return {
             ...g,
             teams: groupTeams,
-            // Paksa hitung ulang klasemen
-            standings: calculateStandings(groupTeams, cleanMatches, g.id, g.name)
+            standings: calculateStandings(groupTeams, hydratedMatches, g.id, g.name)
         };
     });
 
-    // 4. Bersihkan Knockout Stage
-    const cleanKnockout = state.knockoutStage ? {
-        'Round of 16': (state.knockoutStage['Round of 16'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getFullTeam(m.teamA), teamB: getFullTeam(m.teamB) })),
-        'Quarter-finals': (state.knockoutStage['Quarter-finals'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getFullTeam(m.teamA), teamB: getFullTeam(m.teamB) })),
-        'Semi-finals': (state.knockoutStage['Semi-finals'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getFullTeam(m.teamA), teamB: getFullTeam(m.teamB) })),
-        'Final': (state.knockoutStage['Final'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getFullTeam(m.teamA), teamB: getFullTeam(m.teamB) }))
+    const hydratedKnockout = state.knockoutStage ? {
+        'Round of 16': (state.knockoutStage['Round of 16'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null })),
+        'Quarter-finals': (state.knockoutStage['Quarter-finals'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null })),
+        'Semi-finals': (state.knockoutStage['Semi-finals'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null })),
+        'Final': (state.knockoutStage['Final'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null }))
     } : null;
 
     return {
         ...state,
-        groups: reconstructedGroups,
-        matches: cleanMatches,
-        knockoutStage: cleanKnockout
+        groups: hydratedGroups,
+        matches: hydratedMatches,
+        knockoutStage: hydratedKnockout as any
     };
 };
 
@@ -170,21 +140,11 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
   let newState: FullTournamentState;
 
   switch (action.type) {
-    case 'SET_STATE':
-      newState = { ...state, ...action.payload };
-      break;
-    case 'SET_MODE':
-      newState = { ...state, mode: action.payload };
-      break;
-    case 'ADD_TEAM':
-      newState = { ...state, teams: [...state.teams, action.payload] };
-      break;
-    case 'UPDATE_TEAM':
-      newState = { ...state, teams: state.teams.map(t => t.id === action.payload.id ? action.payload : t) };
-      break;
-    case 'DELETE_TEAM':
-      newState = { ...state, teams: state.teams.filter(t => t.id !== action.payload) };
-      break;
+    case 'SET_STATE': newState = { ...state, ...action.payload }; break;
+    case 'SET_MODE': newState = { ...state, mode: action.payload }; break;
+    case 'ADD_TEAM': newState = { ...state, teams: [...state.teams, action.payload] }; break;
+    case 'UPDATE_TEAM': newState = { ...state, teams: state.teams.map(t => t.id === action.payload.id ? action.payload : t) }; break;
+    case 'DELETE_TEAM': newState = { ...state, teams: state.teams.filter(t => t.id !== action.payload) }; break;
     case 'UNBIND_TEAM':
       newState = { 
         ...state, 
@@ -213,33 +173,17 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
         };
         break;
     }
-    case 'GENERATE_GROUPS':
-      newState = { ...state, ...action.payload };
-      break;
+    case 'GENERATE_GROUPS': newState = { ...state, ...action.payload }; break;
     case 'UPDATE_MATCH_SCORE': {
       const updatedMatches = state.matches.map(m => m.id === action.payload.matchId ? { ...m, ...action.payload, status: 'finished' as const } : m);
-      newState = { 
-          ...state, 
-          matches: updatedMatches, 
-          groups: state.groups.map(g => ({ 
-              ...g, 
-              standings: calculateStandings(g.teams, updatedMatches, g.id, g.name) 
-          })) 
-      };
+      newState = { ...state, matches: updatedMatches };
       break;
     }
     case 'ADD_MATCH_COMMENT': {
         const { matchId, comment } = action.payload;
         newState = {
             ...state,
-            matches: state.matches.map(m => m.id === matchId ? { ...m, comments: [...(m.comments || []), comment] } : m),
-            knockoutStage: state.knockoutStage ? {
-                ...state.knockoutStage,
-                'Round of 16': state.knockoutStage['Round of 16'].map(km => km.id === matchId ? { ...km, comments: [...(km.comments || []), comment] } : km),
-                'Quarter-finals': state.knockoutStage['Quarter-finals'].map(km => km.id === matchId ? { ...km, comments: [...(km.comments || []), comment] } : km),
-                'Semi-finals': state.knockoutStage['Semi-finals'].map(km => km.id === matchId ? { ...km, comments: [...(km.comments || []), comment] } : km),
-                'Final': state.knockoutStage['Final'].map(km => km.id === matchId ? { ...km, comments: [...(km.comments || []), comment] } : km),
-            } : state.knockoutStage
+            matches: state.matches.map(m => m.id === matchId ? { ...m, comments: [...(m.comments || []), comment] } : m)
         };
         break;
     }
@@ -295,18 +239,18 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
 
   useEffect(() => {
     if (isAdmin && !isLoading && !isUpdatingFromServer.current) {
-       setIsSyncing(true);
        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
        
        saveTimeoutRef.current = setTimeout(async () => { 
+           setIsSyncing(true); 
            try {
                await saveTournamentData(activeMode, stateRef.current); 
            } catch (e) {
                console.error("Auto-save failed:", e);
            } finally {
-               setIsSyncing(false);
+               setIsSyncing(false); 
            }
-       }, 2500); 
+       }, 2000); 
        
        return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
     }
@@ -356,19 +300,11 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           const t = state.teams.find(x => x.id === tid);
           if (!t) return;
           const newGroups = state.groups.map(g => g.id === gid ? { ...g, teams: [...g.teams, t] } : g);
-          dispatch({ type: 'GENERATE_GROUPS', payload: { 
-              groups: newGroups.map(g => ({ ...g, standings: calculateStandings(g.teams, state.matches, g.id, g.name) })), 
-              matches: state.matches, 
-              knockoutStage: state.knockoutStage 
-          }});
+          dispatch({ type: 'GENERATE_GROUPS', payload: { groups: newGroups, matches: state.matches, knockoutStage: state.knockoutStage } });
       },
       manualRemoveTeamFromGroup: (tid: string, gid: string) => {
           const newGroups = state.groups.map(g => g.id === gid ? { ...g, teams: g.teams.filter(x => x.id !== tid) } : g);
-          dispatch({ type: 'GENERATE_GROUPS', payload: { 
-              groups: newGroups.map(g => ({ ...g, standings: calculateStandings(g.teams, state.matches, g.id, g.name) })), 
-              matches: state.matches, 
-              knockoutStage: state.knockoutStage 
-          }});
+          dispatch({ type: 'GENERATE_GROUPS', payload: { groups: newGroups, matches: state.matches, knockoutStage: state.knockoutStage } });
       },
       generateMatchesFromGroups: () => {
           const newMatches: Match[] = [];
