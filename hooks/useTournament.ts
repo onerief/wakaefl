@@ -66,10 +66,6 @@ const calculateStandings = (teams: Team[], matches: Match[], groupId: string, gr
   return Object.values(standings).sort((a, b) => (b.points - a.points) || (b.goalDifference - a.goalDifference));
 };
 
-/**
- * DATA RECONSTRUCTION ENGINE
- * Memastikan ID tim di dalam Match, Group, dan Knockout selalu merujuk ke data master tim yang utuh.
- */
 const hydrateTournamentData = (state: FullTournamentState): FullTournamentState => {
     if (!state.teams || state.teams.length === 0) return state;
 
@@ -138,7 +134,6 @@ type Action =
 
 const tournamentReducer = (state: FullTournamentState, action: Action): FullTournamentState => {
   let newState: FullTournamentState;
-
   switch (action.type) {
     case 'SET_STATE': newState = { ...state, ...action.payload }; break;
     case 'SET_MODE': newState = { ...state, mode: action.payload }; break;
@@ -205,7 +200,6 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'DELETE_HISTORY_ENTRY': newState = { ...state, history: state.history.filter(h => h.seasonId !== action.payload) }; break;
     default: return state;
   }
-
   return hydrateTournamentData(newState);
 };
 
@@ -213,7 +207,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   const [state, dispatch] = useReducer(tournamentReducer, createInitialState(activeMode));
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isUpdatingFromServer = useRef(false);
   const stateRef = useRef(state);
@@ -227,20 +220,17 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
     const unsubscribe = subscribeToTournamentData(activeMode, (serverData) => {
         isUpdatingFromServer.current = true;
         dispatch({ type: 'SET_STATE', payload: serverData });
-        
         setTimeout(() => {
             isUpdatingFromServer.current = false;
             setIsLoading(false);
         }, 100);
     });
-    
     return () => unsubscribe();
   }, [activeMode]);
 
   useEffect(() => {
     if (isAdmin && !isLoading && !isUpdatingFromServer.current) {
        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-       
        saveTimeoutRef.current = setTimeout(async () => { 
            setIsSyncing(true); 
            try {
@@ -251,7 +241,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
                setIsSyncing(false); 
            }
        }, 2000); 
-       
        return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
     }
   }, [state, isLoading, activeMode, isAdmin]);
@@ -310,16 +299,69 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           const newMatches: Match[] = [];
           state.groups.forEach(g => {
               const groupID = g.id;
-              for (let i = 0; i < g.teams.length; i++) {
-                  for (let j = i+1; j < g.teams.length; j++) {
-                      newMatches.push({
-                          id: `m-${g.id}-${i}-${j}-1`, teamA: g.teams[i], teamB: g.teams[j], scoreA: null, scoreB: null, status: 'scheduled', group: groupID, leg: 1, matchday: 1
-                      });
-                      if (state.isDoubleRoundRobin) {
+              const originalTeams = [...g.teams];
+              if (originalTeams.length < 2) return;
+
+              const teamsForScheduling = [...originalTeams];
+              if (teamsForScheduling.length % 2 !== 0) {
+                  // Tambahkan "bye" dummy jika ganjil (tidak digunakan di match nyata tapi untuk algoritma circle)
+                  teamsForScheduling.push({ id: 'bye', name: 'BYE' } as Team);
+              }
+
+              const numTeams = teamsForScheduling.length;
+              const roundsPerLeg = numTeams - 1;
+              const matchesPerRound = numTeams / 2;
+
+              // --- GENERATE LEG 1 ---
+              for (let round = 0; round < roundsPerLeg; round++) {
+                  for (let i = 0; i < matchesPerRound; i++) {
+                      const teamA = teamsForScheduling[i];
+                      const teamB = teamsForScheduling[numTeams - 1 - i];
+
+                      if (teamA.id !== 'bye' && teamB.id !== 'bye') {
                           newMatches.push({
-                              id: `m-${g.id}-${i}-${j}-2`, teamA: g.teams[j], teamB: g.teams[i], scoreA: null, scoreB: null, status: 'scheduled', group: groupID, leg: 2, matchday: 1
+                              id: `m-${groupID}-${round}-${i}-L1`,
+                              teamA: teamA,
+                              teamB: teamB,
+                              scoreA: null,
+                              scoreB: null,
+                              status: 'scheduled',
+                              group: groupID,
+                              leg: 1,
+                              matchday: round + 1
                           });
                       }
+                  }
+                  // Putar array (Circle Method) - tim pertama diam, yang lain geser
+                  teamsForScheduling.splice(1, 0, teamsForScheduling.pop()!);
+              }
+
+              // --- GENERATE LEG 2 (Jika diaktifkan) ---
+              if (state.isDoubleRoundRobin) {
+                  // Reset tim ke posisi awal untuk Leg 2
+                  const teamsForLeg2 = [...originalTeams];
+                  if (teamsForLeg2.length % 2 !== 0) teamsForLeg2.push({ id: 'bye', name: 'BYE' } as Team);
+
+                  for (let round = 0; round < roundsPerLeg; round++) {
+                      for (let i = 0; i < matchesPerRound; i++) {
+                          const teamA = teamsForLeg2[i];
+                          const teamB = teamsForLeg2[numTeams - 1 - i];
+
+                          if (teamA.id !== 'bye' && teamB.id !== 'bye') {
+                              newMatches.push({
+                                  id: `m-${groupID}-${round}-${i}-L2`,
+                                  teamA: teamB, // Dibalik (Home vs Away)
+                                  teamB: teamA,
+                                  scoreA: null,
+                                  scoreB: null,
+                                  status: 'scheduled',
+                                  group: groupID,
+                                  leg: 2,
+                                  matchday: round + 1 + roundsPerLeg // Mulai dari Matchday berikutnya
+                              });
+                          }
+                      }
+                      teamsForLeg2.splice(1, 0, teamsForLeg2.pop()!);
                   }
               }
           });

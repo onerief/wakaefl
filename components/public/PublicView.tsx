@@ -81,34 +81,50 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
   const hasMyTeam = userOwnedTeamIds.length > 0;
 
-  // AUTO SELECT MATCHDAY TERDEKAT
+  // INTELLIGENT AUTO SELECT & AUTO SWITCH MATCHDAY
   useEffect(() => {
-    if (activeTab === 'fixtures' && groups.length > 0) {
-        const newDefaults = { ...selectedMatchdays };
-        groups.forEach(g => {
-            if (!newDefaults[g.id]) {
-                const groupLetter = g.name.replace('Group ', '').trim();
-                const groupMatches = matches.filter(m => 
-                    m.group === g.id || m.group === groupLetter || m.group === g.name
-                );
-                
-                // Cari matchday pertama yang masih berstatus scheduled
-                const nextMatch = groupMatches
-                    .sort((a, b) => (a.matchday || 0) - (b.matchday || 0))
-                    .find(m => m.status !== 'finished');
-                
-                if (nextMatch) {
-                    newDefaults[g.id] = `Match ${nextMatch.leg || 1} - Day ${nextMatch.matchday || 1}`;
-                } else if (groupMatches.length > 0) {
-                    // Jika semua selesai, tampilkan matchday terakhir
-                    const lastMatch = groupMatches.sort((a, b) => (b.matchday || 0) - (a.matchday || 0))[0];
-                    newDefaults[g.id] = `Match ${lastMatch.leg || 1} - Day ${lastMatch.matchday || 1}`;
-                }
-            }
-        });
-        setSelectedMatchdays(newDefaults);
+    if (groups.length === 0) return;
+
+    const newSelections = { ...selectedMatchdays };
+    let hasChanged = false;
+
+    groups.forEach(g => {
+        const groupLetter = g.name.replace('Group ', '').trim();
+        const groupMatches = matches.filter(m => 
+            m.group === g.id || m.group === groupLetter || m.group === g.name
+        );
+
+        if (groupMatches.length === 0) return;
+
+        // Cari matchday terkecil yang masih memiliki pertandingan 'scheduled' atau 'live'
+        const nextActiveMatch = groupMatches
+            .sort((a, b) => (a.matchday || 0) - (b.matchday || 0))
+            .find(m => m.status !== 'finished');
+
+        const targetMatchdayKey = nextActiveMatch 
+            ? `Day ${nextActiveMatch.matchday || 1}`
+            : `Day ${Math.max(...groupMatches.map(m => m.matchday || 1))}`; // Jika semua selesai, ambil hari terakhir
+
+        // Auto-switch jika:
+        // 1. Belum ada pilihan (inisialisasi)
+        // 2. Pilihan saat ini sudah selesai semua pertandingannya
+        const currentSelectedKey = selectedMatchdays[g.id];
+        const currentSelectedDayNum = currentSelectedKey ? parseInt(currentSelectedKey.replace('Day ', '')) : null;
+        
+        const isCurrentDayFinished = currentSelectedDayNum !== null && groupMatches
+            .filter(m => m.matchday === currentSelectedDayNum)
+            .every(m => m.status === 'finished');
+
+        if (!currentSelectedKey || (isCurrentDayFinished && currentSelectedKey !== targetMatchdayKey)) {
+            newSelections[g.id] = targetMatchdayKey;
+            hasChanged = true;
+        }
+    });
+
+    if (hasChanged) {
+        setSelectedMatchdays(newSelections);
     }
-  }, [activeTab, groups, matches]);
+  }, [matches, groups, activeTab]);
 
   const AdminToggle = () => {
       if (!isAdmin) return null;
@@ -183,16 +199,16 @@ export const PublicView: React.FC<PublicViewProps> = ({
                 );
                 
                 const schedule = groupMatches.reduce((acc, match) => {
-                    const scheduleKey = `Match ${match.leg || 1} - Day ${match.matchday || 1}`;
+                    const scheduleKey = `Day ${match.matchday || 1}`;
                     if (!acc[scheduleKey]) acc[scheduleKey] = [];
                     acc[scheduleKey].push(match);
                     return acc;
                 }, {} as Record<string, Match[]>);
                 
                 const scheduleKeys = Object.keys(schedule).sort((a, b) => {
-                    const numsA = a.match(/\d+/g) || [0, 0];
-                    const numsB = b.match(/\d+/g) || [0, 0];
-                    return Number(numsA[0]) - Number(numsB[0]) || Number(numsA[1]) - Number(numsB[1]);
+                    const numA = parseInt(a.replace('Day ', ''));
+                    const numB = parseInt(b.replace('Day ', ''));
+                    return numA - numB;
                 });
 
                 const activeScheduleKey = selectedMatchdays[group.id] || (scheduleKeys.length > 0 ? scheduleKeys[0] : '');

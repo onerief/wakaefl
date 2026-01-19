@@ -202,7 +202,12 @@ function AppContent() {
                 <HallOfFame history={allHistory} currentStatus={tournament.status} mode={activeMode} currentLeader={currentLeader} onBack={() => setView('home')} />
               )}
               {view === 'admin' && isAdminAuthenticated && (
-                <AdminPanel {...tournament} mode={activeMode} setMode={setActiveMode} />
+                <AdminPanel 
+                    {...tournament} 
+                    mode={activeMode} 
+                    setMode={setActiveMode} 
+                    setTournamentState={tournament.setTournamentState}
+                />
               )}
             </>
           )}

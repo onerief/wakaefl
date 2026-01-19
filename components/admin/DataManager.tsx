@@ -82,52 +82,58 @@ export const DataManager: React.FC<DataManagerProps> = ({
         reader.onload = async (event) => {
             try {
                 setIsProcessing(true);
-                const data = JSON.parse(event.target?.result as string);
+                const importedData = JSON.parse(event.target?.result as string);
                 
-                // Construct current state to merge
-                const currentState: TournamentState = {
-                    teams, matches, groups, rules, banners, partners, headerLogoUrl, mode, knockoutStage,
-                    isDoubleRoundRobin: true, // Default
+                // Helper untuk memastikan tim memiliki data utuh
+                // Karena file impor seringkali hanya berisi ID atau struktur melingkar
+                const currentTeams = importedData.teams || teams;
+                const teamMap = new Map<string, Team>();
+                currentTeams.forEach((t: any) => {
+                    if (t && t.id) teamMap.set(t.id, t);
+                });
+
+                const getHydratedTeam = (val: any): Team => {
+                    const id = (val && typeof val === 'object') ? val.id : val;
+                    return teamMap.get(id) || { id, name: 'TBD' } as Team;
+                };
+
+                // State awal (merge dengan data lama jika parsial)
+                let newState: TournamentState = {
+                    teams: currentTeams,
+                    matches: importedData.matches || matches,
+                    groups: importedData.groups || groups,
+                    rules: importedData.rules || rules,
+                    banners: importedData.banners || banners,
+                    partners: importedData.partners || partners,
+                    headerLogoUrl: importedData.headerLogoUrl || headerLogoUrl,
+                    mode: mode,
+                    knockoutStage: importedData.knockoutStage || knockoutStage,
+                    isDoubleRoundRobin: true,
                     status: 'active',
-                    history: [],
+                    history: importedData.history || [],
                     isRegistrationOpen: true
                 };
 
-                let newState = { ...currentState };
-
-                switch(activeImportKey) {
-                    case 'teams': 
-                        if (!data.teams) throw new Error("Data tim tidak ditemukan.");
-                        newState.teams = data.teams;
-                        break;
-                    case 'matches':
-                        if (!data.matches) throw new Error("Data jadwal tidak ditemukan.");
-                        newState.matches = data.matches;
-                        if (data.groups) newState.groups = data.groups;
-                        if (data.knockoutStage) newState.knockoutStage = data.knockoutStage;
-                        break;
-                    case 'rules':
-                        if (typeof data.rules !== 'string') throw new Error("Format rules tidak valid.");
-                        newState.rules = data.rules;
-                        break;
-                    case 'settings':
-                        if (data.banners) newState.banners = data.banners;
-                        if (data.partners) newState.partners = data.partners;
-                        if (data.headerLogoUrl !== undefined) newState.headerLogoUrl = data.headerLogoUrl;
-                        break;
-                    case 'all':
-                        newState = { ...newState, ...data };
-                        break;
+                // Jika impor spesifik, ganti bagian tersebut
+                if (activeImportKey === 'matches') {
+                    if (!importedData.matches) throw new Error("File tidak berisi data pertandingan.");
+                    newState.matches = importedData.matches.map((m: any) => ({
+                        ...m,
+                        teamA: getHydratedTeam(m.teamA),
+                        teamB: getHydratedTeam(m.teamB),
+                        matchday: m.matchday || 1,
+                        leg: m.leg || 1
+                    }));
                 }
 
                 // Push to app state
                 setTournamentState(newState);
                 
-                // Force save to Cloud
-                addToast('Menyimpan perubahan ke Cloud...', 'info');
+                // Force save ke Cloud secara permanen
+                addToast('Menyimpan ke Database Cloud...', 'info');
                 await saveTournamentData(mode, newState);
                 
-                addToast(`Impor ${activeImportKey.toUpperCase()} berhasil dan tersimpan!`, 'success');
+                addToast(`DATA BERHASIL DIPULIHKAN: Semua jadwal dan skor telah diperbarui.`, 'success');
             } catch (err: any) {
                 console.error(err);
                 addToast(`Gagal Impor: ${err.message}`, 'error');
@@ -178,12 +184,12 @@ export const DataManager: React.FC<DataManagerProps> = ({
                         <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Database Management</h2>
                     </div>
                     <p className="text-sm text-brand-light max-w-md">
-                        Ekspor atau Impor bagian tertentu dari turnamen secara terpisah. Berguna untuk sinkronisasi antar perangkat atau backup periodik.
+                        Ekspor atau Impor data turnamen. Gunakan tombol **Restore All Data** untuk memulihkan jadwal lama Anda.
                     </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto relative z-10">
                     <Button onClick={() => handleExport('all')} variant="secondary" className="!bg-white/5 !border-white/10 !py-3 px-6 text-xs uppercase font-black tracking-widest">
-                        <Download size={16} /> Full Backup (JSON)
+                        <Download size={16} /> Full Backup
                     </Button>
                     <Button onClick={() => triggerImport('all')} className="!py-3 px-8 text-xs uppercase font-black tracking-widest shadow-brand-vibrant/30">
                         <Upload size={16} /> Restore All Data
@@ -195,28 +201,28 @@ export const DataManager: React.FC<DataManagerProps> = ({
                 <DataSection 
                     title="Teams & Profile" 
                     icon={Users} 
-                    description="Kelola daftar tim, logo, manager, foto skuad, dan kontak WhatsApp secara massal."
+                    description="Kelola daftar tim, logo, manager, foto skuad, dan kontak WhatsApp."
                     exportKey="teams"
                     colorClass="text-blue-400"
                 />
                 <DataSection 
                     title="Matches & Score" 
                     icon={ListChecks} 
-                    description="Data jadwal grup, skor pertandingan, link bukti, dan struktur braket knockout."
+                    description="Data jadwal grup, skor pertandingan, link bukti, dan struktur knockout."
                     exportKey="matches"
                     colorClass="text-indigo-400"
                 />
                 <DataSection 
                     title="Tournament Rules" 
                     icon={BookOpen} 
-                    description="Ekspor atau impor teks peraturan lengkap yang ditampilkan di halaman publik."
+                    description="Teks peraturan lengkap yang ditampilkan di halaman publik."
                     exportKey="rules"
                     colorClass="text-emerald-400"
                 />
                 <DataSection 
                     title="Site Settings" 
                     icon={Settings} 
-                    description="Koleksi banner dashboard, daftar partner/sponsor, dan logo branding header."
+                    description="Banner dashboard, daftar sponsor, dan logo branding header."
                     exportKey="settings"
                     colorClass="text-slate-400"
                 />
@@ -225,9 +231,9 @@ export const DataManager: React.FC<DataManagerProps> = ({
             <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-2xl p-5 flex items-start gap-4">
                 <AlertTriangle className="text-yellow-500 shrink-0" size={24} />
                 <div className="space-y-1">
-                    <h5 className="text-sm font-black text-yellow-500 uppercase tracking-wider italic">Peringatan Penting</h5>
+                    <h5 className="text-sm font-black text-yellow-500 uppercase tracking-wider italic">Instruksi Impor</h5>
                     <p className="text-[11px] text-yellow-100/60 leading-relaxed">
-                        Mengimpor data akan <strong>menimpa (overwrite)</strong> data yang sudah ada di database Cloud. Pastikan Anda memiliki salinan cadangan sebelum melakukan impor besar. Sistem menggunakan format JSON standar untuk pertukaran data.
+                        Jika Anda mengimpor jadwal saja, pastikan ID tim di file JSON tersebut cocok dengan ID tim yang ada sekarang. Gunakan tombol <strong>"Restore All Data"</strong> untuk keamanan data yang lebih terjamin.
                     </p>
                 </div>
             </div>

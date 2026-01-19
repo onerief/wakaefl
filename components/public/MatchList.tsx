@@ -3,7 +3,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import type { Match, Team, MatchComment } from '../../types';
 import { Card } from '../shared/Card';
-import { MonitorPlay, MessageSquare, Send, ChevronDown, ChevronUp, UserCircle, Save, Plus, Minus, Camera, Loader, Shield, Lock, Star } from 'lucide-react';
+import { MonitorPlay, MessageSquare, Send, ChevronDown, ChevronUp, UserCircle, Save, Plus, Minus, Camera, Loader, Shield, Lock, Star, Layout } from 'lucide-react';
 import { ProofModal } from './ProofModal';
 import { TeamLogo } from '../shared/TeamLogo';
 import type { User } from 'firebase/auth';
@@ -103,6 +103,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         <span className="font-black uppercase tracking-widest opacity-60 whitespace-nowrap">
                             {match.group && `GRUP ${match.group}`} {match.matchday && ` • DAY ${match.matchday}`}
                         </span>
+                        {match.leg && (
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter ${match.leg === 1 ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                                LEG {match.leg}
+                            </span>
+                        )}
                         {isMyMatch && (
                             <span className="flex items-center gap-1 px-1.5 py-0.5 bg-brand-vibrant text-white text-[7px] sm:text-[8px] font-black rounded uppercase shadow-sm animate-pulse shrink-0">
                                 <Star size={8} className="fill-white" /> TIM ANDA
