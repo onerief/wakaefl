@@ -24,13 +24,12 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
 });
 
 /**
- * Fungsi pembantu untuk menghitung klasemen.
- * Dipindahkan ke luar agar bisa digunakan oleh hydrateTournamentData.
+ * Fungsi penghitung klasemen yang sangat toleran terhadap data korup.
  */
 const calculateStandings = (teams: Team[], matches: Match[], groupId: string, groupName: string): Standing[] => {
   const standings: { [key: string]: Standing } = {};
   
-  // Inisialisasi setiap tim yang ada di grup
+  // Inisialisasi tim
   teams.forEach(team => {
       if (team && team.id && typeof team !== 'string') {
         standings[team.id] = { 
@@ -42,14 +41,13 @@ const calculateStandings = (teams: Team[], matches: Match[], groupId: string, gr
 
   const groupLetter = groupName.replace('Group ', '').trim();
 
-  // Proses setiap pertandingan untuk grup ini
   matches.forEach(match => {
+    // Cek apakah match ini milik grup ini (berdasarkan ID grup atau Huruf grup)
     const isMatchInGroup = match.group === groupId || match.group === groupLetter || match.group === groupName;
     if (!isMatchInGroup || match.status !== 'finished' || match.scoreA === null || match.scoreB === null) return;
     
     const { teamA, teamB, scoreA, scoreB } = match;
     
-    // Pastikan teamA dan teamB ada di list klasemen grup ini
     if (teamA && standings[teamA.id]) {
       const s = standings[teamA.id];
       s.played++;
@@ -69,18 +67,19 @@ const calculateStandings = (teams: Team[], matches: Match[], groupId: string, gr
     }
   });
 
-  // Urutkan berdasarkan poin lalu selisih gol
   return Object.values(standings).sort((a, b) => (b.points - a.points) || (b.goalDifference - a.goalDifference));
 };
 
 /**
- * Logika Pemulihan Data (Self-Healing - Aggressive Version)
- * Membangun ulang seluruh struktur grup dan klasemen dari Master Teams dan Matches.
+ * LOGIKA PEMULIHAN TOTAL (RECONSTRUCTION MODE)
+ * Masalah: Di JSON, "groups[].teams" berisi "[Circular]". 
+ * Solusi: Scan "matches" karena "matches" masih punya data tim yang benar.
  */
 const hydrateTournamentData = (state: FullTournamentState): FullTournamentState => {
+    // Jika master list tim kosong, kita tidak bisa melakukan apa-apa
     if (!state.teams || state.teams.length === 0) return state;
 
-    // 1. Map Master Tim untuk referensi data lengkap (Nama, Logo)
+    // 1. Buat Map dari Master Teams (Satu-satunya sumber kebenaran untuk Nama & Logo)
     const teamMap = new Map<string, Team>();
     state.teams.forEach(t => {
         if (t && t.id && typeof t !== 'string') teamMap.set(t.id, t);
@@ -88,41 +87,42 @@ const hydrateTournamentData = (state: FullTournamentState): FullTournamentState 
     
     const getFullTeam = (team: any): Team | null => {
         if (!team) return null;
-        const id = typeof team === 'string' ? (team === "[Circular]" ? null : team) : team.id;
+        // Cari ID: bisa dari properti .id atau jika tim itu sendiri adalah string ID
+        const id = (typeof team === 'object' && team !== null) ? team.id : (typeof team === 'string' && team !== "[Circular]" ? team : null);
         if (!id) return null;
-        return teamMap.get(id) || (typeof team !== 'string' ? { ...team } : null);
+        return teamMap.get(id) || null;
     };
 
-    // 2. Bersihkan Matches (Hubungkan ID ke Data Master)
+    // 2. Perbaiki Matches (Hubungkan kembali ke Master Teams)
+    // Matches biasanya masih sehat karena mereka tidak bersarang sedalam Standings
     const cleanMatches = (state.matches || []).map((m: any) => {
         const teamA = getFullTeam(m.teamA);
         const teamB = getFullTeam(m.teamB);
         return { ...m, teamA, teamB };
     }).filter(m => m.teamA && m.teamB);
 
-    // 3. Bangun Ulang Groups & Standings
-    const cleanGroups = (state.groups || []).map((g: Group) => {
+    // 3. BANGUN ULANG GRUP DARI MATCHES (Mengabaikan groups[].teams yang korup)
+    const reconstructedGroups = (state.groups || []).map((g: Group) => {
         const groupLetter = g.name.replace('Group ', '').trim();
         
-        // Cari semua tim yang pernah bertanding di grup ini dari daftar matches
-        // Ini cara paling aman jika daftar teams[] di grup tersebut korup
-        const teamsInMatches = new Set<string>();
+        // Cari tim mana saja yang bertanding di grup ini berdasarkan data 'cleanMatches'
+        const teamIdsInGroup = new Set<string>();
         cleanMatches.forEach(m => {
             if (m.group === g.id || m.group === groupLetter || m.group === g.name) {
-                if (m.teamA) teamsInMatches.add(m.teamA.id);
-                if (m.teamB) teamsInMatches.add(m.teamB.id);
+                if (m.teamA) teamIdsInGroup.add(m.teamA.id);
+                if (m.teamB) teamIdsInGroup.add(m.teamB.id);
             }
         });
 
-        // Ambil data tim lengkap dari master list
-        const groupTeams = Array.from(teamsInMatches)
+        // Ambil objek tim lengkap untuk tim-tim tersebut
+        const groupTeams = Array.from(teamIdsInGroup)
             .map(id => teamMap.get(id))
             .filter((t): t is Team => !!t);
 
         return {
             ...g,
             teams: groupTeams,
-            // PAKSA hitung ulang klasemen agar TBD hilang
+            // Paksa hitung ulang klasemen
             standings: calculateStandings(groupTeams, cleanMatches, g.id, g.name)
         };
     });
@@ -137,7 +137,7 @@ const hydrateTournamentData = (state: FullTournamentState): FullTournamentState 
 
     return {
         ...state,
-        groups: cleanGroups,
+        groups: reconstructedGroups,
         matches: cleanMatches,
         knockoutStage: cleanKnockout
     };
@@ -306,7 +306,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
            } finally {
                setIsSyncing(false);
            }
-       }, 2000); // Waktu jeda lebih lama untuk sinkronisasi yang stabil
+       }, 2500); 
        
        return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
     }

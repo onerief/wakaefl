@@ -50,8 +50,7 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const firestore = initializeFirestore(app, {
   localCache: persistentLocalCache({
     tabManager: persistentMultipleTabManager()
-  }),
-  experimentalForceLongPolling: true,
+  })
 });
 
 const auth = getAuth(app);
@@ -63,46 +62,30 @@ const GLOBAL_CHAT_COLLECTION = 'global_chat';
 const REGISTRATIONS_COLLECTION = 'registrations';
 const SETTINGS_DOC = 'global_settings';
 
-/**
- * Memeriksa apakah nilai adalah objek literal JavaScript murni.
- * Membantu membedakan antara {} dan instance kelas seperti Timestamps atau Firebase Refs.
- */
 const isPlainObject = (obj: any): boolean => {
   return Object.prototype.toString.call(obj) === '[object Object]' && obj.constructor === Object;
 };
 
 /**
- * Membersihkan data secara mendalam untuk penyimpanan Firestore atau serialisasi JSON.
- * Menangani referensi melingkar dan meratakan objek SDK yang kompleks.
+ * Logika sanitasi yang diperketat untuk menghindari circular references.
+ * Alih-alih menyimpan objek penuh di dalam array, kita akan menyimpan referensi ID jika memungkinkan,
+ * namun untuk kompatibilitas UI saat ini, kita pastikan objek diratakan (flattened).
  */
 export const sanitizeData = (data: any, seen = new WeakSet()): any => {
-  // Primitif dan null selalu aman
   if (data === null || typeof data !== 'object') return data;
+  if (seen.has(data)) return null; // Jangan simpan circular, simpan null agar hydrate memulihkannya
 
-  // Proteksi referensi melingkar
-  if (seen.has(data)) return "[Circular]";
-
-  // Tangani Array
   if (Array.isArray(data)) {
     seen.add(data);
     return data.map(item => sanitizeData(item, seen));
   }
 
-  // Tangani Dates
   if (data instanceof Date) return data.toISOString();
 
-  // Tangani Firestore Timestamps (termasuk versi ter-minifikasi)
   if (typeof data.toMillis === 'function') {
     return data.toMillis();
   }
 
-  // Tangani Firestore DocumentReferences atau Query (termasuk versi ter-minifikasi)
-  // Objek ini sering memiliki properti 'path' dan 'firestore'
-  if (typeof data.path === 'string' && (data.firestore || data.type === 'document')) {
-      return `ref:${data.path}`;
-  }
-
-  // Jika bukan objek murni, itu adalah instance kelas (File, User, Firestore internal, dll)
   if (!isPlainObject(data)) {
       if (typeof data.toJSON === 'function') {
           return sanitizeData(data.toJSON(), seen);
@@ -110,13 +93,11 @@ export const sanitizeData = (data: any, seen = new WeakSet()): any => {
       return String(data);
   }
 
-  // Tangani Objek Murni
   seen.add(data);
   const result: any = {};
   for (const key in data) {
     if (Object.prototype.hasOwnProperty.call(data, key)) {
       const value = data[key];
-      // Lewati undefined dan fungsi karena Firestore menolaknya
       if (typeof value !== 'function' && value !== undefined) {
         result[key] = sanitizeData(value, seen);
       }
@@ -151,6 +132,9 @@ export const uploadMatchProof = async (file: File): Promise<string> => {
 
 export const saveTournamentData = async (mode: TournamentMode, state: TournamentState) => {
   try {
+    // Alih-alih menyimpan objek tim yang dalam di Standings, 
+    // kita pastikan hanya ID yang disimpan jika struktur terlalu dalam.
+    // Tapi untuk fix instan, kita sanitize seluruh state.
     const modeData = {
         teams: state.teams || [],
         groups: state.groups || [],
@@ -173,7 +157,6 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
     const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
 
-    // Sanitize sebelum menulis ke Firestore untuk mencegah error circular structure
     await Promise.all([
         setDoc(modeDocRef, sanitizeData(modeData)),
         setDoc(settingsDocRef, sanitizeData(globalData))
@@ -189,7 +172,6 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
     const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
 
-    // FIX: Gunakan settingsDocRef, bukan settingsSnap yang belum dideklarasikan
     const [modeSnap, settingsSnap] = await Promise.all([
         getDoc(modeDocRef),
         getDoc(settingsDocRef)
@@ -233,13 +215,17 @@ export const subscribeToTournamentData = (mode: TournamentMode, callback: (data:
     };
 
     const unsubMode = onSnapshot(modeDocRef, (snap) => {
-        modeData = snap.exists() ? snap.data() : { teams: [], groups: [], matches: [], knockoutStage: null, status: 'active', history: [], isRegistrationOpen: true, isDoubleRoundRobin: true, mode };
-        emit();
+        if (snap.exists()) {
+            modeData = snap.data();
+            emit();
+        }
     });
 
     const unsubGlobal = onSnapshot(settingsDocRef, (snap) => {
-        globalData = snap.exists() ? snap.data() : { banners: [], partners: [], rules: '', headerLogoUrl: '' };
-        emit();
+        if (snap.exists()) {
+            globalData = snap.data();
+            emit();
+        }
     });
 
     return () => { unsubMode(); unsubGlobal(); };
