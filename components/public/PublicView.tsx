@@ -230,7 +230,13 @@ export const PublicView: React.FC<PublicViewProps> = ({
                 <h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">Group Stage</h2>
                 <div className="h-0.5 flex-grow bg-gradient-to-r from-brand-vibrant to-transparent rounded-full opacity-30"></div>
             </div>
-            {groups.length > 0 ? <GroupStage groups={groups} onSelectTeam={onSelectTeam} /> : (
+            {groups.length > 0 ? (
+                <GroupStage 
+                    groups={groups} 
+                    onSelectTeam={onSelectTeam} 
+                    userOwnedTeamIds={userOwnedTeamIds} 
+                />
+            ) : (
                 <div className="text-center bg-brand-secondary/30 border border-white/5 p-12 rounded-2xl">
                     <h3 className="text-lg font-bold text-white mb-2">Grup Belum Tersedia</h3>
                     <p className="text-brand-light text-xs">Admin sedang mengatur pembagian grup.</p>

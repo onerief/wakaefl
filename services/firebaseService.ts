@@ -63,31 +63,60 @@ const GLOBAL_CHAT_COLLECTION = 'global_chat';
 const REGISTRATIONS_COLLECTION = 'registrations';
 const SETTINGS_DOC = 'global_settings';
 
+/**
+ * Memeriksa apakah nilai adalah objek literal JavaScript murni.
+ * Membantu membedakan antara {} dan instance kelas seperti Timestamps atau Firebase Refs.
+ */
 const isPlainObject = (obj: any): boolean => {
-  if (typeof obj !== 'object' || obj === null) return false;
-  const proto = Object.getPrototypeOf(obj);
-  return proto === Object.prototype || proto === null;
+  return Object.prototype.toString.call(obj) === '[object Object]' && obj.constructor === Object;
 };
 
+/**
+ * Membersihkan data secara mendalam untuk penyimpanan Firestore atau serialisasi JSON.
+ * Menangani referensi melingkar dan meratakan objek SDK yang kompleks.
+ */
 export const sanitizeData = (data: any, seen = new WeakSet()): any => {
+  // Primitif dan null selalu aman
   if (data === null || typeof data !== 'object') return data;
-  if (seen.has(data)) return "[Circular]"; 
+
+  // Proteksi referensi melingkar
+  if (seen.has(data)) return "[Circular]";
+
+  // Tangani Array
   if (Array.isArray(data)) {
     seen.add(data);
     return data.map(item => sanitizeData(item, seen));
   }
+
+  // Tangani Dates
   if (data instanceof Date) return data.toISOString();
+
+  // Tangani Firestore Timestamps (termasuk versi ter-minifikasi)
+  if (typeof data.toMillis === 'function') {
+    return data.toMillis();
+  }
+
+  // Tangani Firestore DocumentReferences atau Query (termasuk versi ter-minifikasi)
+  // Objek ini sering memiliki properti 'path' dan 'firestore'
+  if (typeof data.path === 'string' && (data.firestore || data.type === 'document')) {
+      return `ref:${data.path}`;
+  }
+
+  // Jika bukan objek murni, itu adalah instance kelas (File, User, Firestore internal, dll)
   if (!isPlainObject(data)) {
-      if (data.constructor && data.constructor.name === 'Timestamp') {
-          return data.toMillis();
+      if (typeof data.toJSON === 'function') {
+          return sanitizeData(data.toJSON(), seen);
       }
       return String(data);
   }
+
+  // Tangani Objek Murni
   seen.add(data);
   const result: any = {};
   for (const key in data) {
     if (Object.prototype.hasOwnProperty.call(data, key)) {
       const value = data[key];
+      // Lewati undefined dan fungsi karena Firestore menolaknya
       if (typeof value !== 'function' && value !== undefined) {
         result[key] = sanitizeData(value, seen);
       }
@@ -144,12 +173,13 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
     const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
 
+    // Sanitize sebelum menulis ke Firestore untuk mencegah error circular structure
     await Promise.all([
         setDoc(modeDocRef, sanitizeData(modeData)),
         setDoc(settingsDocRef, sanitizeData(globalData))
     ]);
   } catch (error: any) {
-    console.error(`Firestore Error: Failed to save data`, error);
+    console.error(`Firestore Error: Gagal menyimpan data`, error);
     throw error;
   }
 };
@@ -159,6 +189,7 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
     const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
 
+    // FIX: Gunakan settingsDocRef, bukan settingsSnap yang belum dideklarasikan
     const [modeSnap, settingsSnap] = await Promise.all([
         getDoc(modeDocRef),
         getDoc(settingsDocRef)
@@ -177,7 +208,7 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
         headerLogoUrl: globalData.headerLogoUrl || modeData.headerLogoUrl || '',
     } as TournamentState;
   } catch (error: any) {
-    console.warn(`Firestore: Failed to get data`, error);
+    console.warn(`Firestore: Gagal mengambil data`, error);
     return null;
   }
 };
@@ -222,12 +253,12 @@ export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 export const updateUserProfile = (user: User, displayName: string) => updateProfile(user, { displayName });
 
 export const submitNewTeamRegistration = async (teamData: any, userEmail: string) => {
-    await addDoc(collection(firestore, REGISTRATIONS_COLLECTION), {
+    await addDoc(collection(firestore, REGISTRATIONS_COLLECTION), sanitizeData({
         ...teamData,
         submittedBy: userEmail,
         timestamp: Date.now(),
         status: 'pending'
-    });
+    }));
 };
 
 export const subscribeToRegistrations = (callback: (registrations: any[]) => void) => {
@@ -252,14 +283,14 @@ export const subscribeToGlobalChat = (callback: (messages: ChatMessage[]) => voi
 
 export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: boolean = false) => {
     if (!text.trim()) return;
-    await addDoc(collection(firestore, GLOBAL_CHAT_COLLECTION), {
+    await addDoc(collection(firestore, GLOBAL_CHAT_COLLECTION), sanitizeData({
         text: text.trim(),
         userId: user.uid,
         userName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
         userPhoto: user.photoURL || null,
         timestamp: Date.now(),
         isAdmin
-    });
+    }));
 };
 
 export const getGlobalStats = async (overrideMode?: TournamentMode, overrideData?: any) => {

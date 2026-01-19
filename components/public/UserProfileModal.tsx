@@ -2,17 +2,17 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { X, UserCircle, LogOut, Shield, CheckCircle, Clock, Trophy, ListOrdered, Globe, Edit, ChevronRight } from 'lucide-react';
-import type { User } from 'firebase/auth';
+import { X, UserCircle, LogOut, Shield, CheckCircle, Clock, Trophy, ListOrdered, Globe, Edit, ChevronRight, Check, User } from 'lucide-react';
+import type { User as FirebaseUser } from 'firebase/auth';
 import type { Team, TournamentMode } from '../../types';
 import { TeamLogo } from '../shared/TeamLogo';
 import { useToast } from '../shared/Toast';
-import { getTournamentData, submitTeamClaimRequest, getUserTeams, updateUserTeamData } from '../../services/firebaseService';
+import { getTournamentData, submitTeamClaimRequest, getUserTeams, updateUserTeamData, updateUserProfile } from '../../services/firebaseService';
 import { Spinner } from '../shared/Spinner';
 import { UserTeamEditor } from './UserTeamEditor';
 
 interface UserProfileModalProps {
-  currentUser: User;
+  currentUser: FirebaseUser;
   teams: Team[]; 
   onClose: () => void;
   onLogout: () => void;
@@ -26,6 +26,11 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
   const [userOwnedTeams, setUserOwnedTeams] = useState<{ mode: TournamentMode, team: Team }[]>([]);
   const [teamToEdit, setTeamToEdit] = useState<{ mode: TournamentMode, team: Team } | null>(null);
   const [isLoadingOwned, setIsLoadingOwned] = useState(true);
+
+  // User Profile Edit State
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newName, setNewName] = useState(currentUser.displayName || '');
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
 
   // Claiming State
   const [claimMode, setClaimMode] = useState<TournamentMode>('league');
@@ -73,6 +78,24 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
   const availableTeams = useMemo(() => claimableTeams.filter(t => !t.ownerEmail && t.id !== pendingTeamInClaimMode?.id), [claimableTeams, pendingTeamInClaimMode]);
 
   // --- Handlers ---
+
+  const handleUpdateName = async () => {
+      if (!newName.trim() || newName === currentUser.displayName) {
+          setIsEditingName(false);
+          return;
+      }
+
+      setIsUpdatingName(true);
+      try {
+          await updateUserProfile(currentUser, newName);
+          addToast('Nama profil berhasil diperbarui!', 'success');
+          setIsEditingName(false);
+      } catch (error) {
+          addToast('Gagal memperbarui nama.', 'error');
+      } finally {
+          setIsUpdatingName(false);
+      }
+  };
 
   const handleEditClick = (teamItem: { mode: TournamentMode, team: Team }) => {
       setTeamToEdit(teamItem);
@@ -127,7 +150,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] backdrop-blur-md p-4 animate-in fade-in duration-300">
+    <div className="fixed inset-0 bg-slate-950/80 flex items-center justify-center z-[100] backdrop-blur-md p-4 animate-in fade-in duration-300">
       <Card className="w-full max-w-md relative !p-0 overflow-hidden shadow-2xl !bg-brand-primary border-brand-vibrant/20 max-h-[90vh] flex flex-col">
         <button onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-white transition-colors z-20" aria-label="Close modal">
           <X size={24} />
@@ -145,8 +168,36 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
                     </div>
                 )}
             </div>
-            <h2 className="text-xl font-bold text-white relative z-10">{currentUser.displayName || 'Member'}</h2>
-            <p className="text-sm text-brand-light relative z-10">{currentUser.email}</p>
+            
+            {isEditingName ? (
+                <div className="flex flex-col items-center gap-2 relative z-10 w-full px-8">
+                    <input 
+                        type="text"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        className="w-full bg-brand-primary border border-brand-vibrant/50 rounded-lg px-3 py-1.5 text-center text-white font-bold outline-none focus:ring-1 focus:ring-brand-vibrant"
+                        autoFocus
+                    />
+                    <div className="flex gap-2">
+                        <button onClick={handleUpdateName} disabled={isUpdatingName} className="p-1.5 bg-green-600 text-white rounded-lg">
+                            {isUpdatingName ? <Spinner size={14} /> : <Check size={14} />}
+                        </button>
+                        <button onClick={() => { setIsEditingName(false); setNewName(currentUser.displayName || ''); }} className="p-1.5 bg-white/10 text-brand-light rounded-lg">
+                            <X size={14} />
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <div className="flex flex-col items-center relative z-10">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-white">{currentUser.displayName || 'Member'}</h2>
+                        <button onClick={() => setIsEditingName(true)} className="p-1 text-brand-light hover:text-brand-vibrant transition-colors">
+                            <Edit size={14} />
+                        </button>
+                    </div>
+                    <p className="text-sm text-brand-light">{currentUser.email}</p>
+                </div>
+            )}
         </div>
 
         <div className="p-6 overflow-y-auto custom-scrollbar flex-grow">

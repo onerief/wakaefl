@@ -3,6 +3,7 @@ export interface Team {
   id: string;
   name: string;
   logoUrl?: string;
+  squadPhotoUrl?: string; // New: URL for squad formation or team photo
   manager?: string;
   socialMediaUrl?: string;
   whatsappNumber?: string;

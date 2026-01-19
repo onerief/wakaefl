@@ -2,7 +2,7 @@
 import { useReducer, useCallback, useState, useEffect, useRef } from 'react';
 import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment, SeasonHistory } from '../types';
 import { generateSummary } from '../services/geminiService';
-import { subscribeToTournamentData, saveTournamentData } from '../services/firebaseService';
+import { subscribeToTournamentData, saveTournamentData, sanitizeData } from '../services/firebaseService';
 import { useToast } from '../components/shared/Toast';
 
 export const SPECIAL_TEAM_ID = 't13';
@@ -24,7 +24,10 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
 });
 
 const hydrateTournamentData = (state: FullTournamentState): FullTournamentState => {
-    const teamMap = new Map(state.teams.map(t => [t.id, t]));
+    // Bersihkan data secara mendalam dari state untuk menghapus referensi SDK internal (Timestamp, dll)
+    const cleanState = sanitizeData(state) as FullTournamentState;
+    
+    const teamMap = new Map(cleanState.teams.map((t: Team) => [t.id, t]));
     
     const getLatestTeam = (team: Team | null | undefined): Team | null => {
         if (!team || !team.id) return null;
@@ -33,8 +36,8 @@ const hydrateTournamentData = (state: FullTournamentState): FullTournamentState 
     };
 
     return {
-        ...state,
-        groups: (state.groups || []).map(g => ({
+        ...cleanState,
+        groups: (cleanState.groups || []).map((g: Group) => ({
             ...g,
             teams: (g.teams || []).map(t => getLatestTeam(t) || t),
             standings: (g.standings || []).map(s => ({
@@ -42,16 +45,16 @@ const hydrateTournamentData = (state: FullTournamentState): FullTournamentState 
                 team: getLatestTeam(s.team) || s.team
             }))
         })),
-        matches: (state.matches || []).map(m => ({
+        matches: (cleanState.matches || []).map((m: Match) => ({
             ...m,
             teamA: getLatestTeam(m.teamA) || m.teamA,
             teamB: getLatestTeam(m.teamB) || m.teamB
         })),
-        knockoutStage: state.knockoutStage ? {
-            'Round of 16': (state.knockoutStage['Round of 16'] || []).map(m => ({ ...m, teamA: getLatestTeam(m.teamA), teamB: getLatestTeam(m.teamB) })),
-            'Quarter-finals': (state.knockoutStage['Quarter-finals'] || []).map(m => ({ ...m, teamA: getLatestTeam(m.teamA), teamB: getLatestTeam(m.teamB) })),
-            'Semi-finals': (state.knockoutStage['Semi-finals'] || []).map(m => ({ ...m, teamA: getLatestTeam(m.teamA), teamB: getLatestTeam(m.teamB) })),
-            'Final': (state.knockoutStage['Final'] || []).map(m => ({ ...m, teamA: getLatestTeam(m.teamA), teamB: getLatestTeam(m.teamB) }))
+        knockoutStage: cleanState.knockoutStage ? {
+            'Round of 16': (cleanState.knockoutStage['Round of 16'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getLatestTeam(m.teamA), teamB: getLatestTeam(m.teamB) })),
+            'Quarter-finals': (cleanState.knockoutStage['Quarter-finals'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getLatestTeam(m.teamA), teamB: getLatestTeam(m.teamB) })),
+            'Semi-finals': (cleanState.knockoutStage['Semi-finals'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getLatestTeam(m.teamA), teamB: getLatestTeam(m.teamB) })),
+            'Final': (cleanState.knockoutStage['Final'] || []).map((m: KnockoutMatch) => ({ ...m, teamA: getLatestTeam(m.teamA), teamB: getLatestTeam(m.teamB) }))
         } : null
     };
 };
@@ -81,6 +84,7 @@ type Action =
 
 const calculateStandings = (teams: Team[], matches: Match[], groupId: string, groupName: string): Standing[] => {
   const standings: { [key: string]: Standing } = teams.reduce((acc, team) => {
+    // FIX: Menghapus penugasan ganda dan memperbaiki typo 'font' -> 'form'
     acc[team.id] = { team, played: 0, wins: 0, draws: 0, losses: 0, goalDifference: 0, points: 0, form: [] };
     return acc;
   }, {} as { [key: string]: Standing });
@@ -215,7 +219,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   
-  // Refs for reliable sync and state tracking
+  // Refs untuk sinkronisasi yang andal
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isUpdatingFromServer = useRef(false);
   const stateRef = useRef(state);
@@ -224,14 +228,14 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
     stateRef.current = state;
   }, [state]);
 
-  // Real-time listener: Handles incoming updates (like team claims)
+  // Real-time listener: Menangani pembaruan masuk (seperti klaim tim)
   useEffect(() => {
     setIsLoading(true);
     const unsubscribe = subscribeToTournamentData(activeMode, (serverData) => {
         isUpdatingFromServer.current = true;
         dispatch({ type: 'SET_STATE', payload: serverData });
         
-        // Small delay to ensure isUpdatingFromServer remains true during the re-render triggered by dispatch
+        // Delay kecil untuk memastikan isUpdatingFromServer tetap true selama re-render
         setTimeout(() => {
             isUpdatingFromServer.current = false;
             setIsLoading(false);
@@ -241,12 +245,8 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
     return () => unsubscribe();
   }, [activeMode]);
 
-  // Sync / Auto-Save Effect (Admin only)
+  // Sync / Auto-Save Effect (Hanya Admin)
   useEffect(() => {
-    // Only save if:
-    // 1. User is admin
-    // 2. Not currently loading initial data
-    // 3. The change was NOT caused by a server update (to prevent loops and accidental overwrites)
     if (isAdmin && !isLoading && !isUpdatingFromServer.current) {
        setIsSyncing(true);
        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);

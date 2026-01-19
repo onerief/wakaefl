@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import type { Team, Match } from '../../types';
 import { Card } from '../shared/Card';
-import { X, UserCircle, Instagram, Smartphone, Zap, Star, Activity, Target, ShieldAlert, TrendingUp, Calendar } from 'lucide-react';
+import { X, UserCircle, Instagram, Smartphone, Zap, Star, Activity, Target, ShieldAlert, TrendingUp, Calendar, ImageIcon, Layout } from 'lucide-react';
 import { TeamLogo } from '../shared/TeamLogo';
 
 interface TeamProfileModalProps {
@@ -39,12 +39,6 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
 
     // Filter only finished matches for stats
     const finishedMatches = teamMatches.filter(m => m.status === 'finished');
-    
-    // Reverse for form calculation (oldest to newest needed for correct W-D-L sequence if we were graphing, but for recent form usually we show last 5. 
-    // Let's iterate normally since we sorted Descending above)
-    
-    // We actually want oldest->newest for the "Form" array to read left-to-right as "Past -> Recent" usually, OR "Recent -> Past".
-    // Let's stick to Recent -> Past for the display boxes left-to-right.
     
     finishedMatches.forEach(m => {
         const isTeamA = m.teamA.id === team.id;
@@ -171,6 +165,25 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
                     </span>
                  </div>
             </div>
+
+            {/* Squad Photo Display - NEW */}
+            {team.squadPhotoUrl && (
+                <div className="w-full mb-6">
+                    <h4 className="flex items-center gap-2 text-xs font-black text-brand-light uppercase tracking-widest mb-4">
+                        <Layout size={14} className="text-brand-special" /> Squad & Formation
+                    </h4>
+                    <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 shadow-2xl group/squad cursor-zoom-in">
+                        <img 
+                            src={team.squadPhotoUrl} 
+                            alt={`${team.name} Squad`} 
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover/squad:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover/squad:opacity-100 transition-opacity flex items-end p-4">
+                            <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">{team.name} Official Squad</span>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Form Section */}
             <div className="w-full mb-6 bg-black/20 rounded-2xl p-4 border border-white/5">
