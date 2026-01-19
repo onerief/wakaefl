@@ -304,7 +304,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
 
               const teamsForScheduling = [...originalTeams];
               if (teamsForScheduling.length % 2 !== 0) {
-                  // Tambahkan "bye" dummy jika ganjil (tidak digunakan di match nyata tapi untuk algoritma circle)
                   teamsForScheduling.push({ id: 'bye', name: 'BYE' } as Team);
               }
 
@@ -332,13 +331,12 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
                           });
                       }
                   }
-                  // Putar array (Circle Method) - tim pertama diam, yang lain geser
+                  // Putar (Circle Method)
                   teamsForScheduling.splice(1, 0, teamsForScheduling.pop()!);
               }
 
-              // --- GENERATE LEG 2 (Jika diaktifkan) ---
+              // --- GENERATE LEG 2 ---
               if (state.isDoubleRoundRobin) {
-                  // Reset tim ke posisi awal untuk Leg 2
                   const teamsForLeg2 = [...originalTeams];
                   if (teamsForLeg2.length % 2 !== 0) teamsForLeg2.push({ id: 'bye', name: 'BYE' } as Team);
 
@@ -357,7 +355,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
                                   status: 'scheduled',
                                   group: groupID,
                                   leg: 2,
-                                  matchday: round + 1 + roundsPerLeg // Mulai dari Matchday berikutnya
+                                  matchday: round + 1 + roundsPerLeg // Matchday berlanjut (Day 6, 7, dst)
                               });
                           }
                       }
