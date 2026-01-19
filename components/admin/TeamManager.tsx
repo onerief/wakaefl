@@ -5,7 +5,7 @@ import type { Team, Group, Match, KnockoutStageRounds, TournamentState, Tourname
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, RefreshCw, Download, Star, Upload, Users, ShieldAlert, Check, Search, Bell, Settings as SettingsIcon, LayoutGrid, ShieldCheck, UserMinus, FileJson, CloudUpload, X, Instagram, MessageCircle, Trophy, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Download, Star, Upload, Users, ShieldAlert, Check, Search, Bell, Settings as SettingsIcon, LayoutGrid, ShieldCheck, UserMinus, FileJson, CloudUpload, X, Instagram, MessageCircle, Trophy, ExternalLink, AlertTriangle, UserCheck } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { useToast } from '../shared/Toast';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -64,14 +64,19 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const legacyFileInputRef = useRef<HTMLInputElement>(null);
   
-  // Real-time subscription to registrations
+  // Detect teams that have pending claim requests (requestedOwnerEmail)
+  const pendingClaims = useMemo(() => {
+      return teams.filter(t => t.requestedOwnerEmail && !t.ownerEmail);
+  }, [teams]);
+
+  // Real-time subscription to registrations (New Team forms)
   useEffect(() => {
       setRegError(null);
       const unsubscribe = subscribeToRegistrations((regs) => {
           setNewRegistrations(regs);
           setIsRefreshingRegs(false);
       }, (err) => {
-          setRegError("Gagal memuat data pendaftaran. Mungkin masalah koneksi.");
+          setRegError("Gagal memuat data pendaftaran.");
           setIsRefreshingRegs(false);
       });
       return () => unsubscribe();
@@ -81,6 +86,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const sortedRegistrations = useMemo(() => {
       return [...newRegistrations].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   }, [newRegistrations]);
+
+  const totalRequestCount = sortedRegistrations.length + pendingClaims.length;
 
   const isTeamInUse = (teamId: string) => {
     return groups.some(g => g.teams.some(t => t.id === teamId));
@@ -166,6 +173,15 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       }
   };
 
+  const handleResolveClaim = (teamId: string, approved: boolean) => {
+      if (resolveTeamClaim) {
+          resolveTeamClaim(teamId, approved);
+          addToast(approved ? 'Klaim tim disetujui!' : 'Klaim tim ditolak.', approved ? 'success' : 'info');
+      } else {
+          addToast('Fungsi klaim tidak tersedia.', 'error');
+      }
+  };
+
   const handleBackupData = () => {
     try {
         const backupData = { teams, groups, matches, knockoutStage, rules };
@@ -241,9 +257,9 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
               className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-lg transition-all relative ${activeSubTab === 'requests' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
           >
               <Bell size={16} /> Request
-              {newRegistrations.length > 0 && (
+              {totalRequestCount > 0 && (
                   <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-red-500 text-white text-[9px] flex items-center justify-center rounded-full animate-bounce font-black border-2 border-brand-primary">
-                      {newRegistrations.length}
+                      {totalRequestCount}
                   </span>
               )}
           </button>
@@ -294,6 +310,11 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                                                 <Check size={8} /> Linked
                                             </span>
                                         )}
+                                        {team.requestedOwnerEmail && !team.ownerEmail && (
+                                            <span className="text-[8px] bg-yellow-500/20 text-yellow-400 px-1 py-0.5 rounded flex items-center gap-1 animate-pulse">
+                                                <UserCheck size={8} /> Claiming...
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -310,15 +331,17 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       )}
 
       {activeSubTab === 'requests' && (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Card className="!p-4 sm:!p-6">
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
+              
+              {/* SECTION: NEW TEAM REGISTRATIONS */}
+              <Card className="!p-4 sm:!p-6 border-brand-vibrant/20">
                 <div className="mb-6 flex justify-between items-start">
                     <div>
                         <h3 className="text-lg sm:text-xl font-black italic uppercase text-brand-text flex items-center gap-3">
-                            <Bell size={24} className="text-brand-vibrant" />
-                            Pendaftaran Masuk <span className="text-brand-vibrant">({newRegistrations.length})</span>
+                            <Plus size={24} className="text-brand-vibrant" />
+                            Pendaftaran Tim Baru <span className="text-brand-vibrant">({newRegistrations.length})</span>
                         </h3>
-                        <p className="text-[10px] text-brand-light uppercase tracking-widest mt-1 opacity-60">Tinjau dan setujui pendaftaran tim baru di sini.</p>
+                        <p className="text-[10px] text-brand-light uppercase tracking-widest mt-1 opacity-60">Pemain mendaftarkan tim yang belum ada di database.</p>
                     </div>
                     <button 
                         onClick={() => { setIsRefreshingRegs(true); window.location.reload(); }}
@@ -328,13 +351,6 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                         <RefreshCw size={20} />
                     </button>
                 </div>
-
-                {regError && (
-                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-start gap-3 text-red-400">
-                        <ShieldAlert className="shrink-0" size={20} />
-                        <p className="text-xs font-bold">{regError}</p>
-                    </div>
-                )}
 
                 <div className="space-y-4">
                     {sortedRegistrations.length > 0 ? sortedRegistrations.map((reg) => (
@@ -382,28 +398,59 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2 px-3 py-2 bg-black/20 rounded-xl border border-white/5">
-                                    <Instagram size={14} className="text-pink-500" />
-                                    <span className="text-[10px] text-brand-light font-bold truncate">IG: {reg.socialMediaUrl || 'N/A'}</span>
-                                    {reg.socialMediaUrl && (
-                                        <a href={reg.socialMediaUrl} target="_blank" rel="noreferrer" className="ml-auto p-1.5 hover:bg-white/10 rounded-lg transition-colors">
-                                            <ExternalLink size={12} className="text-brand-vibrant" />
-                                        </a>
-                                    )}
+                                    <span className="text-[8px] text-brand-light/30 truncate">User Email: {reg.ownerEmail}</span>
                                 </div>
-                            </div>
-                            
-                            <div className="absolute top-0 right-0 p-1 flex items-center gap-2">
-                                <span className="text-[7px] text-brand-light/40 font-black uppercase">{new Date(reg.timestamp).toLocaleString()}</span>
-                                <span className="text-[7px] text-brand-light/20 font-black uppercase">Ref: {reg.id.slice(-6)}</span>
                             </div>
                         </div>
                     )) : (
-                        <div className="text-center py-20 bg-brand-primary/20 rounded-3xl border border-dashed border-white/5 flex flex-col items-center">
-                            <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-brand-light/10 mb-4">
-                                <Bell size={32} />
+                        <p className="text-center py-8 text-[10px] text-brand-light/20 uppercase font-black italic">Tidak ada pendaftaran tim baru</p>
+                    )}
+                </div>
+              </Card>
+
+              {/* SECTION: CLAIM REQUESTS (EXISTING TEAMS) */}
+              <Card className="!p-4 sm:!p-6 border-brand-special/20">
+                <div className="mb-6">
+                    <h3 className="text-lg sm:text-xl font-black italic uppercase text-brand-text flex items-center gap-3">
+                        <UserCheck size={24} className="text-brand-special" />
+                        Permintaan Klaim Tim <span className="text-brand-special">({pendingClaims.length})</span>
+                    </h3>
+                    <p className="text-[10px] text-brand-light uppercase tracking-widest mt-1 opacity-60">Pemain meminta hak akses sebagai manager untuk tim yang sudah ada di database.</p>
+                </div>
+
+                <div className="space-y-4">
+                    {pendingClaims.length > 0 ? pendingClaims.map((team) => (
+                        <div key={team.id} className="bg-brand-primary/40 border border-yellow-500/10 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-brand-special/30 transition-all shadow-lg">
+                            <div className="flex items-center gap-4">
+                                <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-14 h-14 shadow-xl ring-2 ring-yellow-500/20" />
+                                <div>
+                                    <h4 className="text-lg font-black text-white uppercase italic tracking-tight">{team.name}</h4>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="px-2 py-0.5 bg-brand-special/10 text-brand-special text-[8px] font-black uppercase rounded-lg border border-brand-special/20">
+                                            Klaim oleh: {team.requestedOwnerEmail}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                            <p className="text-sm font-bold text-brand-light/30 uppercase tracking-widest italic">Belum ada pendaftaran baru</p>
-                            <p className="text-[10px] text-brand-light/20 mt-2">Pastikan pendaftar telah menekan tombol "Kirim Pendaftaran" di formulir.</p>
+
+                            <div className="flex items-center gap-2 bg-black/40 p-2 rounded-xl border border-white/5">
+                                <button 
+                                    onClick={() => handleResolveClaim(team.id, true)}
+                                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-special text-brand-primary rounded-lg text-[10px] font-black uppercase transition-all shadow-lg active:scale-95"
+                                >
+                                    <Check size={14} /> Terima Klaim
+                                </button>
+                                <button 
+                                    onClick={() => handleResolveClaim(team.id, false)}
+                                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-lg text-[10px] font-black uppercase transition-all active:scale-95"
+                                >
+                                    <X size={14} /> Tolak
+                                </button>
+                            </div>
+                        </div>
+                    )) : (
+                        <div className="text-center py-12 bg-black/10 rounded-2xl border border-dashed border-white/5">
+                            <p className="text-xs font-bold text-brand-light/20 uppercase tracking-widest italic">Belum ada permintaan klaim tim</p>
                         </div>
                     )}
                 </div>
