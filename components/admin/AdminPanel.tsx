@@ -5,7 +5,7 @@ import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ChevronDown, Check, Menu, Lock, Unlock, Crown, Image as ImageIcon, ShieldCheck, HelpCircle, Bell, ChevronRight, LayoutGrid, CloudCheck, RefreshCw } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ChevronDown, Check, Menu, Lock, Unlock, Crown, Image as ImageIcon, ShieldCheck, HelpCircle, Bell, ChevronRight, LayoutGrid, CloudCheck, RefreshCw, FileJson } from 'lucide-react';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { useToast } from '../shared/Toast';
 import { Card } from '../shared/Card';
@@ -18,6 +18,7 @@ import { GenerateBracketConfirmationModal } from './GenerateBracketConfirmationM
 import { ConfirmationModal } from './ConfirmationModal';
 import { MatchScheduleEditor } from './MatchScheduleEditor';
 import { KnockoutMatchScheduleEditor } from './KnockoutMatchScheduleEditor';
+import { DataManager } from './DataManager';
 
 interface AdminPanelProps {
   teams: Team[];
@@ -70,7 +71,7 @@ interface AdminPanelProps {
   updateHeaderLogo?: (url: string) => void;
 }
 
-type AdminTab = 'group-fixtures' | 'knockout' | 'teams' | 'history' | 'rules' | 'settings';
+type AdminTab = 'group-fixtures' | 'knockout' | 'teams' | 'history' | 'rules' | 'settings' | 'data';
 
 const ADMIN_TABS: { id: AdminTab; label: string; icon: any; color: string }[] = [
     { id: 'teams', label: 'Teams & Claims', icon: Users, color: 'text-blue-400' },
@@ -78,6 +79,7 @@ const ADMIN_TABS: { id: AdminTab; label: string; icon: any; color: string }[] = 
     { id: 'knockout', label: 'Knockout Stage', icon: Trophy, color: 'text-yellow-400' },
     { id: 'history', label: 'Season History', icon: Crown, color: 'text-orange-400' },
     { id: 'rules', label: 'Tourney Rules', icon: BookOpen, color: 'text-emerald-400' },
+    { id: 'data', label: 'Data Manager', icon: FileJson, color: 'text-rose-400' },
     { id: 'settings', label: 'Site Settings', icon: Settings, color: 'text-slate-400' },
 ];
 
@@ -107,7 +109,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       generateKnockoutBracket, isRegistrationOpen, setRegistrationStatus,
       deleteKnockoutMatch, updateKnockoutMatchDetails, updateMatchSchedule,
       headerLogoUrl, updateHeaderLogo, history, addHistoryEntry, deleteHistoryEntry,
-      isSyncing, unbindTeam
+      isSyncing, unbindTeam, setTournamentState
   } = props;
 
   const AccordionItem = ({ id, label, icon: Icon, children }: React.PropsWithChildren<{ id: string, label: string, icon: any }>) => {
@@ -264,6 +266,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       case 'teams': return <TeamManager {...props} onGenerationSuccess={() => setActiveTab('group-fixtures')} unbindTeam={unbindTeam} />;
       case 'history': return <HistoryManager history={history} teams={teams} onAddEntry={addHistoryEntry} onDeleteEntry={deleteHistoryEntry} />;
       case 'rules': return <RulesEditor rules={props.rules} onSave={updateRules} />;
+      case 'data': return (
+        <DataManager 
+            teams={teams} 
+            matches={matches} 
+            groups={groups} 
+            rules={rules} 
+            banners={banners} 
+            partners={partners} 
+            headerLogoUrl={headerLogoUrl || ''} 
+            mode={mode} 
+            setTournamentState={setTournamentState} 
+            knockoutStage={knockoutStage}
+        />
+      );
       case 'settings':
         return (
             <div className="space-y-4 max-w-4xl">

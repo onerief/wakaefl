@@ -86,12 +86,12 @@ export const uploadTeamLogo = async (file: File): Promise<string> => {
 
 export const saveTournamentData = async (mode: TournamentMode, state: TournamentState) => {
   try {
-    // 1. Master Teams (Pastikan SQUAD PHOTO & LOGO ikut tersimpan)
+    // 1. Clean Teams (Simpan profil lengkap)
     const masterTeams = (state.teams || []).map(t => ({
         id: t.id,
         name: t.name || 'TBD',
         logoUrl: t.logoUrl || '',
-        squadPhotoUrl: t.squadPhotoUrl || '', // PENTING: Jangan sampai hilang
+        squadPhotoUrl: t.squadPhotoUrl || '', 
         manager: t.manager || '',
         ownerEmail: t.ownerEmail || '',
         requestedOwnerEmail: t.requestedOwnerEmail || '',
@@ -100,11 +100,11 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
         isTopSeed: !!t.isTopSeed
     }));
 
-    // 2. Clean Matches (Simpan ID saja untuk tim, tapi pertahankan SKOR & STATUS)
+    // 2. Clean Matches (PASTIKAN matchday & leg tidak hilang)
     const cleanMatches = (state.matches || []).map(m => ({
         id: m.id,
-        teamA: { id: m.teamA?.id || m.teamA },
-        teamB: { id: m.teamB?.id || m.teamB },
+        teamA: { id: m.teamA?.id || (typeof m.teamA === 'string' ? m.teamA : 'TBD') },
+        teamB: { id: m.teamB?.id || (typeof m.teamB === 'string' ? m.teamB : 'TBD') },
         scoreA: m.scoreA !== undefined ? m.scoreA : null,
         scoreB: m.scoreB !== undefined ? m.scoreB : null,
         status: m.status || 'scheduled',
@@ -120,10 +120,7 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
         id: g.id,
         name: g.name,
         teams: (g.teams || []).map(t => ({ id: t.id || t })),
-        standings: (g.standings || []).map(s => ({
-            ...s,
-            team: { id: s.team?.id || s.team }
-        }))
+        standings: [] 
     }));
 
     const cleanState = {

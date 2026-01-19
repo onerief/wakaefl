@@ -81,24 +81,34 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
   const hasMyTeam = userOwnedTeamIds.length > 0;
 
+  // AUTO SELECT MATCHDAY TERDEKAT
   useEffect(() => {
-    if (activeTab === 'fixtures' && hasMyTeam) {
+    if (activeTab === 'fixtures' && groups.length > 0) {
         const newDefaults = { ...selectedMatchdays };
         groups.forEach(g => {
             if (!newDefaults[g.id]) {
-                const myMatch = matches.find(m => 
-                    (m.group === g.id || m.group === g.name.replace('Group ', '')) && 
-                    (userOwnedTeamIds.includes(m.teamA.id) || userOwnedTeamIds.includes(m.teamB.id)) &&
-                    m.status !== 'finished'
+                const groupLetter = g.name.replace('Group ', '').trim();
+                const groupMatches = matches.filter(m => 
+                    m.group === g.id || m.group === groupLetter || m.group === g.name
                 );
-                if (myMatch) {
-                    newDefaults[g.id] = `Match ${myMatch.leg || 1} - Day ${myMatch.matchday || 1}`;
+                
+                // Cari matchday pertama yang masih berstatus scheduled
+                const nextMatch = groupMatches
+                    .sort((a, b) => (a.matchday || 0) - (b.matchday || 0))
+                    .find(m => m.status !== 'finished');
+                
+                if (nextMatch) {
+                    newDefaults[g.id] = `Match ${nextMatch.leg || 1} - Day ${nextMatch.matchday || 1}`;
+                } else if (groupMatches.length > 0) {
+                    // Jika semua selesai, tampilkan matchday terakhir
+                    const lastMatch = groupMatches.sort((a, b) => (b.matchday || 0) - (a.matchday || 0))[0];
+                    newDefaults[g.id] = `Match ${lastMatch.leg || 1} - Day ${lastMatch.matchday || 1}`;
                 }
             }
         });
         setSelectedMatchdays(newDefaults);
     }
-  }, [activeTab, userOwnedTeamIds, groups, matches]);
+  }, [activeTab, groups, matches]);
 
   const AdminToggle = () => {
       if (!isAdmin) return null;
@@ -127,7 +137,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
         ).sort((a, b) => {
             if (a.status !== 'finished' && b.status === 'finished') return -1;
             if (a.status === 'finished' && b.status !== 'finished') return 1;
-            return 0;
+            return (a.matchday || 0) - (b.matchday || 0);
         });
 
         return (
@@ -185,14 +195,13 @@ export const PublicView: React.FC<PublicViewProps> = ({
                     return Number(numsA[0]) - Number(numsB[0]) || Number(numsA[1]) - Number(numsB[1]);
                 });
 
-                const defaultScheduleKey = scheduleKeys.find(key => schedule[key].some(m => m.status !== 'finished')) || scheduleKeys[scheduleKeys.length - 1];
-                const activeScheduleKey = selectedMatchdays[group.id] || defaultScheduleKey;
+                const activeScheduleKey = selectedMatchdays[group.id] || (scheduleKeys.length > 0 ? scheduleKeys[0] : '');
                 
                 return (
                     <div key={`${group.id}-fixtures`} className="bg-brand-secondary/30 border border-white/5 p-3 sm:p-4 rounded-[1.2rem] sm:rounded-[1.5rem] flex flex-col h-full shadow-lg">
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4 pb-3 border-b border-white/5">
                             <h4 className="text-lg sm:text-2xl font-black text-brand-vibrant tracking-tight uppercase italic leading-none">{group.name}</h4>
-                            {scheduleKeys.length > 1 && (
+                            {scheduleKeys.length > 0 && (
                                 <div className="relative">
                                     <select
                                         value={activeScheduleKey}
@@ -206,12 +215,12 @@ export const PublicView: React.FC<PublicViewProps> = ({
                             )}
                         </div>
                         <div className="space-y-3 flex-grow">
-                            {groupMatches.length > 0 ? (
+                            {groupMatches.length > 0 && activeScheduleKey ? (
                                 schedule[activeScheduleKey]?.map(match => (
                                     <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateMatchScore} currentUser={currentUser} onAddComment={onAddMatchComment} isAdmin={isAdmin} userOwnedTeamIds={userOwnedTeamIds} />
                                 ))
                             ) : (
-                                <div className="text-center py-10 opacity-30 italic text-xs">Jadwal belum dibuat untuk grup ini.</div>
+                                <div className="text-center py-10 opacity-30 italic text-xs">Jadwal belum dibuat atau kosong untuk matchday ini.</div>
                             )}
                         </div>
                     </div>

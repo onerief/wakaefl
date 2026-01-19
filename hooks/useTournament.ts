@@ -67,11 +67,11 @@ const calculateStandings = (teams: Team[], matches: Match[], groupId: string, gr
 };
 
 /**
- * RECONSTRUCTION ENGINE
- * Memastikan data match dan grup selalu menggunakan data tim terbaru dari master list.
+ * DATA RECONSTRUCTION ENGINE
+ * Memastikan ID tim di dalam Match, Group, dan Knockout selalu merujuk ke data master tim yang utuh.
  */
 const hydrateTournamentData = (state: FullTournamentState): FullTournamentState => {
-    if (!state.teams) return state;
+    if (!state.teams || state.teams.length === 0) return state;
 
     const teamMap = new Map<string, Team>();
     state.teams.forEach(t => {
