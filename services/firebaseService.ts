@@ -63,41 +63,41 @@ const REGISTRATIONS_COLLECTION = 'registrations';
 const SETTINGS_DOC = 'global_settings';
 
 /**
- * PEMBERSIH DATA RADIKAL
- * Mengonversi objek Tim menjadi hanya ID saja saat disimpan di dalam array bersarang (Grup/Klasemen).
- * Ini mencegah error Circular Reference selamanya.
+ * PEMBERSIH DATA (RECURSION SAFE)
+ * Fungsi ini memastikan tidak ada referensi melingkar saat simpan ke Firestore.
+ * Berbeda dengan sebelumnya, fungsi ini TIDAK MENGHAPUS field penting dari master list.
  */
 export const sanitizeData = (data: any): any => {
     if (data === null || data === undefined) return null;
     
-    // Jika array, bersihkan isinya satu per satu
+    // Primitive types
+    if (typeof data !== 'object') return data;
+
+    // Handle Arrays
     if (Array.isArray(data)) {
         return data.map(item => sanitizeData(item));
     }
 
-    // Jika ini adalah objek Tim, kita simpan full jika di master list, 
-    // tapi jika ini bagian dari objek lain, kita biarkan saja asalkan bukan Circular.
-    if (typeof data === 'object') {
-        const result: any = {};
-        for (const key in data) {
-            if (Object.prototype.hasOwnProperty.call(data, key)) {
-                const value = data[key];
-                
-                // JANGAN simpan property 'standings' atau 'teams' di dalam grup secara rekursif
-                // Cukup simpan ID-nya saja atau data flat
-                if ((key === 'teams' || key === 'team') && value && value.id) {
-                    result[key] = { id: value.id, name: value.name, logoUrl: value.logoUrl || '' };
-                } else if (typeof value === 'object' && value !== null) {
-                    result[key] = sanitizeData(value);
-                } else {
-                    result[key] = value;
-                }
+    // Handle Objects
+    const result: any = {};
+    for (const key in data) {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            const value = data[key];
+            
+            // Khusus untuk teams/standings di DALAM grup, kita simpan ID saja untuk mencegah circular
+            // Tapi untuk master list 'teams' di tingkat root, kita biarkan utuh.
+            if ((key === 'teams' || key === 'team' || key === 'teamA' || key === 'teamB') && 
+                value && typeof value === 'object' && value.id) {
+                // Jika ini adalah nested reference (di dalam match atau grup), gunakan ID saja
+                result[key] = { id: value.id, name: value.name || 'Unknown', logoUrl: value.logoUrl || '' };
+            } else if (typeof value === 'object' && value !== null) {
+                result[key] = sanitizeData(value);
+            } else {
+                result[key] = value;
             }
         }
-        return result;
     }
-
-    return data;
+    return result;
 };
 
 export const uploadTeamLogo = async (file: File): Promise<string> => {
@@ -114,22 +114,35 @@ export const uploadTeamLogo = async (file: File): Promise<string> => {
 
 export const saveTournamentData = async (mode: TournamentMode, state: TournamentState) => {
   try {
-    // Sederhanakan data sebelum kirim ke Firestore
+    // 1. Siapkan Master Teams (Data Lengkap)
+    const masterTeams = (state.teams || []).map(t => ({
+        id: t.id,
+        name: t.name || 'TBD',
+        logoUrl: t.logoUrl || '',
+        manager: t.manager || '',
+        ownerEmail: t.ownerEmail || '',
+        whatsappNumber: t.whatsappNumber || '',
+        socialMediaUrl: t.socialMediaUrl || '',
+        isTopSeed: !!t.isTopSeed,
+        squadPhotoUrl: t.squadPhotoUrl || ''
+    }));
+
+    // 2. Siapkan Grup & Matches (ID Only references)
     const cleanState = {
-        teams: state.teams || [],
+        teams: masterTeams,
         groups: (state.groups || []).map(g => ({
             ...g,
-            teams: g.teams.map(t => ({ id: t.id })), // Simpan ID saja di dalam grup
-            standings: g.standings.map(s => ({ ...s, team: { id: s.team.id } })) // Simpan ID saja di standings
+            teams: g.teams.map(t => ({ id: t.id })),
+            standings: g.standings.map(s => ({ ...s, team: { id: s.team.id } }))
         })),
         matches: (state.matches || []).map(m => ({
             ...m,
             teamA: { id: m.teamA.id },
             teamB: { id: m.teamB.id }
         })),
-        knockoutStage: state.knockoutStage,
+        knockoutStage: state.knockoutStage ? sanitizeData(state.knockoutStage) : null,
         status: state.status || 'active',
-        history: state.history || [],
+        history: sanitizeData(state.history || []),
         isRegistrationOpen: state.isRegistrationOpen ?? true,
         isDoubleRoundRobin: state.isDoubleRoundRobin ?? true,
         mode: state.mode
@@ -145,10 +158,13 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
     const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
 
+    // Gunakan setDoc tanpa pembersihan tambahan karena kita sudah membersihkannya di atas secara manual
     await Promise.all([
-        setDoc(modeDocRef, sanitizeData(cleanState)),
-        setDoc(settingsDocRef, sanitizeData(globalData))
+        setDoc(modeDocRef, cleanState),
+        setDoc(settingsDocRef, globalData)
     ]);
+    
+    console.log(`Success: Data ${mode} saved to cloud.`);
   } catch (error: any) {
     console.error(`Firestore Error: Gagal menyimpan data`, error);
     throw error;
@@ -227,12 +243,12 @@ export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 export const updateUserProfile = (user: User, displayName: string) => updateProfile(user, { displayName });
 
 export const submitNewTeamRegistration = async (teamData: any, userEmail: string) => {
-    await addDoc(collection(firestore, REGISTRATIONS_COLLECTION), sanitizeData({
+    await addDoc(collection(firestore, REGISTRATIONS_COLLECTION), {
         ...teamData,
         submittedBy: userEmail,
         timestamp: Date.now(),
         status: 'pending'
-    }));
+    });
 };
 
 export const subscribeToRegistrations = (callback: (registrations: any[]) => void) => {
@@ -257,14 +273,14 @@ export const subscribeToGlobalChat = (callback: (messages: ChatMessage[]) => voi
 
 export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: boolean = false) => {
     if (!text.trim()) return;
-    await addDoc(collection(firestore, GLOBAL_CHAT_COLLECTION), sanitizeData({
+    await addDoc(collection(firestore, GLOBAL_CHAT_COLLECTION), {
         text: text.trim(),
         userId: user.uid,
         userName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
         userPhoto: user.photoURL || null,
         timestamp: Date.now(),
         isAdmin
-    }));
+    });
 };
 
 export const getGlobalStats = async (overrideMode?: TournamentMode, overrideData?: any) => {
@@ -319,19 +335,6 @@ export const updateUserTeamData = async (mode: TournamentMode, teamId: string, u
         const updatedTeams = [...teams];
         updatedTeams[teamIndex] = { ...teams[teamIndex], ...updates };
         
-        // Simpan hanya ID untuk referensi silang
-        const groups = (data.groups || []).map(g => ({
-            ...g,
-            teams: g.teams.map(t => t.id === teamId ? { id: t.id } : { id: t.id }),
-            standings: g.standings.map(s => s.team.id === teamId ? { ...s, team: { id: s.team.id } } : { ...s, team: { id: s.team.id } })
-        }));
-        
-        const matches = (data.matches || []).map(m => ({
-            ...m,
-            teamA: { id: m.teamA.id },
-            teamB: { id: m.teamB.id }
-        }));
-        
-        transaction.update(tournamentDocRef, { teams: updatedTeams, groups, matches });
+        transaction.update(tournamentDocRef, { teams: updatedTeams });
     });
 };

@@ -1,23 +1,24 @@
 
 // Fix: Added React to the import to resolve 'Cannot find namespace React' errors in FC and Event types
 import React, { useState, useEffect, useRef } from 'react';
-import type { Team, Group, Match, KnockoutStageRounds, TournamentState } from '../../types';
+import type { Team, Group, Match, KnockoutStageRounds, TournamentState, TournamentMode } from '../../types';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, RefreshCw, Download, Star, Upload, Users, ShieldAlert, Check, Search, Bell, Settings as SettingsIcon, LayoutGrid, ShieldCheck, UserMinus, FileJson } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Download, Star, Upload, Users, ShieldAlert, Check, Search, Bell, Settings as SettingsIcon, LayoutGrid, ShieldCheck, UserMinus, FileJson, CloudUpload } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { useToast } from '../shared/Toast';
 import { ConfirmationModal } from './ConfirmationModal';
 import { ManualGroupManager } from './ManualGroupManager';
 import { TeamLogo } from '../shared/TeamLogo';
-import { subscribeToRegistrations, deleteRegistration, sanitizeData } from '../../services/firebaseService';
+import { subscribeToRegistrations, deleteRegistration, sanitizeData, saveTournamentData } from '../../services/firebaseService';
 
 interface TeamManagerProps {
   teams: Team[];
   groups: Group[];
   matches: Match[];
   knockoutStage: KnockoutStageRounds | null;
+  mode: TournamentMode;
   addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => void;
   updateTeam: (teamId: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean, ownerEmail?: string) => void;
   deleteTeam: (teamId: string) => void;
@@ -39,7 +40,7 @@ type SubTab = 'list' | 'requests' | 'setup';
 
 export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const { 
-    teams, groups, matches, knockoutStage, addTeam, updateTeam, deleteTeam, unbindTeam,
+    teams, groups, matches, knockoutStage, mode, addTeam, updateTeam, deleteTeam, unbindTeam,
     onGenerationSuccess, resetTournament,
     manualAddGroup, manualDeleteGroup, manualAddTeamToGroup, 
     manualRemoveTeamFromGroup, generateMatchesFromGroups, setTournamentState, importLegacyData, rules,
@@ -55,6 +56,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [newRegistrations, setNewRegistrations] = useState<any[]>([]);
   const [isSavingTeam, setIsSavingTeam] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -160,8 +162,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const handleBackupData = () => {
     try {
         const backupData = { teams, groups, matches, knockoutStage, rules };
-        const sanitized = sanitizeData(backupData);
-        const jsonString = JSON.stringify(sanitized, null, 2);
+        const jsonString = JSON.stringify(backupData, null, 2);
         const blob = new Blob([jsonString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -181,28 +182,25 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
 
   const handleRestoreClick = () => fileInputRef.current?.click();
 
-  /**
-   * SUPER REPAIR ENGINE
-   * Memperbaiki data yang mengandung "[Circular]" saat Restore.
-   */
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
+        setIsRestoring(true);
         const text = e.target?.result;
         if (typeof text !== 'string') throw new Error("File unreadable");
         
         let data = JSON.parse(text);
         
-        // 1. Validasi struktur dasar
+        // 1. Validasi struktur
         if (!data || !data.teams) {
             addToast("Format JSON tidak valid.", 'error');
             return;
         }
 
-        // 2. Buat Map dari Master Teams (Hanya ini yang bisa dipercaya)
+        // 2. Buat Map dari Master Teams
         const teamMap = new Map<string, Team>();
         data.teams.forEach((t: any) => {
             if (t && t.id && typeof t !== 'string') teamMap.set(t.id, t);
@@ -214,7 +212,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
             return id ? teamMap.get(id) || null : null;
         };
 
-        // 3. Perbaiki Matches (Hubungkan ID ke Master)
+        // 3. Perbaiki Matches & Groups (Solusi Masalah TBD)
         if (data.matches) {
             data.matches = data.matches.map((m: any) => ({
                 ...m,
@@ -223,13 +221,9 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
             })).filter((m: any) => m.teamA && m.teamB);
         }
 
-        // 4. BANGUN ULANG GRUP (Solusi untuk TBD)
-        // Jika data.groups mengandung [Circular], kita abaikan isinya dan tebak dari matches
         if (data.groups) {
             data.groups = data.groups.map((g: any) => {
                 const groupLetter = g.name.replace('Group ', '').trim();
-                
-                // Cari tim mana saja yang bertanding di grup ini dari data Matches
                 const teamIdsInThisGroup = new Set<string>();
                 if (data.matches) {
                     data.matches.forEach((m: any) => {
@@ -239,71 +233,37 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                         }
                     });
                 }
-
-                const reconstructedTeams = Array.from(teamIdsInThisGroup)
-                    .map(id => teamMap.get(id))
-                    .filter((t): t is Team => !!t);
-
-                return {
-                    ...g,
-                    teams: reconstructedTeams,
-                    standings: [] // Biarkan useTournament menghitung ulang ini
-                };
+                const reconstructedTeams = Array.from(teamIdsInThisGroup).map(id => teamMap.get(id)).filter((t): t is Team => !!t);
+                return { ...g, teams: reconstructedTeams, standings: [] };
             });
         }
 
-        // 5. Perbaiki Knockout
-        if (data.knockoutStage) {
-            Object.keys(data.knockoutStage).forEach(round => {
-                data.knockoutStage[round] = data.knockoutStage[round].map((m: any) => ({
-                    ...m,
-                    teamA: getFullTeam(m.teamA),
-                    teamB: getFullTeam(m.teamB)
-                }));
-            });
-        }
+        // 4. Update State Lokal
+        const finalData = {
+            ...data,
+            mode: mode, // Tetapkan mode saat ini
+            status: data.status || 'active',
+            isRegistrationOpen: data.isRegistrationOpen ?? true
+        } as TournamentState;
+        
+        setTournamentState(finalData);
 
-        // Bersihkan data akhir sebelum masuk ke state
-        const cleanedData = sanitizeData(data) as TournamentState;
-        setTournamentState(cleanedData);
-        addToast('RESTORASI BERHASIL: Data "TBD" telah diperbaiki secara otomatis menggunakan riwayat pertandingan.', 'success');
+        // 5. FORCE SAVE KE CLOUD (Solusi data tidak tersimpan)
+        addToast('Mempersinkronkan data ke Cloud...', 'info');
+        await saveTournamentData(mode, finalData);
+        
+        addToast('RESTORASI BERHASIL: Data telah diperbaiki dan disimpan permanen di database.', 'success');
         
       } catch (error) {
         console.error("Restore error:", error);
-        addToast("Gagal memproses file backup. Pastikan format JSON benar.", 'error');
+        addToast("Gagal memproses file backup.", 'error');
       } finally {
+          setIsRestoring(false);
           if(event.target) event.target.value = '';
       }
     };
     reader.readAsText(file);
   };
-
-  const handleLegacyImportClick = () => legacyFileInputRef.current?.click();
-
-  const handleLegacyFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result;
-        if (typeof text !== 'string') throw new Error("File unreadable");
-        const data = JSON.parse(text);
-        if (importLegacyData) {
-          importLegacyData(data);
-          addToast('Legacy data imported!', 'success');
-        }
-      } catch (error) {
-        addToast("Failed to process legacy file.", 'error');
-      } finally {
-        if(event.target) event.target.value = '';
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const claimRequests = teams.filter(t => !!t.requestedOwnerEmail);
-  const totalRequestsCount = newRegistrations.length + claimRequests.length;
 
   return (
     <div className="space-y-6">
@@ -319,9 +279,9 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
               className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-lg transition-all relative ${activeSubTab === 'requests' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
           >
               <Bell size={16} /> Request
-              {totalRequestsCount > 0 && (
+              {newRegistrations.length > 0 && (
                   <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-red-500 text-white text-[9px] flex items-center justify-center rounded-full animate-bounce font-black border-2 border-brand-primary">
-                      {totalRequestsCount}
+                      {newRegistrations.length}
                   </span>
               )}
           </button>
@@ -332,94 +292,6 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
               <LayoutGrid size={16} /> Pengaturan
           </button>
       </div>
-
-      {activeSubTab === 'requests' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-             <div className="bg-brand-vibrant/10 p-5 rounded-2xl border border-brand-vibrant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                 <div className="flex items-center gap-4">
-                     <div className="p-3 bg-brand-vibrant/20 rounded-2xl text-brand-vibrant shadow-inner">
-                         <ShieldCheck size={28} />
-                     </div>
-                     <div>
-                         <h3 className="text-lg font-black text-white uppercase tracking-wider italic leading-tight">Antrian Persetujuan</h3>
-                         <p className="text-[11px] text-brand-light font-medium max-w-xs">Tinjau pendaftaran baru dan klaim tim dari member komunitas.</p>
-                     </div>
-                 </div>
-                 {totalRequestsCount > 0 && (
-                     <div className="px-4 py-2 bg-brand-vibrant rounded-xl text-white font-black text-xs uppercase tracking-widest text-center">
-                         {totalRequestsCount} Total Menunggu
-                     </div>
-                 )}
-             </div>
-
-             {(newRegistrations.length > 0 || claimRequests.length > 0) ? (
-                 <div className="space-y-8">
-                     {newRegistrations.length > 0 && (
-                        <div className="space-y-3">
-                            <h4 className="text-[10px] font-black text-brand-vibrant uppercase tracking-[0.2em] flex items-center gap-2 px-1">
-                                <Plus size={14} /> Pendaftaran Tim Baru ({newRegistrations.length})
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {newRegistrations.map(reg => (
-                                    <div key={reg.id} className="flex flex-col bg-brand-secondary/40 p-4 rounded-2xl border border-white/10 gap-4 shadow-xl hover:border-brand-vibrant/30 transition-all">
-                                        <div className="flex items-center gap-4">
-                                            <TeamLogo logoUrl={reg.logoUrl} teamName={reg.name || 'New Team'} className="w-14 h-14 ring-2 ring-brand-vibrant/20" />
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="font-black text-white text-sm uppercase leading-tight">{reg.name || 'Tim Tanpa Nama'}</span>
-                                                <div className="flex flex-col mt-1 gap-0.5">
-                                                    <span className="text-[10px] text-brand-vibrant font-black uppercase tracking-widest">Mgr: {reg.manager || 'N/A'}</span>
-                                                    <span className="text-[9px] text-brand-light italic truncate">{reg.ownerEmail || 'No Email'}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
-                                            <button onClick={() => handleApproveRegistration(reg)} className="px-4 py-2.5 bg-green-600 text-white text-[10px] font-black rounded-xl uppercase hover:bg-green-500 transition-all shadow-lg">Terima</button>
-                                            <button onClick={() => deleteRegistration(reg.id)} className="px-4 py-2.5 bg-red-500/10 text-red-400 text-[10px] font-black rounded-xl border border-red-500/20 uppercase hover:bg-red-500/20 transition-all">Tolak</button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                     )}
-
-                    {claimRequests.length > 0 && (
-                        <div className="space-y-3">
-                            <h4 className="text-[10px] font-black text-yellow-400 uppercase tracking-[0.2em] flex items-center gap-2 px-1">
-                                <ShieldAlert size={14} /> Permintaan Klaim Tim ({claimRequests.length})
-                            </h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {claimRequests.map(team => (
-                                    <div key={team.id} className="flex flex-col bg-brand-secondary/40 p-4 rounded-2xl border border-yellow-500/20 gap-4 shadow-xl hover:border-yellow-500/50 transition-all">
-                                        <div className="flex items-center gap-4">
-                                            <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-14 h-14 ring-2 ring-yellow-500/20" />
-                                            <div className="flex flex-col min-w-0">
-                                                <span className="font-black text-white text-sm uppercase leading-tight">{team.name}</span>
-                                                <div className="flex flex-col mt-1 gap-0.5">
-                                                    <span className="text-[10px] text-yellow-400 font-black uppercase tracking-widest italic">Pengeklaim:</span>
-                                                    <span className="text-[10px] text-brand-light font-bold truncate">{team.requestedOwnerEmail}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
-                                            <button onClick={() => handleResolveClaim(team.id, true)} className="px-4 py-2.5 bg-yellow-600 text-brand-primary text-[10px] font-black rounded-xl uppercase hover:bg-yellow-500 transition-all shadow-lg">Izinkan</button>
-                                            <button onClick={() => handleResolveClaim(team.id, false)} className="px-4 py-2.5 bg-white/5 text-brand-light text-[10px] font-black rounded-xl border border-white/10 uppercase hover:bg-white/10 transition-all">Abaikan</button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                 </div>
-             ) : (
-                <div className="flex flex-col items-center justify-center py-20 bg-black/10 rounded-3xl border border-dashed border-white/5 opacity-50">
-                    <Check size={48} className="text-brand-light/10 mb-4" />
-                    <p className="text-brand-light/30 italic text-sm font-bold uppercase tracking-widest text-center px-4">
-                        Semua Bersih! Tidak ada permintaan pendaftaran atau klaim saat ini.
-                    </p>
-                </div>
-             )}
-          </div>
-      )}
 
       {activeSubTab === 'list' && (
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -512,8 +384,11 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Button onClick={handleBackupData} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest"><Download size={14} /> Unduh Backup</Button>
-                    <Button onClick={handleRestoreClick} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest"><Upload size={14} /> Pulihkan Data</Button>
-                    {importLegacyData && <Button onClick={handleLegacyImportClick} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest sm:col-span-2"><FileJson size={14} /> Legacy JSON Import</Button>}
+                    <Button onClick={handleRestoreClick} variant="secondary" disabled={isRestoring} className="w-full !py-3 text-[10px] uppercase font-black tracking-widest">
+                        {isRestoring ? <RefreshCw className="animate-spin" size={14} /> : <Upload size={14} />} 
+                        Pulihkan & Simpan ke Cloud
+                    </Button>
+                    {importLegacyData && <Button onClick={() => legacyFileInputRef.current?.click()} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest sm:col-span-2"><FileJson size={14} /> Legacy JSON Import</Button>}
                   </div>
                   
                   <div className="mt-6 pt-6 border-t border-white/5">
@@ -524,7 +399,18 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                   </div>
                   
                   <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="application/json" />
-                  <input type="file" ref={legacyFileInputRef} onChange={handleLegacyFileChange} className="hidden" accept="application/json" />
+                  <input type="file" ref={legacyFileInputRef} onChange={(e) => {
+                       const file = e.target.files?.[0];
+                       if (!file) return;
+                       const reader = new FileReader();
+                       reader.onload = (ev) => {
+                           try {
+                               const data = JSON.parse(ev.target?.result as string);
+                               if (importLegacyData) importLegacyData(data);
+                           } catch (err) { addToast("Failed to process legacy file.", 'error'); }
+                       };
+                       reader.readAsText(file);
+                  }} className="hidden" accept="application/json" />
               </Card>
           </div>
       )}
