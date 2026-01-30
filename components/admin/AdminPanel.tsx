@@ -24,6 +24,7 @@ import { ConfirmationModal } from './ConfirmationModal';
 import { DataManager } from './DataManager';
 import { TeamLogo } from '../shared/TeamLogo';
 import { MatchScheduleEditor } from './MatchScheduleEditor';
+import { KnockoutMatchScheduleEditor } from './KnockoutMatchScheduleEditor';
 
 interface AdminPanelProps {
   teams: Team[];
@@ -106,6 +107,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   
   // Schedule Editing state
   const [editingMatchForSchedule, setEditingMatchForSchedule] = useState<Match | null>(null);
+  const [editingKnockoutMatchForSchedule, setEditingKnockoutMatchForSchedule] = useState<KnockoutMatch | null>(null);
 
   const { addToast } = useToast();
   const { 
@@ -138,6 +140,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           addToast('Tim dalam jadwal berhasil diperbarui!', 'success');
           setEditingMatchForSchedule(null);
       }
+  };
+
+  const handleSaveKnockoutSchedule = (id: string, tAId: string | null, tBId: string | null, pA: string, pB: string, num: number) => {
+      if (!editingKnockoutMatchForSchedule) return;
+      
+      const teamA = teams.find(t => t.id === tAId) || null;
+      const teamB = teams.find(t => t.id === tBId) || null;
+      
+      updateKnockoutMatch(id, {
+          ...editingKnockoutMatchForSchedule,
+          teamA,
+          teamB,
+          placeholderA: pA,
+          placeholderB: pB,
+          matchNumber: num
+      });
+      
+      addToast('Detail pertandingan knockout diperbarui!', 'success');
+      setEditingKnockoutMatchForSchedule(null);
   };
 
   const renderContent = () => {
@@ -261,7 +282,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                                         <tr key={idx} className={`transition-all ${isTop2 ? 'bg-brand-vibrant/5' : 'hover:bg-white/[0.02]'}`}>
                                             <td className="p-4 relative">
                                                 {isTop2 && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-brand-special shadow-[0_0_10px_#fde047]"></div>}
-                                                {/* Fixed syntax error: added missing opening quote for text-brand-special */}
                                                 <span className={`font-black text-lg ${isTop2 ? 'text-brand-special' : 'text-white'}`}>#{idx + 1}</span>
                                             </td>
                                             <td className="p-4">
@@ -345,7 +365,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {knockoutStage[roundName].map((match: KnockoutMatch) => (
-                             <KnockoutMatchEditor key={match.id} match={match} onUpdateScore={(id, data) => updateKnockoutMatch(id, { ...match, ...data })} onEdit={() => {}} onDelete={() => {}} />
+                             <KnockoutMatchEditor 
+                                key={match.id} 
+                                match={match} 
+                                onUpdateScore={(id, data) => updateKnockoutMatch(id, { ...match, ...data })} 
+                                onEdit={() => setEditingKnockoutMatchForSchedule(match)} 
+                                onDelete={() => {}} 
+                             />
                           ))}
                         </div>
                       </Card>
@@ -490,6 +516,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
              </div>
         </div>
       </main>
+      
+      {/* Knockout Schedule Modal */}
+      {editingKnockoutMatchForSchedule && (
+          <KnockoutMatchScheduleEditor 
+            match={editingKnockoutMatchForSchedule} 
+            teams={teams} 
+            onSave={handleSaveKnockoutSchedule}
+            onClose={() => setEditingKnockoutMatchForSchedule(null)} 
+          />
+      )}
 
       {/* Nav Mobile: Page Features Switcher */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-brand-secondary/95 backdrop-blur-2xl border-t border-white/10 flex items-center overflow-x-auto custom-scrollbar-hide z-[100] px-2 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
