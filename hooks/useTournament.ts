@@ -432,37 +432,39 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           rank1Pool.sort(sortFn);
           rank2Pool.sort(sortFn);
 
-          const allQualifiedTeams = [...rank1Pool, ...rank2Pool].map(s => s.team);
-          const totalQualified = allQualifiedTeams.length;
+          const seeds = [...rank1Pool, ...rank2Pool].map(s => s.team);
+          const totalQualified = seeds.length;
 
           const knockout: KnockoutStageRounds = { 'Play-offs': [], 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': [] };
 
           if (totalQualified === 10) {
-              const seeds = allQualifiedTeams; 
-              
-              knockout['Play-offs'].push({ id: `po-1`, round: 'Play-offs', matchNumber: 1, teamA: seeds[2], teamB: seeds[9], placeholderA: 'Seed 3', placeholderB: 'Seed 10', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'qf-1' });
-              knockout['Play-offs'].push({ id: `po-2`, round: 'Play-offs', matchNumber: 2, teamA: seeds[3], teamB: seeds[8], placeholderA: 'Seed 4', placeholderB: 'Seed 9', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'qf-2' });
-              knockout['Play-offs'].push({ id: `po-3`, round: 'Play-offs', matchNumber: 3, teamA: seeds[4], teamB: seeds[7], placeholderA: 'Seed 5', placeholderB: 'Seed 8', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'qf-3' });
-              knockout['Play-offs'].push({ id: `po-4`, round: 'Play-offs', matchNumber: 4, teamA: seeds[5], teamB: seeds[6], placeholderA: 'Seed 6', placeholderB: 'Seed 7', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'qf-4' });
+              // LOGIKA SESUAI GAMBAR REFERENSI
+              // Play-offs (Round 1)
+              knockout['Play-offs'].push({ id: `po-1`, round: 'Play-offs', matchNumber: 1, teamA: seeds[6], teamB: seeds[9], placeholderA: 'Seed 7', placeholderB: 'Seed 10', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'qf-1' });
+              knockout['Play-offs'].push({ id: `po-2`, round: 'Play-offs', matchNumber: 2, teamA: seeds[7], teamB: seeds[8], placeholderA: 'Seed 8', placeholderB: 'Seed 9', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'qf-4' });
 
-              knockout['Quarter-finals'].push({ id: `qf-1`, round: 'Quarter-finals', matchNumber: 1, teamA: seeds[0], teamB: null, placeholderA: 'Seed 1 (Bye)', placeholderB: 'Winner Play-off 1', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'sf-1' });
-              knockout['Quarter-finals'].push({ id: `qf-2`, round: 'Quarter-finals', matchNumber: 2, teamA: seeds[1], teamB: null, placeholderA: 'Seed 2 (Bye)', placeholderB: 'Winner Play-off 2', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'sf-1' });
-              knockout['Quarter-finals'].push({ id: `qf-3`, round: 'Quarter-finals', matchNumber: 3, teamA: null, teamB: null, placeholderA: 'Winner Play-off 3', placeholderB: 'Winner Play-off 4', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'sf-2' });
-              
+              // Quarter-finals
+              knockout['Quarter-finals'].push({ id: `qf-1`, round: 'Quarter-finals', matchNumber: 1, teamA: seeds[1], teamB: null, placeholderA: 'Seed 2 (Mbambet style)', placeholderB: 'Winner Play-off 1', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'sf-1' });
+              knockout['Quarter-finals'].push({ id: `qf-2`, round: 'Quarter-finals', matchNumber: 2, teamA: seeds[2], teamB: seeds[5], placeholderA: 'Seed 3', placeholderB: 'Seed 6', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'sf-1' });
+              knockout['Quarter-finals'].push({ id: `qf-3`, round: 'Quarter-finals', matchNumber: 3, teamA: seeds[3], teamB: seeds[4], placeholderA: 'Seed 4', placeholderB: 'Seed 5', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'sf-2' });
+              knockout['Quarter-finals'].push({ id: `qf-4`, round: 'Quarter-finals', matchNumber: 4, teamA: seeds[0], teamB: null, placeholderA: 'Seed 1 (Waiting)', placeholderB: 'Winner Play-off 2', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'sf-2' });
+
+              // Semi-finals
               knockout['Semi-finals'].push({ id: `sf-1`, round: 'Semi-finals', matchNumber: 1, teamA: null, teamB: null, placeholderA: 'Winner QF 1', placeholderB: 'Winner QF 2', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'f-1' });
-              knockout['Semi-finals'].push({ id: `sf-2`, round: 'Semi-finals', matchNumber: 2, teamA: null, teamB: null, placeholderA: 'Winner QF 3', placeholderB: 'Wait (Advantage)', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'f-1' });
+              knockout['Semi-finals'].push({ id: `sf-2`, round: 'Semi-finals', matchNumber: 2, teamA: null, teamB: null, placeholderA: 'Winner QF 3', placeholderB: 'Winner QF 4', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'f-1' });
 
+              // Final
               knockout['Final'].push({ id: `f-1`, round: 'Final', matchNumber: 1, teamA: null, teamB: null, placeholderA: 'Winner SF 1', placeholderB: 'Winner SF 2', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null });
 
               dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups, matches: state.matches, knockoutStage: knockout } });
-              return { success: true, message: 'Bagan 10 Tim Dibuat: Hanya Top 2 yang menunggu di QF!' };
+              return { success: true, message: 'Bracket 10 Tim Berhasil Dibuat (Sesuai Referensi)!' };
           }
 
           if (totalQualified === 16) {
               for (let i = 0; i < 8; i++) {
                   knockout['Round of 16'].push({
                       id: `r16-${i+1}`, round: 'Round of 16', matchNumber: i + 1,
-                      teamA: allQualifiedTeams[i], teamB: allQualifiedTeams[15 - i], 
+                      teamA: seeds[i], teamB: seeds[15 - i], 
                       placeholderA: `Seed ${i + 1}`, placeholderB: `Seed ${16 - i}`,
                       scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: `qf-${Math.floor(i/2) + 1}`
                   });
@@ -475,31 +477,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
               return { success: true, message: 'Bracket 16 Tim Berhasil Dibuat!' };
           }
 
-          if (totalQualified === 8) {
-              for (let i = 0; i < 4; i++) {
-                  knockout['Quarter-finals'].push({
-                      id: `qf-${i+1}`, round: 'Quarter-finals', matchNumber: i + 1,
-                      teamA: allQualifiedTeams[i], teamB: allQualifiedTeams[7 - i],
-                      placeholderA: `Seed ${i + 1}`, placeholderB: `Seed ${8 - i}`,
-                      scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: `sf-${Math.floor(i/2) + 1}`
-                  });
-              }
-              for(let i=0; i<2; i++) knockout['Semi-finals'].push({ id: `sf-${i+1}`, round: 'Semi-finals', matchNumber: i+1, teamA: null, teamB: null, placeholderA: `Winner QF${i*2+1}`, placeholderB: `Winner QF${i*2+2}`, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: `f-1` });
-              knockout['Final'].push({ id: `f-1`, round: 'Final', matchNumber: 1, teamA: null, teamB: null, placeholderA: 'Winner SF1', placeholderB: 'Winner SF2', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null });
-              
-              dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups, matches: state.matches, knockoutStage: knockout } });
-              return { success: true, message: 'Bracket 8 Tim Berhasil Dibuat!' };
-          }
-
-          if (totalQualified === 4) {
-              knockout['Semi-finals'].push({ id: `sf-1`, round: 'Semi-finals', matchNumber: 1, teamA: allQualifiedTeams[0], teamB: allQualifiedTeams[3], placeholderA: 'Seed 1', placeholderB: 'Seed 4', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'f-1' });
-              knockout['Semi-finals'].push({ id: `sf-2`, round: 'Semi-finals', matchNumber: 2, teamA: allQualifiedTeams[1], teamB: allQualifiedTeams[2], placeholderA: 'Seed 2', placeholderB: 'Seed 3', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'f-1' });
-              knockout['Final'].push({ id: `f-1`, round: 'Final', matchNumber: 1, teamA: null, teamB: null, placeholderA: 'Winner SF1', placeholderB: 'Winner SF2', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null });
-              
-              dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups, matches: state.matches, knockoutStage: knockout } });
-              return { success: true, message: 'Bracket 4 Tim Berhasil Dibuat!' };
-          }
-
+          // Fallback simple for other numbers
           return { success: false, message: `Jumlah tim yang lolos (${totalQualified}) tidak didukung otomatis.` };
       },
       addKnockoutMatch: (r: keyof KnockoutStageRounds, tA: string | null, tB: string | null, pA: string, pB: string, num: number) => {
