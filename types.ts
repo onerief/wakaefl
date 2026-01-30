@@ -88,6 +88,7 @@ export interface KnockoutMatch {
 }
 
 export interface KnockoutStageRounds {
+  'Play-offs': KnockoutMatch[];
   'Round of 16': KnockoutMatch[];
   'Quarter-finals': KnockoutMatch[];
   'Semi-finals': KnockoutMatch[];

@@ -267,7 +267,7 @@ const KnockoutMatchCard: React.FC<{
 }
 
 export const KnockoutStageView: React.FC<KnockoutStageViewProps> = ({ knockoutStage, onSelectTeam, isAdminMode, onUpdateScore, userOwnedTeamIds = [] }) => {
-  const roundOrder: Array<keyof KnockoutStageRounds> = ['Round of 16', 'Quarter-finals', 'Semi-finals', 'Final'];
+  const roundOrder: Array<keyof KnockoutStageRounds> = ['Play-offs', 'Round of 16', 'Quarter-finals', 'Semi-finals', 'Final'];
 
   return (
     <div className="w-full overflow-x-auto pb-12 custom-scrollbar perspective-1000">
