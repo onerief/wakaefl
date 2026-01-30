@@ -1,13 +1,18 @@
 
-import React, { useState } from 'react';
-import type { Team, Match, KnockoutStageRounds, KnockoutMatch, Group, TournamentState, Partner, TournamentMode, TournamentStatus, SeasonHistory } from '../../types';
+import { useReducer, useCallback, useState, useEffect, useRef } from 'react';
+// Corrected imports to include TournamentStatus and use TournamentState without alias to match prop definitions
+// Fixed relative paths to go up two levels to root (../../)
+import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState, Partner, TournamentMode, TournamentStatus, MatchComment, SeasonHistory } from '../../types';
+import { generateSummary } from '../../services/geminiService';
+import { subscribeToTournamentData, saveTournamentData, sanitizeData } from '../../services/firebaseService';
+import { useToast } from '../shared/Toast';
+
+import React from 'react';
 import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ChevronDown, Check, Menu, Lock, Unlock, Crown, Image as ImageIcon, ShieldCheck, HelpCircle, Bell, ChevronRight, LayoutGrid, CloudCheck, RefreshCw, FileJson, Share2, Layers, AlertCircle } from 'lucide-react';
-import { KnockoutMatchForm } from './KnockoutMatchForm';
-import { useToast } from '../shared/Toast';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ChevronDown, Check, Menu, Lock, Unlock, Crown, Image as ImageIcon, ShieldCheck, HelpCircle, Bell, ChevronRight, LayoutGrid, CloudCheck, RefreshCw, FileJson, Share2, Layers, AlertCircle, List } from 'lucide-react';
 import { Card } from '../shared/Card';
 import { RulesEditor } from './RulesEditor';
 import { BannerSettings } from './BannerSettings';
@@ -17,6 +22,7 @@ import { HistoryManager } from './HistoryManager';
 import { GenerateBracketConfirmationModal } from './GenerateBracketConfirmationModal';
 import { ConfirmationModal } from './ConfirmationModal';
 import { DataManager } from './DataManager';
+import { TeamLogo } from '../shared/TeamLogo';
 
 interface AdminPanelProps {
   teams: Team[];
@@ -65,6 +71,7 @@ interface AdminPanelProps {
   updateMatchSchedule?: (matchId: string, teamAId: string, teamBId: string) => void;
   headerLogoUrl?: string;
   updateHeaderLogo?: (url: string) => void;
+  getGlobalSeeding?: () => (Standing & { groupName: string })[];
 }
 
 type AdminTab = 'teams' | 'group-fixtures' | 'knockout' | 'banners' | 'partners' | 'history' | 'rules' | 'branding' | 'data' | 'settings';
@@ -77,7 +84,7 @@ const ADMIN_TABS: { id: AdminTab; label: string; icon: any; color: string }[] = 
     { id: 'partners', label: 'Sponsor', icon: Share2, color: 'text-emerald-400' },
     { id: 'branding', label: 'Logo Web', icon: ShieldCheck, color: 'text-cyan-400' },
     { id: 'history', label: 'Riwayat Juara', icon: Crown, color: 'text-orange-400' },
-    { id: 'rules', label: 'Aturan', icon: BookOpen, color: 'text-slate-400' },
+    { id: 'rules', label: 'Aturan', icon: BookOpen, color: 'text-brand-light' },
     { id: 'data', label: 'Database', icon: FileJson, color: 'text-rose-400' },
     { id: 'settings', label: 'System', icon: Settings, color: 'text-white' },
 ];
@@ -90,6 +97,7 @@ const MODES: { id: TournamentMode; label: string; color: string }[] = [
 
 export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('teams');
+  const [knockoutSubTab, setKnockoutSubTab] = useState<'bracket' | 'seeding'>('bracket');
   const [selectedMatchdays, setSelectedMatchdays] = useState<Record<string, string>>({});
   const [showGenerateBracketConfirm, setShowGenerateBracketConfirm] = useState(false);
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
@@ -103,7 +111,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       banners, updateBanners, partners, updatePartners,
       generateKnockoutBracket, isRegistrationOpen, setRegistrationStatus,
       headerLogoUrl, updateHeaderLogo, history, addHistoryEntry, deleteHistoryEntry,
-      isSyncing, unbindTeam, setTournamentState
+      isSyncing, unbindTeam, setTournamentState, getGlobalSeeding
   } = props;
 
   const currentTabInfo = ADMIN_TABS.find(t => t.id === activeTab);
@@ -114,6 +122,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       if (res.success) {
           addToast(res.message || 'Bracket generated!', 'success');
           setShowGenerateBracketConfirm(false);
+          setKnockoutSubTab('bracket');
       } else {
           addToast(res.message || 'Gagal generate bracket.', 'error');
       }
@@ -175,51 +184,155 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         );
       case 'knockout':
         if (mode === 'league') return <div className="text-center py-20 opacity-30 italic">Knockout tidak tersedia di mode Liga. Ganti ke mode WAKACL di menu kiri.</div>;
+        
+        const seedingData = getGlobalSeeding ? getGlobalSeeding() : [];
+        
         return (
           <div className="space-y-6">
-            {!knockoutStage || Object.values(knockoutStage).every((r: any) => r.length === 0) ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center bg-brand-secondary/20 rounded-2xl border border-dashed border-white/10 mx-auto max-w-2xl">
-                <div className="relative mb-6">
-                   <Trophy size={64} className="text-brand-light/10" />
-                   <div className="absolute inset-0 flex items-center justify-center">
-                       <Zap size={32} className="text-brand-special animate-pulse" />
-                   </div>
-                </div>
-                <h3 className="text-2xl font-black text-white italic uppercase mb-2">Group Stage Berakhir?</h3>
-                <p className="text-brand-light mb-8 text-sm max-w-xs mx-auto">
-                    Generate bracket babak gugur secara otomatis berdasarkan <span className="text-brand-special font-bold">Peringkat 1 & 2</span> klasemen grup.
-                </p>
-                <div className="flex flex-col gap-3 w-full px-12">
-                    <Button onClick={() => setShowGenerateBracketConfirm(true)} className="w-full !py-4 shadow-[0_0_20px_rgba(37,99,235,0.3)]">
-                        <PlayCircle size={20} /> OTO-GENERATE BRACKET
-                    </Button>
-                    <div className="flex items-center gap-2 p-3 bg-brand-vibrant/5 rounded-xl border border-brand-vibrant/10 text-[10px] text-brand-light">
-                        <AlertCircle size={14} className="text-brand-vibrant" />
-                        <span>Pastikan semua skor di fase grup sudah diisi untuk akurasi klasemen.</span>
+            {/* SUB TABS FOR KNOCKOUT */}
+            <div className="flex bg-black/40 p-1 rounded-xl border border-white/5 w-fit">
+                <button 
+                    onClick={() => setKnockoutSubTab('bracket')}
+                    className={`px-6 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${knockoutSubTab === 'bracket' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
+                >
+                    <Trophy size={14} className="inline mr-2" /> Bagan Match
+                </button>
+                <button 
+                    onClick={() => setKnockoutSubTab('seeding')}
+                    className={`px-6 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${knockoutSubTab === 'seeding' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
+                >
+                    <List size={14} className="inline mr-2" /> Seeding Preview
+                </button>
+            </div>
+
+            {knockoutSubTab === 'seeding' ? (
+                <Card className="!p-6 border-brand-vibrant/20">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                        <div>
+                            <h3 className="text-xl font-black text-white italic uppercase tracking-tighter flex items-center gap-2">
+                                <List size={24} className="text-brand-vibrant" /> Seeding Dashboard
+                            </h3>
+                            <p className="text-[10px] text-brand-light uppercase tracking-widest mt-1 opacity-60">Peringkat Global berdasarkan klasemen seluruh grup</p>
+                        </div>
+                        <Button onClick={() => setShowGenerateBracketConfirm(true)} className="!py-3 !px-6 shadow-lg shadow-brand-vibrant/20">
+                            <PlayCircle size={18} /> GENERATE BAGAN SEKARANG
+                        </Button>
                     </div>
-                </div>
-              </div>
+
+                    <div className="overflow-x-auto rounded-xl border border-white/5">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-black/40 text-[9px] font-black uppercase text-brand-light tracking-[0.2em]">
+                                <tr>
+                                    <th className="p-4 w-16">Seed</th>
+                                    <th className="p-4">Tim</th>
+                                    <th className="p-4">Asal Grup</th>
+                                    <th className="p-4 text-center">Pts</th>
+                                    <th className="p-4 text-center">GD</th>
+                                    <th className="p-4 text-right">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {seedingData.length > 0 ? seedingData.map((s, idx) => {
+                                    const isTop2 = idx < 2;
+                                    const isJuaraGrup = seedingData.filter((x, i) => i <= idx).length <= groups.length;
+                                    
+                                    return (
+                                        <tr key={idx} className={`transition-all ${isTop2 ? 'bg-brand-vibrant/5' : 'hover:bg-white/[0.02]'}`}>
+                                            <td className="p-4 relative">
+                                                {isTop2 && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-brand-special shadow-[0_0_10px_#fde047]"></div>}
+                                                <span className={`font-black text-lg ${isTop2 ? 'text-brand-special' : 'text-white'}`}>#{idx + 1}</span>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <TeamLogo logoUrl={s.team.logoUrl} teamName={s.team.name} className="w-10 h-10" />
+                                                    <div className="min-w-0">
+                                                        <span className="block font-black text-white uppercase italic tracking-tight truncate">{s.team.name}</span>
+                                                        <span className={`text-[8px] font-bold uppercase tracking-widest ${idx < seedingData.length / 2 ? 'text-brand-vibrant' : 'text-brand-light/50'}`}>
+                                                            {idx < seedingData.length / 2 ? 'Winner' : 'Runner-up'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <span className="text-[10px] font-bold text-brand-light uppercase">{s.groupName}</span>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <span className="text-sm font-black text-white">{s.points}</span>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <span className={`text-xs font-black ${s.goalDifference > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                    {s.goalDifference > 0 ? '+' : ''}{s.goalDifference}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                {isTop2 ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-brand-special/20 text-brand-special text-[9px] font-black uppercase rounded-lg border border-brand-special/30 shadow-[0_0_10px_rgba(253,224,71,0.1)]">
+                                                        <Zap size={10} className="fill-brand-special" /> BYE (QF)
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[9px] font-black text-brand-vibrant uppercase bg-brand-vibrant/10 px-2 py-1 rounded border border-brand-vibrant/20">
+                                                        PLAY-OFF
+                                                    </span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    )
+                                }) : (
+                                    <tr>
+                                        <td colSpan={6} className="p-20 text-center text-brand-light/20 italic font-black uppercase">Data belum cukup (Grup belum selesai)</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
             ) : (
-              <div className="space-y-8">
-                <div className="flex justify-end mb-4">
-                    <Button variant="danger" onClick={() => setShowGenerateBracketConfirm(true)} className="!text-[10px] uppercase font-black tracking-widest opacity-50 hover:opacity-100 transition-opacity">
-                        <RefreshCw size={14} /> Re-Generate Bracket
-                    </Button>
-                </div>
-                {(Object.keys(knockoutStage) as Array<keyof KnockoutStageRounds>).map((roundName) => (
-                  <Card key={roundName} className="border-white/5 !p-6">
-                    <h3 className="text-sm font-black text-brand-vibrant uppercase mb-4 italic flex items-center gap-2">
-                        <Trophy size={16} /> {roundName}
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {knockoutStage[roundName].map((match: KnockoutMatch) => (
-                         <KnockoutMatchEditor key={match.id} match={match} onUpdateScore={(id, data) => updateKnockoutMatch(id, { ...match, ...data })} onEdit={() => {}} onDelete={() => {}} />
-                      ))}
+                <>
+                {!knockoutStage || Object.values(knockoutStage).every((r: any) => r.length === 0) ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-center bg-brand-secondary/20 rounded-2xl border border-dashed border-white/10 mx-auto max-w-2xl">
+                    <div className="relative mb-6">
+                       <Trophy size={64} className="text-brand-light/10" />
+                       <div className="absolute inset-0 flex items-center justify-center">
+                           <Zap size={32} className="text-brand-special animate-pulse" />
+                       </div>
                     </div>
-                  </Card>
-                ))}
-              </div>
+                    <h3 className="text-2xl font-black text-white italic uppercase mb-2">Group Stage Berakhir?</h3>
+                    <p className="text-brand-light mb-8 text-sm max-w-xs mx-auto">
+                        Lihat urutan seeding terlebih dahulu atau langsung generate bracket babak gugur otomatis.
+                    </p>
+                    <div className="flex flex-col gap-3 w-full px-12">
+                        <Button onClick={() => setKnockoutSubTab('seeding')} variant="secondary" className="w-full !py-4 border-brand-vibrant/30">
+                            <List size={20} /> CEK PREVIEW SEEDING
+                        </Button>
+                        <Button onClick={() => setShowGenerateBracketConfirm(true)} className="w-full !py-4 shadow-[0_0_20px_rgba(37,99,235,0.3)]">
+                            <PlayCircle size={20} /> OTO-GENERATE BRACKET
+                        </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-8">
+                    <div className="flex justify-end mb-4">
+                        <Button variant="danger" onClick={() => setShowGenerateBracketConfirm(true)} className="!text-[10px] uppercase font-black tracking-widest opacity-50 hover:opacity-100 transition-opacity">
+                            <RefreshCw size={14} /> Re-Generate Bracket
+                        </Button>
+                    </div>
+                    {(Object.keys(knockoutStage) as Array<keyof KnockoutStageRounds>).map((roundName) => (
+                      <Card key={roundName} className="border-white/5 !p-6">
+                        <h3 className="text-sm font-black text-brand-vibrant uppercase mb-4 italic flex items-center gap-2">
+                            <Trophy size={16} /> {roundName}
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {knockoutStage[roundName].map((match: KnockoutMatch) => (
+                             <KnockoutMatchEditor key={match.id} match={match} onUpdateScore={(id, data) => updateKnockoutMatch(id, { ...match, ...data })} onEdit={() => {}} onDelete={() => {}} />
+                          ))}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+                </>
             )}
+            
             {showGenerateBracketConfirm && (
                 <GenerateBracketConfirmationModal 
                     onConfirm={handleGenerateBracket} 
@@ -306,7 +419,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         <header className="bg-brand-primary/40 border-b border-white/5 px-6 sm:px-8 py-4 sm:py-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 shrink-0 backdrop-blur-sm relative z-40">
              <div className="flex items-center gap-4">
                 <div className="lg:hidden relative">
-                    {/* Mobile Database Switcher Toggle */}
                     <button 
                         onClick={() => setIsModeSelectorOpen(!isModeSelectorOpen)}
                         className={`flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-black/40 text-white transition-all active:scale-95 ${currentModeInfo?.color}`}
@@ -316,7 +428,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                         <ChevronDown size={14} className={`transition-transform duration-300 ${isModeSelectorOpen ? 'rotate-180' : ''}`} />
                     </button>
 
-                    {/* Mobile Mode Switcher Dropdown */}
                     {isModeSelectorOpen && (
                         <div className="absolute top-full left-0 mt-2 w-56 bg-brand-secondary border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-300 z-[110]">
                             <div className="p-2 space-y-1">
@@ -362,7 +473,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       <div className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-brand-secondary/95 backdrop-blur-2xl border-t border-white/10 flex items-center overflow-x-auto custom-scrollbar-hide z-[100] px-2 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
           {ADMIN_TABS.map((tab) => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex flex-col items-center justify-center px-4 min-w-[90px] shrink-0 h-full transition-all relative ${activeTab === tab.id ? tab.color : 'text-brand-light'}`}>
-                  <tab.icon size={18} className={`transition-transform duration-300 ${activeTab === tab.id ? 'scale-110 -translate-y-1' : 'opacity-50'}`} />
+                  <tab.icon size={18} className={`transition-transform duration-300 ${activeTab === tab.id ? tab.color : 'opacity-50'}`} />
                   <span className={`text-[8px] font-black uppercase mt-1 text-center truncate w-full transition-all ${activeTab === tab.id ? 'opacity-100' : 'opacity-40'}`}>{tab.label}</span>
                   {activeTab === tab.id && (
                       <div className="absolute top-0 inset-x-4 h-0.5 bg-current rounded-full"></div>

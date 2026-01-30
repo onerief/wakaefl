@@ -402,6 +402,21 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups, matches: newMatches, knockoutStage: state.knockoutStage } });
       },
       initializeEmptyKnockoutStage: () => dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups, matches: state.matches, knockoutStage: { 'Play-offs': [], 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': [] } } }),
+      getGlobalSeeding: () => {
+          const rank1Pool: (Standing & { groupName: string })[] = [];
+          const rank2Pool: (Standing & { groupName: string })[] = [];
+
+          state.groups.forEach(g => {
+              if (g.standings.length >= 1) rank1Pool.push({ ...g.standings[0], groupName: g.name });
+              if (g.standings.length >= 2) rank2Pool.push({ ...g.standings[1], groupName: g.name });
+          });
+
+          const sortFn = (a: Standing, b: Standing) => (b.points - a.points) || (b.goalDifference - a.goalDifference);
+          rank1Pool.sort(sortFn);
+          rank2Pool.sort(sortFn);
+
+          return [...rank1Pool, ...rank2Pool];
+      },
       generateKnockoutBracket: () => {
           if (state.groups.length === 0) return { success: false, message: 'Tidak ada grup untuk ditarik datanya.' };
           
@@ -413,44 +428,36 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
               if (g.standings.length >= 2) rank2Pool.push(g.standings[1]);
           });
 
-          // Sort untuk mendapatkan SEEDING GLOBAL
           const sortFn = (a: Standing, b: Standing) => (b.points - a.points) || (b.goalDifference - a.goalDifference);
           rank1Pool.sort(sortFn);
           rank2Pool.sort(sortFn);
 
-          // Seluruh tim yang lolos (Rank 1 & 2)
           const allQualifiedTeams = [...rank1Pool, ...rank2Pool].map(s => s.team);
           const totalQualified = allQualifiedTeams.length;
 
           const knockout: KnockoutStageRounds = { 'Play-offs': [], 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': [] };
 
-          // --- LOGIKA 10 TIM (HANYA TOP 2 YANG MENUNGGU) ---
           if (totalQualified === 10) {
-              const seeds = allQualifiedTeams; // Seed 1 & 2 adalah yang terbaik dari Rank 1 pool
+              const seeds = allQualifiedTeams; 
               
-              // BABAK PLAY-OFF (S3 s/d S10) - Memperebutkan 4 tiket QF
               knockout['Play-offs'].push({ id: `po-1`, round: 'Play-offs', matchNumber: 1, teamA: seeds[2], teamB: seeds[9], placeholderA: 'Seed 3', placeholderB: 'Seed 10', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'qf-1' });
               knockout['Play-offs'].push({ id: `po-2`, round: 'Play-offs', matchNumber: 2, teamA: seeds[3], teamB: seeds[8], placeholderA: 'Seed 4', placeholderB: 'Seed 9', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'qf-2' });
               knockout['Play-offs'].push({ id: `po-3`, round: 'Play-offs', matchNumber: 3, teamA: seeds[4], teamB: seeds[7], placeholderA: 'Seed 5', placeholderB: 'Seed 8', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'qf-3' });
               knockout['Play-offs'].push({ id: `po-4`, round: 'Play-offs', matchNumber: 4, teamA: seeds[5], teamB: seeds[6], placeholderA: 'Seed 6', placeholderB: 'Seed 7', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'qf-4' });
 
-              // BABAK QUARTER-FINALS (HANYA S1 & S2 YANG SUDAH ADA)
               knockout['Quarter-finals'].push({ id: `qf-1`, round: 'Quarter-finals', matchNumber: 1, teamA: seeds[0], teamB: null, placeholderA: 'Seed 1 (Bye)', placeholderB: 'Winner Play-off 1', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'sf-1' });
               knockout['Quarter-finals'].push({ id: `qf-2`, round: 'Quarter-finals', matchNumber: 2, teamA: seeds[1], teamB: null, placeholderA: 'Seed 2 (Bye)', placeholderB: 'Winner Play-off 2', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'sf-1' });
               knockout['Quarter-finals'].push({ id: `qf-3`, round: 'Quarter-finals', matchNumber: 3, teamA: null, teamB: null, placeholderA: 'Winner Play-off 3', placeholderB: 'Winner Play-off 4', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'sf-2' });
               
-              // BABAK SEMI-FINALS
               knockout['Semi-finals'].push({ id: `sf-1`, round: 'Semi-finals', matchNumber: 1, teamA: null, teamB: null, placeholderA: 'Winner QF 1', placeholderB: 'Winner QF 2', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'f-1' });
               knockout['Semi-finals'].push({ id: `sf-2`, round: 'Semi-finals', matchNumber: 2, teamA: null, teamB: null, placeholderA: 'Winner QF 3', placeholderB: 'Wait (Advantage)', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'f-1' });
 
-              // BABAK FINAL
               knockout['Final'].push({ id: `f-1`, round: 'Final', matchNumber: 1, teamA: null, teamB: null, placeholderA: 'Winner SF 1', placeholderB: 'Winner SF 2', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null });
 
               dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups, matches: state.matches, knockoutStage: knockout } });
               return { success: true, message: 'Bagan 10 Tim Dibuat: Hanya Top 2 yang menunggu di QF!' };
           }
 
-          // --- LOGIKA 16 TIM (STANDARD R16) ---
           if (totalQualified === 16) {
               for (let i = 0; i < 8; i++) {
                   knockout['Round of 16'].push({
@@ -468,7 +475,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
               return { success: true, message: 'Bracket 16 Tim Berhasil Dibuat!' };
           }
 
-          // --- LOGIKA 8 TIM (STANDARD QF) ---
           if (totalQualified === 8) {
               for (let i = 0; i < 4; i++) {
                   knockout['Quarter-finals'].push({
@@ -485,7 +491,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
               return { success: true, message: 'Bracket 8 Tim Berhasil Dibuat!' };
           }
 
-          // --- LOGIKA 4 TIM (STANDARD SF) ---
           if (totalQualified === 4) {
               knockout['Semi-finals'].push({ id: `sf-1`, round: 'Semi-finals', matchNumber: 1, teamA: allQualifiedTeams[0], teamB: allQualifiedTeams[3], placeholderA: 'Seed 1', placeholderB: 'Seed 4', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'f-1' });
               knockout['Semi-finals'].push({ id: `sf-2`, round: 'Semi-finals', matchNumber: 2, teamA: allQualifiedTeams[1], teamB: allQualifiedTeams[2], placeholderA: 'Seed 2', placeholderB: 'Seed 3', scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'f-1' });

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import type { Match, Team, MatchComment } from '../../types';
 import { Card } from '../shared/Card';
-import { MonitorPlay, MessageSquare, Send, UserCircle, Save, Plus, Minus, Camera, Loader, Shield, Lock, Star, Layout } from 'lucide-react';
+import { MonitorPlay, MessageSquare, Send, UserCircle, Save, Plus, Minus, Camera, Loader, Shield, Lock, Star, Layout, MapPin } from 'lucide-react';
 import { ProofModal } from './ProofModal';
 import { TeamLogo } from '../shared/TeamLogo';
 import type { User } from 'firebase/auth';
@@ -82,11 +82,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     return (
         <>
             <Card className={`!p-0 group transition-all duration-300 relative border border-white/5 overflow-hidden ${isAdminMode ? 'ring-1 ring-brand-special/50' : isMyMatch ? 'ring-1 ring-brand-vibrant/30' : ''}`}>
-                {/* Header Status Bar - Sized Down */}
+                {/* Header Status Bar */}
                 <div className="flex items-center justify-between px-3 py-1.5 bg-black/40 text-[8px] sm:text-[9px] border-b border-white/5 backdrop-blur-md">
                     <div className="flex items-center gap-2 overflow-hidden">
                         <span className="font-black uppercase tracking-widest text-brand-light opacity-60 truncate">
-                            Day {match.matchday} • {match.leg === 1 ? 'Leg 1' : 'Leg 2'}
+                            Matchday {match.matchday} • {match.leg === 1 ? 'Leg 1' : 'Leg 2'}
                         </span>
                         {isMyMatch && (
                             <span className="flex items-center gap-1 px-1.5 py-0.5 bg-brand-vibrant text-white font-black rounded-md uppercase animate-pulse">
@@ -101,35 +101,63 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     </div>
                 </div>
 
+                {/* Home Away Labels - New Section */}
+                <div className="flex justify-between px-4 sm:px-10 pt-4 pointer-events-none">
+                    <div className="flex items-center gap-1.5 text-brand-vibrant">
+                        <MapPin size={10} className="fill-brand-vibrant/20" />
+                        <span className="text-[9px] font-black tracking-[0.2em] uppercase italic">Home</span>
+                    </div>
+                    <div className="text-brand-light/40">
+                        <span className="text-[9px] font-black tracking-[0.2em] uppercase italic">Away</span>
+                    </div>
+                </div>
+
                 {/* Teams & Scores Section */}
-                <div className="p-3 sm:p-5 flex items-center justify-between gap-1 relative bg-gradient-to-br from-brand-secondary/20 to-transparent">
-                    <button onClick={() => onSelectTeam(match.teamA)} className="flex flex-col items-center gap-2 flex-1 min-w-0 z-10 transition-all active:scale-95">
-                        <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-10 h-10 sm:w-14 sm:h-14 shadow-lg" />
-                        <span className="text-[9px] sm:text-[11px] font-black text-white uppercase truncate w-full text-center px-1">{match.teamA.name}</span>
+                <div className="p-3 sm:p-5 pt-1 sm:pt-2 flex items-center justify-between gap-1 relative bg-gradient-to-br from-brand-secondary/20 to-transparent">
+                    {/* Team A (HOME) */}
+                    <button onClick={() => onSelectTeam(match.teamA)} className="flex flex-col items-center gap-2 flex-1 min-w-0 z-10 transition-all active:scale-95 group/team">
+                        <div className="relative">
+                            <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-12 h-12 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-brand-vibrant/20 group-hover/team:ring-brand-vibrant transition-all" />
+                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-brand-vibrant rounded-full flex items-center justify-center border-2 border-brand-primary shadow-lg">
+                                <span className="text-[8px] font-black text-white">H</span>
+                            </div>
+                        </div>
+                        <span className="text-[10px] sm:text-xs font-black text-white uppercase truncate w-full text-center px-1 italic">{match.teamA.name}</span>
                         {isAdminMode && <QuickScoreControl val={editScoreA} setVal={setEditScoreA} label="A" />}
                     </button>
 
-                    <div className="flex flex-col items-center justify-center px-4 shrink-0 z-20 min-w-[50px]">
+                    <div className="flex flex-col items-center justify-center px-4 shrink-0 z-20 min-w-[60px]">
                         {isAdminMode ? (
-                            <button onClick={handleQuickUpdate} disabled={isSaving} className="w-10 h-10 bg-brand-special rounded-xl text-brand-primary active:scale-90 transition-all flex items-center justify-center shadow-lg">
-                                {isSaving ? <Loader className="animate-spin" size={18} /> : <Save size={18} />}
+                            <button onClick={handleQuickUpdate} disabled={isSaving} className="w-12 h-12 bg-brand-special rounded-xl text-brand-primary active:scale-90 transition-all flex items-center justify-center shadow-xl">
+                                {isSaving ? <Loader className="animate-spin" size={20} /> : <Save size={20} />}
                             </button>
                         ) : isFinished ? (
-                            <div className="flex items-center gap-2 text-xl sm:text-3xl font-black text-white bg-black/60 px-3 sm:px-5 py-1 rounded-xl border border-white/10 italic shadow-inner">
-                                <span className={match.scoreA! > match.scoreB! ? 'text-brand-vibrant' : ''}>{match.scoreA}</span>
-                                <span className="opacity-20 text-xs">-</span>
-                                <span className={match.scoreB! > match.scoreA! ? 'text-brand-vibrant' : ''}>{match.scoreB}</span>
+                            <div className="flex flex-col items-center gap-1">
+                                <div className="flex items-center gap-2 text-2xl sm:text-4xl font-black text-white bg-black/60 px-4 sm:px-6 py-2 rounded-2xl border border-white/10 italic shadow-inner">
+                                    <span className={match.scoreA! > match.scoreB! ? 'text-brand-vibrant drop-shadow-[0_0_8px_rgba(37,99,235,0.5)]' : ''}>{match.scoreA}</span>
+                                    <span className="opacity-10 text-lg sm:text-xl">-</span>
+                                    <span className={match.scoreB! > match.scoreA! ? 'text-brand-vibrant drop-shadow-[0_0_8px_rgba(37,99,235,0.5)]' : ''}>{match.scoreB}</span>
+                                </div>
+                                <span className="text-[7px] font-black text-brand-light/30 uppercase tracking-[0.3em]">Full Time</span>
                             </div>
                         ) : (
-                            <div className="bg-brand-vibrant/10 border border-brand-vibrant/20 px-3 py-1 rounded-lg">
-                                <span className="text-xs sm:text-base font-black text-brand-vibrant italic">VS</span>
+                            <div className="flex flex-col items-center gap-1">
+                                <div className="bg-brand-vibrant/10 border border-brand-vibrant/20 px-4 py-1.5 rounded-xl">
+                                    <span className="text-sm sm:text-xl font-black text-brand-vibrant italic tracking-widest">VS</span>
+                                </div>
                             </div>
                         )}
                     </div>
 
-                    <button onClick={() => onSelectTeam(match.teamB)} className="flex flex-col items-center gap-2 flex-1 min-w-0 z-10 transition-all active:scale-95">
-                        <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-10 h-10 sm:w-14 sm:h-14 shadow-lg" />
-                        <span className="text-[9px] sm:text-[11px] font-black text-white uppercase truncate w-full text-center px-1">{match.teamB.name}</span>
+                    {/* Team B (AWAY) */}
+                    <button onClick={() => onSelectTeam(match.teamB)} className="flex flex-col items-center gap-2 flex-1 min-w-0 z-10 transition-all active:scale-95 group/team">
+                        <div className="relative">
+                            <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-12 h-12 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-white/5 group-hover/team:ring-brand-light transition-all" />
+                            <div className="absolute -bottom-1 -left-1 w-5 h-5 bg-brand-accent rounded-full flex items-center justify-center border-2 border-brand-primary shadow-lg">
+                                <span className="text-[8px] font-black text-brand-light">A</span>
+                            </div>
+                        </div>
+                        <span className="text-[10px] sm:text-xs font-black text-white uppercase truncate w-full text-center px-1 italic">{match.teamB.name}</span>
                         {isAdminMode && <QuickScoreControl val={editScoreB} setVal={setEditScoreB} label="B" />}
                     </button>
                 </div>
@@ -138,8 +166,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className="flex items-center justify-between px-3 py-2 bg-black/50 border-t border-white/5">
                     <div className="flex gap-4">
                         {match.proofUrl && (
-                            <button onClick={() => setShowProof(true)} className="flex items-center gap-1.5 text-[9px] font-black text-brand-vibrant uppercase hover:text-white transition-all">
-                                <MonitorPlay size={14} /> Bukti Laga
+                            <button onClick={() => setShowProof(true)} className="flex items-center gap-1.5 text-[9px] font-black text-brand-vibrant uppercase hover:text-white transition-all group/btn">
+                                <MonitorPlay size={14} className="group-hover/btn:scale-110 transition-transform" /> Bukti Laga
                             </button>
                         )}
                         {hasComments && (
@@ -147,9 +175,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         )}
                     </div>
                     
-                    <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1.5 text-[9px] font-black uppercase transition-all py-1.5 px-3 rounded-lg border ${showComments ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-white/5 text-brand-light border-white/5 hover:border-brand-vibrant/30'}`}>
+                    <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1.5 text-[9px] font-black uppercase transition-all py-1.5 px-3 rounded-lg border ${showComments ? 'bg-brand-vibrant text-white border-brand-vibrant shadow-lg' : 'bg-white/5 text-brand-light border-white/5 hover:border-brand-vibrant/30'}`}>
                         <MessageSquare size={12} />
-                        <span>Komentar</span>
+                        <span>Diskusi</span>
                     </button>
                 </div>
 
