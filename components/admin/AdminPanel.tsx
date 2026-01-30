@@ -5,7 +5,7 @@ import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ChevronDown, Check, Menu, Lock, Unlock, Crown, Image as ImageIcon, ShieldCheck, HelpCircle, Bell, ChevronRight, LayoutGrid, CloudCheck, RefreshCw, FileJson, Share2, Layers } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, PlayCircle, StopCircle, Archive, LayoutDashboard, Zap, ChevronDown, Check, Menu, Lock, Unlock, Crown, Image as ImageIcon, ShieldCheck, HelpCircle, Bell, ChevronRight, LayoutGrid, CloudCheck, RefreshCw, FileJson, Share2, Layers, AlertCircle } from 'lucide-react';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { useToast } from '../shared/Toast';
 import { Card } from '../shared/Card';
@@ -32,7 +32,6 @@ interface AdminPanelProps {
   isDoubleRoundRobin: boolean;
   isSyncing?: boolean;
   setMode: (mode: TournamentMode) => void;
-  setRoundRobin: (isDouble: boolean) => void;
   updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => void;
   addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => void;
   updateTeam: (teamId: string, name: string, logoUrl: string, manager?: string | undefined, socialMediaUrl?: string | undefined, whatsappNumber?: string | undefined, isTopSeed?: boolean | undefined, ownerEmail?: string | undefined) => void;
@@ -53,7 +52,6 @@ interface AdminPanelProps {
   manualRemoveTeamFromGroup: (teamId: string, groupId: string) => void;
   generateMatchesFromGroups: () => void;
   setTournamentState: (state: TournamentState) => void;
-  importLegacyData: (jsonData: any) => void;
   finalizeSeason: () => { success: boolean; message: string };
   resumeSeason: () => void;
   startNewSeason: () => void; 
@@ -110,6 +108,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
 
   const currentTabInfo = ADMIN_TABS.find(t => t.id === activeTab);
   const currentModeInfo = MODES.find(m => m.id === mode);
+
+  const handleGenerateBracket = () => {
+      const res = generateKnockoutBracket();
+      if (res.success) {
+          addToast(res.message || 'Bracket generated!', 'success');
+          setShowGenerateBracketConfirm(false);
+      } else {
+          addToast(res.message || 'Gagal generate bracket.', 'error');
+      }
+  };
 
   const renderContent = () => {
     switch(activeTab) {
@@ -171,16 +179,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           <div className="space-y-6">
             {!knockoutStage || Object.values(knockoutStage).every((r: any) => r.length === 0) ? (
               <div className="flex flex-col items-center justify-center py-20 text-center bg-brand-secondary/20 rounded-2xl border border-dashed border-white/10 mx-auto max-w-2xl">
-                <Trophy size={48} className="text-brand-light/20 mb-4" />
-                <h3 className="text-xl font-bold text-brand-text mb-2">Siap untuk Knockout?</h3>
-                <p className="text-brand-light mb-6 text-sm">Generate bracket setelah fase grup selesai.</p>
-                <Button onClick={() => setShowGenerateBracketConfirm(true)}>Otomatis Generate Bracket</Button>
+                <div className="relative mb-6">
+                   <Trophy size={64} className="text-brand-light/10" />
+                   <div className="absolute inset-0 flex items-center justify-center">
+                       <Zap size={32} className="text-brand-special animate-pulse" />
+                   </div>
+                </div>
+                <h3 className="text-2xl font-black text-white italic uppercase mb-2">Group Stage Berakhir?</h3>
+                <p className="text-brand-light mb-8 text-sm max-w-xs mx-auto">
+                    Generate bracket babak gugur secara otomatis berdasarkan <span className="text-brand-special font-bold">Peringkat 1 & 2</span> klasemen grup.
+                </p>
+                <div className="flex flex-col gap-3 w-full px-12">
+                    <Button onClick={() => setShowGenerateBracketConfirm(true)} className="w-full !py-4 shadow-[0_0_20px_rgba(37,99,235,0.3)]">
+                        <PlayCircle size={20} /> OTO-GENERATE BRACKET
+                    </Button>
+                    <div className="flex items-center gap-2 p-3 bg-brand-vibrant/5 rounded-xl border border-brand-vibrant/10 text-[10px] text-brand-light">
+                        <AlertCircle size={14} className="text-brand-vibrant" />
+                        <span>Pastikan semua skor di fase grup sudah diisi untuk akurasi klasemen.</span>
+                    </div>
+                </div>
               </div>
             ) : (
               <div className="space-y-8">
+                <div className="flex justify-end mb-4">
+                    <Button variant="danger" onClick={() => setShowGenerateBracketConfirm(true)} className="!text-[10px] uppercase font-black tracking-widest opacity-50 hover:opacity-100 transition-opacity">
+                        <RefreshCw size={14} /> Re-Generate Bracket
+                    </Button>
+                </div>
                 {(Object.keys(knockoutStage) as Array<keyof KnockoutStageRounds>).map((roundName) => (
                   <Card key={roundName} className="border-white/5 !p-6">
-                    <h3 className="text-sm font-black text-brand-vibrant uppercase mb-4 italic">{roundName}</h3>
+                    <h3 className="text-sm font-black text-brand-vibrant uppercase mb-4 italic flex items-center gap-2">
+                        <Trophy size={16} /> {roundName}
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {knockoutStage[roundName].map((match: KnockoutMatch) => (
                          <KnockoutMatchEditor key={match.id} match={match} onUpdateScore={(id, data) => updateKnockoutMatch(id, { ...match, ...data })} onEdit={() => {}} onDelete={() => {}} />
@@ -190,7 +220,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                 ))}
               </div>
             )}
-            {showGenerateBracketConfirm && <GenerateBracketConfirmationModal onConfirm={() => { generateKnockoutBracket(); setShowGenerateBracketConfirm(false); }} onCancel={() => setShowGenerateBracketConfirm(false)} />}
+            {showGenerateBracketConfirm && (
+                <GenerateBracketConfirmationModal 
+                    onConfirm={handleGenerateBracket} 
+                    onCancel={() => setShowGenerateBracketConfirm(false)} 
+                />
+            )}
           </div>
         );
       case 'banners': return <BannerSettings banners={banners} onUpdateBanners={updateBanners} />;

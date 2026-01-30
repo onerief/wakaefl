@@ -366,6 +366,90 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups, matches: newMatches, knockoutStage: state.knockoutStage } });
       },
       initializeEmptyKnockoutStage: () => dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups, matches: state.matches, knockoutStage: { 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': [] } } }),
+      generateKnockoutBracket: () => {
+          if (state.groups.length === 0) return { success: false, message: 'Tidak ada grup untuk ditarik datanya.' };
+          
+          // Mengurutkan grup berdasarkan alfabet (A, B, C...)
+          const sortedGroups = [...state.groups].sort((a, b) => a.name.localeCompare(b.name));
+          const winners: Team[] = [];
+          const runnersUp: Team[] = [];
+
+          sortedGroups.forEach(g => {
+              if (g.standings.length >= 2) {
+                  winners.push(g.standings[0].team);
+                  runnersUp.push(g.standings[1].team);
+              }
+          });
+
+          if (winners.length < 2) return { success: false, message: 'Butuh minimal 2 grup dengan data klasemen.' };
+
+          const knockout: KnockoutStageRounds = {
+              'Round of 16': [],
+              'Quarter-finals': [],
+              'Semi-finals': [],
+              'Final': []
+          };
+
+          // --- LOGIKA UCL PAIRING (SILANG GRUP) ---
+          // Misal: Juara Grp A vs Runner-up Grp B, dst.
+          const numPairs = winners.length;
+          
+          if (numPairs === 8) { // UCL Round of 16 Standard
+              const roundKey = 'Round of 16';
+              // Pattern: 1A-2B, 1C-2D, 1E-2F, 1G-2H, 1B-2A, 1D-2C, 1F-2E, 1H-2G
+              const pairingOrder = [1, 0, 3, 2, 5, 4, 7, 6]; 
+              for (let i = 0; i < 8; i++) {
+                  knockout[roundKey].push({
+                      id: `km-r16-${i}`, round: roundKey, matchNumber: i + 1,
+                      teamA: winners[i], teamB: runnersUp[pairingOrder[i]],
+                      placeholderA: `Winner Group ${sortedGroups[i].name.split(' ')[1]}`,
+                      placeholderB: `Runner-up Group ${sortedGroups[pairingOrder[i]].name.split(' ')[1]}`,
+                      scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null
+                  });
+              }
+          } else if (numPairs === 4) { // Quarter-finals start (4 groups)
+              const roundKey = 'Quarter-finals';
+              const pairingOrder = [1, 0, 3, 2];
+              for (let i = 0; i < 4; i++) {
+                  knockout[roundKey].push({
+                      id: `km-qf-${i}`, round: roundKey, matchNumber: i + 1,
+                      teamA: winners[i], teamB: runnersUp[pairingOrder[i]],
+                      placeholderA: `Winner Group ${sortedGroups[i].name.split(' ')[1]}`,
+                      placeholderB: `Runner-up Group ${sortedGroups[pairingOrder[i]].name.split(' ')[1]}`,
+                      scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null
+                  });
+              }
+          } else if (numPairs === 2) { // Semi-finals start (2 groups)
+              const roundKey = 'Semi-finals';
+              knockout[roundKey].push({
+                  id: `km-sf-1`, round: roundKey, matchNumber: 1,
+                  teamA: winners[0], teamB: runnersUp[1],
+                  placeholderA: 'Winner Group A', placeholderB: 'Runner-up Group B',
+                  scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null
+              });
+              knockout[roundKey].push({
+                  id: `km-sf-2`, round: roundKey, matchNumber: 2,
+                  teamA: winners[1], teamB: runnersUp[0],
+                  placeholderA: 'Winner Group B', placeholderB: 'Runner-up Group A',
+                  scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null
+              });
+          } else {
+              // Fallback simple pairing
+              const roundKey = numPairs > 4 ? 'Round of 16' : numPairs > 2 ? 'Quarter-finals' : 'Semi-finals';
+              for (let i = 0; i < numPairs; i++) {
+                  knockout[roundKey].push({
+                      id: `km-auto-${i}`, round: roundKey, matchNumber: i + 1,
+                      teamA: winners[i], teamB: runnersUp[(i + 1) % numPairs],
+                      placeholderA: `Winner Grp ${i+1}`,
+                      placeholderB: `Runner-up Grp ${(i+1)%numPairs+1}`,
+                      scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null
+                  });
+              }
+          }
+
+          dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups, matches: state.matches, knockoutStage: knockout } });
+          return { success: true, message: `Bracket Knockout (${winners.length} Tim) berhasil di-generate!` };
+      },
       addKnockoutMatch: (r: keyof KnockoutStageRounds, tA: string | null, tB: string | null, pA: string, pB: string, num: number) => {
           const m: KnockoutMatch = { 
               id: `km-${Date.now()}`, round: r, matchNumber: num, 

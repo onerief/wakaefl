@@ -157,7 +157,7 @@ export const GroupStage: React.FC<GroupStageProps> = ({ groups, onSelectTeam, us
                 `}
               >
                 <div 
-                    ref={el => groupRefs.current[group.id] = el}
+                    ref={el => { groupRefs.current[group.id] = el; }}
                     className="p-4 sm:p-6 pt-0 sm:pt-0"
                 >
                     <div className="h-px bg-white/5 mb-6"></div>
