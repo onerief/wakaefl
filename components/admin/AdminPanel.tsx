@@ -23,6 +23,7 @@ import { GenerateBracketConfirmationModal } from './GenerateBracketConfirmationM
 import { ConfirmationModal } from './ConfirmationModal';
 import { DataManager } from './DataManager';
 import { TeamLogo } from '../shared/TeamLogo';
+import { MatchScheduleEditor } from './MatchScheduleEditor';
 
 interface AdminPanelProps {
   teams: Team[];
@@ -102,6 +103,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const [showGenerateBracketConfirm, setShowGenerateBracketConfirm] = useState(false);
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
   const [isModeSelectorOpen, setIsModeSelectorOpen] = useState(false);
+  
+  // Schedule Editing state
+  const [editingMatchForSchedule, setEditingMatchForSchedule] = useState<Match | null>(null);
 
   const { addToast } = useToast();
   const { 
@@ -111,7 +115,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       banners, updateBanners, partners, updatePartners,
       generateKnockoutBracket, isRegistrationOpen, setRegistrationStatus,
       headerLogoUrl, updateHeaderLogo, history, addHistoryEntry, deleteHistoryEntry,
-      isSyncing, unbindTeam, setTournamentState, getGlobalSeeding
+      isSyncing, unbindTeam, setTournamentState, getGlobalSeeding, updateMatchSchedule
   } = props;
 
   const currentTabInfo = ADMIN_TABS.find(t => t.id === activeTab);
@@ -125,6 +129,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           setKnockoutSubTab('bracket');
       } else {
           addToast(res.message || 'Gagal generate bracket.', 'error');
+      }
+  };
+
+  const handleSaveMatchSchedule = (matchId: string, teamAId: string, teamBId: string) => {
+      if (updateMatchSchedule) {
+          updateMatchSchedule(matchId, teamAId, teamBId);
+          addToast('Tim dalam jadwal berhasil diperbarui!', 'success');
+          setEditingMatchForSchedule(null);
       }
   };
 
@@ -174,12 +186,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                           </div>
                           <div className="space-y-3">
                                {schedule[activeKey]?.map(match => (
-                                  <MatchEditor key={match.id} match={match} onUpdateScore={updateMatchScore} onGenerateSummary={async () => ''} onEditSchedule={() => {}} />
+                                  <MatchEditor key={match.id} match={match} onUpdateScore={updateMatchScore} onGenerateSummary={async () => ''} onEditSchedule={(m) => setEditingMatchForSchedule(m)} />
                               ))}
                           </div>
                       </div>
                   );
               })}
+              
+              {editingMatchForSchedule && (
+                  <MatchScheduleEditor 
+                    match={editingMatchForSchedule} 
+                    teams={teams} 
+                    onSave={handleSaveMatchSchedule} 
+                    onClose={() => setEditingMatchForSchedule(null)} 
+                  />
+              )}
           </div>
         );
       case 'knockout':
@@ -240,6 +261,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                                         <tr key={idx} className={`transition-all ${isTop2 ? 'bg-brand-vibrant/5' : 'hover:bg-white/[0.02]'}`}>
                                             <td className="p-4 relative">
                                                 {isTop2 && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-brand-special shadow-[0_0_10px_#fde047]"></div>}
+                                                {/* Fixed syntax error: added missing opening quote for text-brand-special */}
                                                 <span className={`font-black text-lg ${isTop2 ? 'text-brand-special' : 'text-white'}`}>#{idx + 1}</span>
                                             </td>
                                             <td className="p-4">

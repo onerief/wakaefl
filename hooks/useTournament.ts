@@ -120,6 +120,7 @@ type Action =
   | { type: 'RESOLVE_CLAIM'; payload: { teamId: string; approved: boolean } }
   | { type: 'GENERATE_GROUPS'; payload: { groups: Group[], matches: Match[], knockoutStage: KnockoutStageRounds | null } }
   | { type: 'UPDATE_MATCH_SCORE'; payload: { matchId: string; scoreA: number; scoreB: number; proofUrl?: string } }
+  | { type: 'UPDATE_MATCH_SCHEDULE'; payload: { matchId: string; teamAId: string; teamBId: string } }
   | { type: 'ADD_MATCH_COMMENT'; payload: { matchId: string; comment: MatchComment } }
   | { type: 'UPDATE_KNOCKOUT_MATCH'; payload: KnockoutMatch }
   | { type: 'RESET'; payload: FullTournamentState }
@@ -172,6 +173,24 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'GENERATE_GROUPS': newState = { ...state, ...action.payload }; break;
     case 'UPDATE_MATCH_SCORE': {
       const updatedMatches = state.matches.map(m => m.id === action.payload.matchId ? { ...m, ...action.payload, status: 'finished' as const } : m);
+      newState = { ...state, matches: updatedMatches };
+      break;
+    }
+    case 'UPDATE_MATCH_SCHEDULE': {
+      const { matchId, teamAId, teamBId } = action.payload;
+      const teamA = state.teams.find(t => t.id === teamAId);
+      const teamB = state.teams.find(t => t.id === teamBId);
+      if (!teamA || !teamB) return state;
+      
+      const updatedMatches = state.matches.map(m => m.id === matchId ? { 
+          ...m, 
+          teamA, 
+          teamB,
+          scoreA: null,
+          scoreB: null,
+          status: 'scheduled' as const,
+          proofUrl: ''
+      } : m);
       newState = { ...state, matches: updatedMatches };
       break;
     }
@@ -298,6 +317,8 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       resolveTeamClaim: (teamId: string, approved: boolean) => dispatch({ type: 'RESOLVE_CLAIM', payload: { teamId, approved } }),
       updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => 
         dispatch({ type: 'UPDATE_MATCH_SCORE', payload: { matchId, scoreA, scoreB, proofUrl } }),
+      updateMatchSchedule: (matchId: string, teamAId: string, teamBId: string) =>
+        dispatch({ type: 'UPDATE_MATCH_SCHEDULE', payload: { matchId, teamAId, teamBId } }),
       addMatchComment: (matchId: string, userId: string, userName: string, userEmail: string, text: string, isAdmin: boolean = false) =>
         dispatch({ type: 'ADD_MATCH_COMMENT', payload: { matchId, comment: { id: `c${Date.now()}`, userId, userName, userEmail, text, timestamp: Date.now(), isAdmin } } }),
       updateKnockoutMatch: (id: string, m: KnockoutMatch) => dispatch({ type: 'UPDATE_KNOCKOUT_MATCH', payload: m }),
