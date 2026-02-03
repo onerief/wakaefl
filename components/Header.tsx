@@ -32,12 +32,12 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="sticky top-0 z-50 bg-brand-primary/80 backdrop-blur-md border-b border-white/5 shadow-2xl">
-      <div className="container mx-auto px-4 md:px-8 py-3 flex justify-between items-center">
+      <div className="container mx-auto px-3 md:px-8 py-2.5 sm:py-3 flex justify-between items-center">
         
         {/* Logo Area */}
-        <div className="flex items-center gap-2 sm:gap-3 group cursor-pointer min-w-0" onClick={() => setView('home')}>
+        <div className="flex items-center gap-2 group cursor-pointer min-w-0" onClick={() => setView('home')}>
             {headerLogoUrl ? (
-                <div className="relative h-10 sm:h-12 w-auto flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
+                <div className="relative h-8 sm:h-12 w-auto flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
                     <img 
                         src={headerLogoUrl} 
                         alt="Tournament Logo" 
@@ -47,14 +47,14 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
                 <>
                     <div className="relative flex-shrink-0">
-                        <Shield size={28} className="sm:w-8 sm:h-8 text-brand-vibrant fill-brand-vibrant/20 drop-shadow-[0_0_8px_rgba(37,99,235,0.5)] group-hover:scale-110 transition-transform duration-300"/>
-                        <Zap size={12} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-special animate-pulse sm:w-[14px] sm:h-[14px]" />
+                        <Shield size={24} className="sm:w-8 sm:h-8 text-brand-vibrant fill-brand-vibrant/20 drop-shadow-[0_0_8px_rgba(37,99,235,0.5)] group-hover:scale-110 transition-transform duration-300"/>
+                        <Zap size={10} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-special animate-pulse sm:w-[14px] sm:h-[14px]" />
                     </div>
                     <div className="min-w-0 flex flex-col">
-                        <h1 className="text-base sm:text-lg md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-vibrant to-brand-special tracking-tighter uppercase italic leading-none truncate">
+                        <h1 className="text-sm sm:text-lg md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-vibrant to-brand-special tracking-tighter uppercase italic leading-none truncate">
                             WAY KANAN
                         </h1>
-                        <p className="text-[9px] sm:text-[10px] md:text-xs font-bold text-brand-light tracking-widest uppercase">WAKACL Hub</p>
+                        <p className="text-[7px] sm:text-[10px] md:text-xs font-bold text-brand-light tracking-widest uppercase">WAKACL Hub</p>
                     </div>
                 </>
             )}
@@ -106,7 +106,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span>WAKACL</span>
           </button>
           
-          {/* Admin Button - ONLY Visible if Authenticated */}
           {isAdminAuthenticated && (
             <>
                 <div className="w-px h-6 bg-white/10 mx-1"></div>
@@ -124,7 +123,6 @@ export const Header: React.FC<HeaderProps> = ({
             </>
           )}
           
-          {/* User Auth Section */}
           <div className="w-px h-6 bg-white/10 mx-1"></div>
           
           {currentUser ? (
@@ -149,32 +147,31 @@ export const Header: React.FC<HeaderProps> = ({
                 className="px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-2 bg-brand-vibrant text-white hover:bg-blue-600 shadow-lg shadow-blue-500/20"
               >
                 <LogIn size={14} />
-                <span>Masuk / Daftar</span>
+                <span>Masuk</span>
               </button>
           )}
         </div>
 
         {/* Mobile View Toggle */}
-        <div className="md:hidden flex items-center gap-2">
+        <div className="md:hidden flex items-center gap-1.5">
             <button 
                 onClick={() => setView('home')}
                 className={`p-2 rounded-lg ${currentView === 'home' ? 'text-brand-vibrant bg-white/5' : 'text-brand-light'}`}
             >
-                <Home size={20} />
+                <Home size={18} />
             </button>
             
-            {/* User Mobile Auth */}
              {currentUser ? (
-                <button onClick={onShowProfile} className="p-2 rounded-lg text-brand-light hover:text-brand-vibrant">
+                <button onClick={onShowProfile} className="p-1.5 rounded-lg text-brand-light hover:text-brand-vibrant">
                      {currentUser.photoURL ? (
                           <img src={currentUser.photoURL} alt="Profile" className="w-6 h-6 rounded-full ring-1 ring-brand-vibrant/50" />
                       ) : (
-                          <UserIcon size={20} />
+                          <UserIcon size={18} />
                       )}
                 </button>
              ) : (
                 <button onClick={onUserAuthRequest} className="p-2 rounded-lg text-brand-vibrant bg-white/5">
-                    <LogIn size={20} />
+                    <LogIn size={18} />
                 </button>
              )}
 
@@ -183,7 +180,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={onAdminViewRequest}
                     className={`p-2 transition-colors ${currentView === 'admin' ? 'text-brand-vibrant' : 'text-brand-light hover:text-white'}`}
                 >
-                    <Shield size={20} />
+                    <Shield size={18} />
                 </button>
             )}
         </div>

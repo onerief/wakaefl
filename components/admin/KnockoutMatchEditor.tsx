@@ -1,15 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { KnockoutMatch } from '../../types';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { Save, Trophy, Pencil, Trash2, Plus, Minus } from 'lucide-react';
+import { Save, Trophy, Pencil, Trash2, Plus, Minus, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { TeamLogo } from '../shared/TeamLogo';
 
 interface KnockoutMatchEditorProps {
   match: KnockoutMatch;
-  onUpdateScore: (matchId: string, scores: { scoreA1: number | null, scoreB1: number | null, scoreA2: number | null, scoreB2: number | null }) => void;
+  onUpdateScore: (matchId: string, data: Partial<KnockoutMatch>) => void;
   onEdit: (match: KnockoutMatch) => void;
   onDelete: () => void;
 }
@@ -19,15 +19,37 @@ export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match,
   const [sB1, setSB1] = useState<number | null>(match.scoreB1);
   const [sA2, setSA2] = useState<number | null>(match.scoreA2);
   const [sB2, setSB2] = useState<number | null>(match.scoreB2);
+  const [manualWinnerId, setManualWinnerId] = useState<string | null>(match.winnerId);
+  
   const { addToast } = useToast();
   
   const isEditable = !!match.teamA && !!match.teamB;
   const isFinal = match.round === 'Final';
 
+  const aggA = (sA1 || 0) + (sA2 || 0);
+  const aggB = (sB1 || 0) + (sB2 || 0);
+
+  // Auto-calculate winner
+  const calculatedWinnerId = (() => {
+      if (sA1 === null || sB1 === null) return null;
+      if (!isFinal && (sA2 === null || sB2 === null)) return null;
+
+      if (aggA > aggB) return match.teamA?.id || null;
+      if (aggB > aggA) return match.teamB?.id || null;
+      return manualWinnerId; // Jika seri, gunakan pilihan manual
+  })();
+
   const handleSave = () => {
     if (!isEditable) return;
-    onUpdateScore(match.id, { scoreA1: sA1, scoreB1: sB1, scoreA2: sA2, scoreB2: sB2 });
-    addToast('Skor Knockout disimpan!', 'success');
+    
+    onUpdateScore(match.id, { 
+        scoreA1: sA1, 
+        scoreB1: sB1, 
+        scoreA2: sA2, 
+        scoreB2: sB2,
+        winnerId: calculatedWinnerId
+    });
+    addToast('Skor disimpan & tim otomatis lanjut!', 'success');
   };
 
   const adjust = (leg: 1 | 2, team: 'A' | 'B', delta: number) => {
@@ -65,12 +87,12 @@ export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match,
 
       <div className="space-y-4">
         <div className="flex items-center justify-between text-center gap-2">
-            <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+            <div className={`flex flex-col items-center gap-1 flex-1 min-w-0 transition-opacity ${calculatedWinnerId === match.teamA?.id ? 'opacity-100' : calculatedWinnerId ? 'opacity-30' : 'opacity-100'}`}>
                 <TeamLogo logoUrl={match.teamA?.logoUrl} teamName={teamAName} className="w-10 h-10" />
                 <span className="text-[10px] font-bold text-white truncate w-full uppercase">{teamAName}</span>
             </div>
             <div className="text-brand-light/30 font-black italic">VS</div>
-            <div className="flex flex-col items-center gap-1 flex-1 min-w-0">
+            <div className={`flex flex-col items-center gap-1 flex-1 min-w-0 transition-opacity ${calculatedWinnerId === match.teamB?.id ? 'opacity-100' : calculatedWinnerId ? 'opacity-30' : 'opacity-100'}`}>
                 <TeamLogo logoUrl={match.teamB?.logoUrl} teamName={teamBName} className="w-10 h-10" />
                 <span className="text-[10px] font-bold text-white truncate w-full uppercase">{teamBName}</span>
             </div>
@@ -93,18 +115,43 @@ export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match,
                 </div>
             )}
             
-            {/* Total Aggregate */}
+            {/* Total Aggregate & Result Info */}
             {!isFinal && (
-                <div className="flex items-center justify-center gap-8 pt-2 border-t border-white/5">
-                    <div className="text-xl font-black text-white">{(sA1 || 0) + (sA2 || 0)}</div>
-                    <div className="text-[8px] font-black text-brand-vibrant uppercase bg-brand-vibrant/10 px-2 py-0.5 rounded">AGG</div>
-                    <div className="text-xl font-black text-white">{(sB1 || 0) + (sB2 || 0)}</div>
+                <div className="flex flex-col items-center pt-2 border-t border-white/5">
+                    <div className="flex items-center justify-center gap-8 mb-2">
+                        <div className={`text-xl font-black ${aggA > aggB ? 'text-brand-vibrant' : 'text-white'}`}>{aggA}</div>
+                        <div className="text-[8px] font-black text-brand-light uppercase bg-white/5 px-2 py-0.5 rounded">AGG</div>
+                        <div className={`text-xl font-black ${aggB > aggA ? 'text-brand-vibrant' : 'text-white'}`}>{aggB}</div>
+                    </div>
+
+                    {/* Tie-breaker UI */}
+                    {aggA === aggB && sA1 !== null && sA2 !== null && (
+                        <div className="w-full space-y-2 mt-1">
+                            <p className="text-[8px] font-black text-brand-special uppercase text-center flex items-center justify-center gap-1">
+                                <AlertCircle size={10} /> Skor Seri! Pilih Pemenang Penalti:
+                            </p>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => setManualWinnerId(match.teamA?.id || null)}
+                                    className={`flex-1 py-1 text-[8px] font-black uppercase rounded border transition-all ${manualWinnerId === match.teamA?.id ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-black/40 text-brand-light border-white/10'}`}
+                                >
+                                    {teamAName} Lolos
+                                </button>
+                                <button 
+                                    onClick={() => setManualWinnerId(match.teamB?.id || null)}
+                                    className={`flex-1 py-1 text-[8px] font-black uppercase rounded border transition-all ${manualWinnerId === match.teamB?.id ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-black/40 text-brand-light border-white/10'}`}
+                                >
+                                    {teamBName} Lolos
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
 
-        <Button onClick={handleSave} disabled={!isEditable} className="w-full !py-3 bg-brand-vibrant hover:bg-blue-600 border-none shadow-lg shadow-blue-900/20">
-            <Save size={16}/> <span>Simpan Hasil</span>
+        <Button onClick={handleSave} disabled={!isEditable || (!isFinal && aggA === aggB && !manualWinnerId)} className="w-full !py-3 bg-brand-vibrant hover:bg-blue-600 border-none shadow-lg shadow-blue-900/20">
+            <Save size={16}/> <span>Simpan & Loloskan Tim</span>
         </Button>
       </div>
     </Card>
