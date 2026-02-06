@@ -43,6 +43,7 @@ function AppContent() {
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [showTeamRegistration, setShowTeamRegistration] = useState(false);
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
+  const [globalStats, setGlobalStats] = useState({ teamCount: 0, partnerCount: 0 });
   
   const tournament = useTournament(activeMode, isAdminAuthenticated);
   const { addToast } = useToast();
@@ -62,6 +63,17 @@ function AppContent() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Fetch Global Stats whenever view changes to home or data updates
+  useEffect(() => {
+    if (view === 'home') {
+        const fetchStats = async () => {
+            const stats = await getGlobalStats();
+            setGlobalStats(stats);
+        };
+        fetchStats();
+    }
+  }, [view, tournament.isLoading]);
 
   const handleAdminLoginSuccess = () => {
     setShowAdminLogin(false);
@@ -88,8 +100,6 @@ function AppContent() {
   };
 
   const handleSetView = (newView: View) => {
-    // FIX: When going home, reset activeMode to 'league' (default).
-    // This prevents showing empty data if the user was previously on an empty mode (like 'wakacl' before it has data).
     if (newView === 'home') {
         setActiveMode('league');
     } 
@@ -137,7 +147,18 @@ function AppContent() {
         <Suspense fallback={<div className="flex justify-center py-20"><Spinner size={40} /></div>}>
           {tournament.isLoading ? <DashboardSkeleton /> : (
             <>
-              {view === 'home' && <HomeDashboard onSelectMode={handleSelectMode} teamCount={tournament.teams.length} partnerCount={tournament.partners.length} onRegisterTeam={() => setShowTeamRegistration(true)} isRegistrationOpen={tournament.isRegistrationOpen} userOwnedTeams={userOwnedTeams} allMatches={tournament.matches} news={tournament.news} />}
+              {view === 'home' && (
+                <HomeDashboard 
+                    onSelectMode={handleSelectMode} 
+                    teamCount={globalStats.teamCount || tournament.teams.length} 
+                    partnerCount={globalStats.partnerCount || tournament.partners.length} 
+                    onRegisterTeam={() => setShowTeamRegistration(true)} 
+                    isRegistrationOpen={tournament.isRegistrationOpen} 
+                    userOwnedTeams={userOwnedTeams} 
+                    allMatches={tournament.matches} 
+                    news={tournament.news} 
+                />
+              )}
               {view === 'news' && <NewsPortal news={tournament.news || []} categories={tournament.newsCategories} />}
               {view === 'shop' && <StoreFront products={tournament.products || []} categories={tournament.shopCategories} />}
               {(view === 'privacy' || view === 'about' || view === 'terms') && <StaticPages type={view as any} onBack={() => setView('home')} />}

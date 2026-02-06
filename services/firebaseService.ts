@@ -14,7 +14,8 @@ import {
   deleteDoc,
   initializeFirestore,
   persistentLocalCache,
-  getFirestore
+  getFirestore,
+  getDocs
 } from "firebase/firestore";
 import { 
   getAuth, 
@@ -46,7 +47,6 @@ const firebaseConfig = {
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-// Gunakan persistentLocalCache untuk stabilitas offline dan antar-tab
 const firestore = initializeFirestore(app, { localCache: persistentLocalCache() });
 const auth = getAuth(app);
 const storage = getStorage(app); 
@@ -146,8 +146,6 @@ export const registerUser = (email: string, password: string) => createUserWithE
 export const signInWithGoogle = () => signInWithPopup(auth, new GoogleAuthProvider());
 export const updateUserProfile = (user: User, displayName: string) => updateProfile(user, { displayName });
 
-// --- Restored Full Implementations ---
-
 export const getUserTeams = async (email: string) => { 
     if (!email) return [];
     const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
@@ -182,9 +180,32 @@ export const getTournamentData = async (mode: TournamentMode) => {
 };
 
 export const getGlobalStats = async () => { 
-    // Simplified stub as full global stats across collections is expensive
-    // Can be expanded later if needed
-    return { teamCount: 0, partnerCount: 0 }; 
+    try {
+        const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
+        const uniqueTeamIds = new Set<string>();
+        
+        // Fetch all mode documents to count unique teams
+        for (const mode of modes) {
+            const snap = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
+            if (snap.exists()) {
+                const data = snap.data();
+                const teams = data.teams || [];
+                teams.forEach((t: any) => { if (t.id) uniqueTeamIds.add(t.id); });
+            }
+        }
+
+        // Fetch settings for partner count
+        const settingsSnap = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC));
+        const partnerCount = settingsSnap.exists() ? (settingsSnap.data().partners?.length || 0) : 0;
+
+        return { 
+            teamCount: uniqueTeamIds.size, 
+            partnerCount: partnerCount 
+        };
+    } catch (error) {
+        console.error("Error fetching global stats:", error);
+        return { teamCount: 0, partnerCount: 0 };
+    }
 };
 
 export const uploadTeamLogo = async (file: File) => {
