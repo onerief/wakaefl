@@ -22,7 +22,7 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
         if (contentRef.current && contentRef.current.innerHTML !== value) {
             contentRef.current.innerHTML = value;
         }
-    }, [value]);
+    }, [value]); // Only re-run if value changes externally (e.g. loading edit data)
 
     const handleInput = () => {
         if (contentRef.current) {
@@ -43,43 +43,43 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
                 e.preventDefault();
                 execCommand(command, arg);
             }}
-            className={`p-2 sm:p-2.5 rounded-lg transition-all shrink-0 ${
+            className={`p-2 rounded-lg transition-all ${
                 active 
                 ? 'bg-brand-vibrant text-white shadow-lg' 
                 : 'text-brand-light hover:bg-white/10 hover:text-white'
             }`}
             title={title}
         >
-            <Icon size={16} className="sm:w-5 sm:h-5" />
+            <Icon size={16} />
         </button>
     );
 
     return (
         <div className={`flex flex-col bg-brand-primary border rounded-xl overflow-hidden transition-all ${isFocused ? 'border-brand-vibrant ring-1 ring-brand-vibrant' : 'border-brand-accent'}`}>
-            {/* Toolbar - Scrollable on mobile */}
-            <div className="flex items-center gap-1 p-1.5 sm:p-2 bg-brand-secondary/50 border-b border-white/5 overflow-x-auto no-scrollbar snap-x">
-                <div className="flex gap-0.5 border-r border-white/10 pr-1.5 mr-1.5 snap-start">
-                    <ToolbarButton icon={Heading1} command="formatBlock" arg="H1" title="H1" />
-                    <ToolbarButton icon={Heading2} command="formatBlock" arg="H2" title="H2" />
-                    <ToolbarButton icon={Type} command="formatBlock" arg="P" title="Text" />
+            {/* Toolbar */}
+            <div className="flex flex-wrap items-center gap-1 p-2 bg-brand-secondary/50 border-b border-white/5">
+                <div className="flex gap-0.5 border-r border-white/10 pr-2 mr-2">
+                    <ToolbarButton icon={Heading1} command="formatBlock" arg="H1" title="Heading Besar" />
+                    <ToolbarButton icon={Heading2} command="formatBlock" arg="H2" title="Heading Sedang" />
+                    <ToolbarButton icon={Type} command="formatBlock" arg="P" title="Paragraf Normal" />
                 </div>
                 
-                <div className="flex gap-0.5 border-r border-white/10 pr-1.5 mr-1.5 snap-start">
-                    <ToolbarButton icon={Bold} command="bold" title="Bold" />
-                    <ToolbarButton icon={Italic} command="italic" title="Italic" />
-                    <ToolbarButton icon={Underline} command="underline" title="Underline" />
+                <div className="flex gap-0.5 border-r border-white/10 pr-2 mr-2">
+                    <ToolbarButton icon={Bold} command="bold" title="Tebal" />
+                    <ToolbarButton icon={Italic} command="italic" title="Miring" />
+                    <ToolbarButton icon={Underline} command="underline" title="Garis Bawah" />
                 </div>
 
-                <div className="flex gap-0.5 border-r border-white/10 pr-1.5 mr-1.5 snap-start">
-                    <ToolbarButton icon={AlignLeft} command="justifyLeft" title="Left" />
-                    <ToolbarButton icon={AlignCenter} command="justifyCenter" title="Center" />
-                    <ToolbarButton icon={AlignRight} command="justifyRight" title="Right" />
-                    <ToolbarButton icon={AlignJustify} command="justifyFull" title="Full" />
+                <div className="flex gap-0.5 border-r border-white/10 pr-2 mr-2">
+                    <ToolbarButton icon={AlignLeft} command="justifyLeft" title="Rata Kiri" />
+                    <ToolbarButton icon={AlignCenter} command="justifyCenter" title="Rata Tengah" />
+                    <ToolbarButton icon={AlignRight} command="justifyRight" title="Rata Kanan" />
+                    <ToolbarButton icon={AlignJustify} command="justifyFull" title="Justify" />
                 </div>
 
-                <div className="flex gap-0.5 snap-start">
-                    <ToolbarButton icon={List} command="insertUnorderedList" title="Bullets" />
-                    <ToolbarButton icon={ListOrdered} command="insertOrderedList" title="Numbers" />
+                <div className="flex gap-0.5">
+                    <ToolbarButton icon={List} command="insertUnorderedList" title="Bullet List" />
+                    <ToolbarButton icon={ListOrdered} command="insertOrderedList" title="Numbering" />
                 </div>
             </div>
 
@@ -90,20 +90,25 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
                 onInput={handleInput}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
-                className="min-h-[250px] sm:min-h-[350px] p-4 text-white text-xs sm:text-sm outline-none overflow-y-auto prose prose-invert max-w-none custom-list-style"
-                style={{ lineHeight: '1.6' }}
+                className="min-h-[250px] p-4 text-white text-sm outline-none overflow-y-auto prose prose-invert max-w-none custom-list-style"
+                style={{
+                    lineHeight: '1.6'
+                }}
             />
             
+            {/* CSS Injection for List Styles inside Editor */}
             <style>{`
                 .custom-list-style ul { list-style-type: disc; padding-left: 1.5em; margin: 0.5em 0; }
                 .custom-list-style ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.5em 0; }
                 .custom-list-style h1 { font-size: 1.5em; font-weight: 800; margin: 0.5em 0; color: #fff; }
                 .custom-list-style h2 { font-size: 1.25em; font-weight: 700; margin: 0.5em 0; color: #e2e8f0; }
                 .custom-list-style p { margin-bottom: 0.5em; }
+                .custom-list-style b, .custom-list-style strong { color: #f8fafc; font-weight: 800; }
+                .custom-list-style blockquote { border-left: 4px solid #2563eb; padding-left: 1em; font-style: italic; color: #94a3b8; }
             `}</style>
 
             {!value && !isFocused && (
-                <div className="absolute top-[105px] sm:top-[115px] left-4 text-brand-light/30 text-[11px] sm:text-sm pointer-events-none italic">
+                <div className="absolute top-[110px] left-4 text-brand-light/30 text-sm pointer-events-none">
                     {placeholder || 'Mulai menulis berita...'}
                 </div>
             )}

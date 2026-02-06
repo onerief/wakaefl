@@ -14,7 +14,7 @@ import {
   deleteDoc,
   initializeFirestore,
   persistentLocalCache,
-  persistentMultipleTabManager
+  getFirestore
 } from "firebase/firestore";
 import { 
   getAuth, 
@@ -46,7 +46,8 @@ const firebaseConfig = {
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const firestore = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+// Removed persistentMultipleTabManager to prevent connection locks between tabs which can cause data sync issues
+const firestore = initializeFirestore(app, { localCache: persistentLocalCache() });
 const auth = getAuth(app);
 const storage = getStorage(app); 
 
@@ -91,10 +92,44 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
 export const subscribeToTournamentData = (mode: TournamentMode, callback: (data: TournamentState) => void) => {
     const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
-    let modeData: any = null; let globalData: any = null;
-    const emit = () => { if (modeData && globalData) callback({ ...modeData, banners: globalData.banners || [], partners: globalData.partners || [], rules: globalData.rules || '', headerLogoUrl: globalData.headerLogoUrl || '' }); };
-    const unsubMode = onSnapshot(modeDocRef, (snap) => { if (snap.exists()) { modeData = snap.data(); emit(); } });
-    const unsubGlobal = onSnapshot(settingsDocRef, (snap) => { if (snap.exists()) { globalData = snap.data(); emit(); } });
+    
+    // Initialize as undefined to track loading state separately for each doc
+    let modeData: any = undefined; 
+    let globalData: any = undefined;
+
+    const emit = () => { 
+        // Only emit when both documents have returned (either with data or null if missing)
+        if (modeData !== undefined && globalData !== undefined) { 
+            const safeModeData = modeData || {};
+            const safeGlobalData = globalData || {};
+            
+            callback({ 
+                ...safeModeData, 
+                banners: safeGlobalData.banners || [], 
+                partners: safeGlobalData.partners || [], 
+                rules: safeGlobalData.rules || '', 
+                headerLogoUrl: safeGlobalData.headerLogoUrl || '' 
+            }); 
+        } 
+    };
+
+    const unsubMode = onSnapshot(modeDocRef, (snap) => { 
+        modeData = snap.exists() ? snap.data() : null; 
+        emit(); 
+    }, (error) => {
+        console.error("Error subscribing to tournament mode:", error);
+        // Handle error by assuming null data so app doesn't hang
+        if (modeData === undefined) { modeData = null; emit(); }
+    });
+
+    const unsubGlobal = onSnapshot(settingsDocRef, (snap) => { 
+        globalData = snap.exists() ? snap.data() : null; 
+        emit(); 
+    }, (error) => {
+        console.error("Error subscribing to global settings:", error);
+        if (globalData === undefined) { globalData = null; emit(); }
+    });
+
     return () => { unsubMode(); unsubGlobal(); };
 };
 
