@@ -88,7 +88,14 @@ function AppContent() {
   };
 
   const handleSetView = (newView: View) => {
-    if (['league', 'wakacl', 'two_leagues'].includes(newView)) setActiveMode(newView as TournamentMode);
+    // FIX: When going home, reset activeMode to 'league' (default).
+    // This prevents showing empty data if the user was previously on an empty mode (like 'wakacl' before it has data).
+    if (newView === 'home') {
+        setActiveMode('league');
+    } 
+    else if (['league', 'wakacl', 'two_leagues'].includes(newView)) {
+        setActiveMode(newView as TournamentMode);
+    }
     setView(newView);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }

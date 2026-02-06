@@ -46,13 +46,15 @@ const firebaseConfig = {
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-// Removed persistentMultipleTabManager to prevent connection locks between tabs which can cause data sync issues
+// Gunakan persistentLocalCache untuk stabilitas offline dan antar-tab
 const firestore = initializeFirestore(app, { localCache: persistentLocalCache() });
 const auth = getAuth(app);
 const storage = getStorage(app); 
 
 const TOURNAMENT_COLLECTION = 'tournament';
 const SETTINGS_DOC = 'global_settings';
+const CHAT_COLLECTION = 'global_chat';
+const REGISTRATIONS_COLLECTION = 'registrations';
 
 export const sanitizeData = (data: any): any => {
     if (!data) return null;
@@ -93,18 +95,23 @@ export const subscribeToTournamentData = (mode: TournamentMode, callback: (data:
     const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
     
-    // Initialize as undefined to track loading state separately for each doc
     let modeData: any = undefined; 
     let globalData: any = undefined;
 
     const emit = () => { 
-        // Only emit when both documents have returned (either with data or null if missing)
         if (modeData !== undefined && globalData !== undefined) { 
             const safeModeData = modeData || {};
             const safeGlobalData = globalData || {};
             
             callback({ 
-                ...safeModeData, 
+                ...safeModeData,
+                teams: safeModeData.teams || [],
+                groups: safeModeData.groups || [],
+                matches: safeModeData.matches || [],
+                news: safeModeData.news || [],
+                history: safeModeData.history || [],
+                products: safeModeData.products || [],
+                
                 banners: safeGlobalData.banners || [], 
                 partners: safeGlobalData.partners || [], 
                 rules: safeGlobalData.rules || '', 
@@ -118,7 +125,6 @@ export const subscribeToTournamentData = (mode: TournamentMode, callback: (data:
         emit(); 
     }, (error) => {
         console.error("Error subscribing to tournament mode:", error);
-        // Handle error by assuming null data so app doesn't hang
         if (modeData === undefined) { modeData = null; emit(); }
     });
 
@@ -139,14 +145,153 @@ export const signInUser = (email: string, password: string) => signInWithEmailAn
 export const registerUser = (email: string, password: string) => createUserWithEmailAndPassword(auth, email, password);
 export const signInWithGoogle = () => signInWithPopup(auth, new GoogleAuthProvider());
 export const updateUserProfile = (user: User, displayName: string) => updateProfile(user, { displayName });
-export const getUserTeams = async (email: string) => { return []; }; 
-export const getTournamentData = async (mode: TournamentMode) => { return null; };
-export const getGlobalStats = async (mode: any, data: any) => { return { teamCount: 0, partnerCount: 0 }; };
-export const uploadTeamLogo = async (file: File) => { return ""; };
-export const submitNewTeamRegistration = async (data: any, email: string) => { return ""; };
-export const deleteRegistration = async (id: string) => {};
-export const subscribeToRegistrations = (cb: any, err: any) => { return () => {}; };
-export const subscribeToGlobalChat = (cb: any) => { return () => {}; };
-export const sendGlobalChatMessage = async (t: string, u: any, a: boolean) => {};
-export const submitTeamClaimRequest = async (m: any, t: string, e: string) => {};
-export const updateUserTeamData = async (m: any, t: string, u: any) => {};
+
+// --- Restored Full Implementations ---
+
+export const getUserTeams = async (email: string) => { 
+    if (!email) return [];
+    const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
+    const results: { mode: TournamentMode, team: Team }[] = [];
+
+    try {
+        for (const mode of modes) {
+            const docRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+            const snap = await getDoc(docRef);
+            if (snap.exists()) {
+                const data = snap.data();
+                const teams = data.teams || [];
+                const owned = teams.filter((t: any) => t.ownerEmail && t.ownerEmail.toLowerCase() === email.toLowerCase());
+                results.push(...owned.map((t: any) => ({ mode, team: t })));
+            }
+        }
+    } catch (error) {
+        console.error("Error fetching user teams:", error);
+    }
+    return results;
+};
+
+export const getTournamentData = async (mode: TournamentMode) => { 
+    try {
+        const docRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+        const snap = await getDoc(docRef);
+        return snap.exists() ? snap.data() : null;
+    } catch (error) {
+        console.error("Error getting tournament data:", error);
+        return null;
+    }
+};
+
+export const getGlobalStats = async () => { 
+    // Simplified stub as full global stats across collections is expensive
+    // Can be expanded later if needed
+    return { teamCount: 0, partnerCount: 0 }; 
+};
+
+export const uploadTeamLogo = async (file: File) => {
+    try {
+        const storageRef = ref(storage, `team-logos/${Date.now()}-${file.name}`);
+        const snapshot = await uploadBytes(storageRef, file);
+        return await getDownloadURL(snapshot.ref);
+    } catch (error) {
+        console.error("Error uploading logo:", error);
+        throw error;
+    }
+};
+
+export const submitNewTeamRegistration = async (data: any, email: string) => {
+    try {
+        const docRef = await addDoc(collection(firestore, REGISTRATIONS_COLLECTION), {
+            ...data,
+            submittedBy: email,
+            timestamp: Date.now(),
+            status: 'pending'
+        });
+        return docRef.id;
+    } catch (error) {
+        console.error("Error submitting registration:", error);
+        throw error;
+    }
+};
+
+export const deleteRegistration = async (id: string) => {
+    try {
+        await deleteDoc(doc(firestore, REGISTRATIONS_COLLECTION, id));
+    } catch (error) {
+        console.error("Error deleting registration:", error);
+        throw error;
+    }
+};
+
+export const subscribeToRegistrations = (callback: (regs: any[]) => void, onError: (error: any) => void) => {
+    const q = query(collection(firestore, REGISTRATIONS_COLLECTION), orderBy("timestamp", "desc"));
+    return onSnapshot(q, (snapshot) => {
+        const regs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(regs);
+    }, onError);
+};
+
+export const subscribeToGlobalChat = (callback: (messages: ChatMessage[]) => void) => {
+    const q = query(
+        collection(firestore, CHAT_COLLECTION), 
+        orderBy("timestamp", "desc"), 
+        limit(50)
+    );
+    return onSnapshot(q, (snapshot) => {
+        const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage)).reverse();
+        callback(messages);
+    }, (error) => {
+        console.error("Chat subscription error:", error);
+    });
+};
+
+export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: boolean) => {
+    try {
+        await addDoc(collection(firestore, CHAT_COLLECTION), {
+            text,
+            userId: user.uid,
+            userName: user.displayName || 'Anonymous',
+            userPhoto: user.photoURL,
+            timestamp: Date.now(),
+            isAdmin
+        });
+    } catch (error) {
+        console.error("Error sending message:", error);
+        throw error;
+    }
+};
+
+export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: string, email: string) => {
+    const docRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+    await runTransaction(firestore, async (transaction) => {
+        const docSnap = await transaction.get(docRef);
+        if (!docSnap.exists()) throw new Error("Tournament data not found");
+        
+        const data = docSnap.data();
+        const teams = data.teams || [];
+        const teamIndex = teams.findIndex((t: any) => t.id === teamId);
+        
+        if (teamIndex === -1) throw new Error("Team not found");
+        if (teams[teamIndex].ownerEmail) throw new Error("Team is already owned");
+        
+        teams[teamIndex] = { ...teams[teamIndex], requestedOwnerEmail: email };
+        transaction.update(docRef, { teams });
+    });
+};
+
+export const updateUserTeamData = async (mode: TournamentMode, teamId: string, updates: Partial<Team>) => {
+    const docRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+    await runTransaction(firestore, async (transaction) => {
+        const docSnap = await transaction.get(docRef);
+        if (!docSnap.exists()) throw new Error("Tournament data not found");
+        
+        const data = docSnap.data();
+        const teams = data.teams || [];
+        const teamIndex = teams.findIndex((t: any) => t.id === teamId);
+        
+        if (teamIndex === -1) throw new Error("Team not found");
+        
+        // Merge updates securely
+        teams[teamIndex] = { ...teams[teamIndex], ...updates };
+        transaction.update(docRef, { teams });
+    });
+};
