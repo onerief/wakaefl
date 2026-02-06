@@ -5,8 +5,6 @@ import { GroupStage } from './GroupStage';
 import { MatchCard } from './MatchList';
 import { KnockoutStageView } from './KnockoutStageView';
 import { RulesView } from './RulesView';
-import { BannerCarousel } from './BannerCarousel';
-import { MarqueeBanner } from './MarqueeBanner';
 import { Users, ListChecks, Trophy, BookOpen, Crown, ChevronDown, Zap, ShieldCheck, Star, Lock, Calendar, Info } from 'lucide-react';
 import type { User } from 'firebase/auth';
 
@@ -15,7 +13,6 @@ interface PublicViewProps {
   matches: Match[];
   knockoutStage: KnockoutStageRounds | null;
   rules: string;
-  banners: string[];
   onSelectTeam: (team: Team) => void;
   currentUser?: User | null;
   onAddMatchComment?: (matchId: string, text: string) => void;
@@ -70,7 +67,7 @@ const MobileTabButton: React.FC<{
 );
 
 export const PublicView: React.FC<PublicViewProps> = ({ 
-    groups, matches, knockoutStage, rules, banners, onSelectTeam, 
+    groups, matches, knockoutStage, rules, onSelectTeam, 
     currentUser, onAddMatchComment, isAdmin, onUpdateMatchScore, onUpdateKnockoutScore,
     userOwnedTeamIds = []
 }) => {
@@ -81,7 +78,6 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
   const hasMyTeam = userOwnedTeamIds.length > 0;
 
-  // AUTO-FOCUS: Mencari Matchday pertama yang belum selesai
   useEffect(() => {
     if (groups.length === 0 || matches.length === 0) return;
 
@@ -169,7 +165,6 @@ export const PublicView: React.FC<PublicViewProps> = ({
                 const leg1Days = Array.from(new Set(groupMatches.filter(m => m.leg === 1).map(m => m.matchday))).filter((d): d is number => d !== undefined).sort((a, b) => a - b);
                 const leg2Days = Array.from(new Set(groupMatches.filter(m => m.leg === 2).map(m => m.matchday))).filter((d): d is number => d !== undefined).sort((a, b) => a - b);
 
-                // Grouping dengan kunci L[Leg]-D[Matchday]
                 const schedule = groupMatches.reduce((acc, match) => {
                     const key = `L${match.leg || 1}-D${match.matchday || 1}`;
                     if (!acc[key]) acc[key] = [];
@@ -305,11 +300,8 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
   return (
     <div className="space-y-6 pb-24 md:pb-12">
-        <MarqueeBanner />
-        {banners && banners.length > 0 && <BannerCarousel banners={banners} />}
-        
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex justify-center mb-10 sticky top-24 z-40">
+        {/* Desktop Navigation Sub-Tabs - Adjusted top for better spacing below main Nav */}
+        <div className="hidden md:flex justify-center mb-10 sticky top-52 z-30">
             <div className="flex bg-brand-secondary/90 backdrop-blur-2xl p-1.5 rounded-full border border-white/10 shadow-2xl">
                 <TabButton isActive={activeTab === 'groups'} onClick={() => setActiveTab('groups')}><Users size={16}/> <span>Groups</span></TabButton>
                 <TabButton isActive={activeTab === 'fixtures'} onClick={() => setActiveTab('fixtures')}><ListChecks size={16}/> <span>Fixtures</span></TabButton>
@@ -321,7 +313,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 relative z-10">{renderContent()}</div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation Navigation (Bottom) */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-brand-secondary/95 backdrop-blur-2xl border-t border-white/10 z-[60] h-[72px] shadow-2xl">
              <div className="grid grid-cols-5 h-full items-center px-2">
                 <MobileTabButton isActive={activeTab === 'groups'} onClick={() => setActiveTab('groups')} label="Grup" icon={<Users size={20} />} />

@@ -1,14 +1,21 @@
 
 import React, { useState, useEffect, Suspense, lazy, useMemo } from 'react';
 import { Header } from './components/Header';
-// Lazy load components for code splitting
+import { NavigationMenu } from './components/NavigationMenu';
+import { MarqueeBanner } from './components/public/MarqueeBanner';
+import { BannerCarousel } from './components/public/BannerCarousel';
+
+// Lazy load components
 const PublicView = lazy(() => import('./components/public/PublicView').then(module => ({ default: module.PublicView })));
 const HomeDashboard = lazy(() => import('./components/public/HomeDashboard').then(module => ({ default: module.HomeDashboard })));
 const HallOfFame = lazy(() => import('./components/public/HallOfFame').then(module => ({ default: module.HallOfFame })));
+const NewsPortal = lazy(() => import('./components/public/NewsPortal').then(module => ({ default: module.NewsPortal })));
+const StoreFront = lazy(() => import('./components/public/StoreFront').then(module => ({ default: module.StoreFront })));
+const StaticPages = lazy(() => import('./components/public/StaticPages').then(module => ({ default: module.StaticPages })));
 const AdminPanel = lazy(() => import('./components/admin/AdminPanel').then(module => ({ default: module.AdminPanel })));
 
 import { useTournament } from './hooks/useTournament';
-import type { View, Team, TournamentMode, SeasonHistory, Match } from './types';
+import type { View, Team, TournamentMode, SeasonHistory, Match, KnockoutMatch, NewsItem, Product } from './types';
 import { Login } from './components/admin/Login';
 import { UserAuthModal } from './components/auth/UserAuthModal';
 import { ToastProvider } from './components/shared/Toast';
@@ -23,31 +30,20 @@ import { Footer } from './components/Footer';
 import type { User } from 'firebase/auth';
 import { GlobalChat } from './components/public/GlobalChat';
 
-// HANYA email di bawah ini yang bisa mengakses panel admin
-const ADMIN_EMAILS = ['admin@banjit.com', 'admin@baradatu.com', 'admin@waykanan.com'];
+export const ADMIN_EMAILS = ['admin@banjit.com', 'admin@baradatu.com', 'admin@waykanan.com'];
 
 function AppContent() {
   const [view, setView] = useState<View>('home');
   const [activeMode, setActiveMode] = useState<TournamentMode>('league');
-  
-  // Auth States
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-  
-  // User Teams States
   const [userOwnedTeams, setUserOwnedTeams] = useState<{ mode: TournamentMode, team: Team }[]>([]);
-  
-  // Modals
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [showUserAuth, setShowUserAuth] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
   const [showTeamRegistration, setShowTeamRegistration] = useState(false);
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
   
-  // Global States
-  const [globalStats, setGlobalStats] = useState({ teamCount: 0, partnerCount: 0 });
-  const [allHistory, setAllHistory] = useState<SeasonHistory[]>([]);
-
   const tournament = useTournament(activeMode, isAdminAuthenticated);
   const { addToast } = useToast();
 
@@ -57,180 +53,107 @@ function AppContent() {
       if (user && user.email) {
           const isAllowedAdmin = ADMIN_EMAILS.includes(user.email.toLowerCase());
           setIsAdminAuthenticated(isAllowedAdmin);
-          
-          if (!isAllowedAdmin && view === 'admin') {
-              setView('home');
-              addToast('Akses ditolak. Anda bukan admin.', 'error');
-          }
-
-          // Fetch user owned teams for intelligent scheduling
           const owned = await getUserTeams(user.email);
           setUserOwnedTeams(owned);
       } else {
           setIsAdminAuthenticated(false);
           setUserOwnedTeams([]);
-          if (view === 'admin') setView('home');
       }
     });
     return () => unsubscribe();
-  }, [view]);
+  }, []);
 
-  // Combined History Logic
-  useEffect(() => {
-      const fetchAllHistory = async () => {
-          const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
-          const historyPromises = modes.map(m => getTournamentData(m));
-          const results = await Promise.all(historyPromises);
-          
-          let combined: SeasonHistory[] = [];
-          results.forEach((data, idx) => {
-              if (data && data.history) {
-                  const modeHistory = data.history.map(h => ({ ...h, mode: h.mode || modes[idx] }));
-                  combined = [...combined, ...modeHistory];
-              }
-          });
-          
-          setAllHistory(combined.sort((a, b) => b.dateCompleted - a.dateCompleted));
-      };
-
-      if (view === 'hall_of_fame' || view === 'home') {
-          fetchAllHistory();
-      }
-  }, [view, tournament.status]);
-
-  useEffect(() => {
-      const fetchStats = async () => {
-          const stats = await getGlobalStats(activeMode, {
-              teams: tournament.teams,
-              partners: tournament.partners
-          });
-          setGlobalStats(stats);
-      };
-      fetchStats();
-  }, [view, tournament.partners, tournament.teams, activeMode]); 
-
-  const handleAdminViewRequest = () => {
-    if (isAdminAuthenticated) setView('admin');
-    else setShowAdminLogin(true);
+  const handleAdminLoginSuccess = () => {
+    setShowAdminLogin(false);
+    setView('admin');
+    addToast('Selamat datang Admin!', 'success');
   };
 
-  const handleSelectMode = (mode: TournamentMode | 'hall_of_fame') => {
+  const handleLogout = async () => {
+    try {
+      await signOutUser();
+      setView('home');
+      setShowUserProfile(false);
+      addToast('Berhasil keluar.', 'info');
+    } catch (error) {
+      addToast('Gagal keluar.', 'error');
+    }
+  };
+
+  const handleSelectMode = (mode: TournamentMode | 'hall_of_fame' | 'news' | 'shop') => {
     if (mode === 'hall_of_fame') setView('hall_of_fame');
-    else { setActiveMode(mode); setView(mode as View); }
+    else if (mode === 'news') setView('news');
+    else if (mode === 'shop') setView('shop');
+    else { setActiveMode(mode as TournamentMode); setView(mode as View); }
   };
 
   const handleSetView = (newView: View) => {
-    if (newView === 'league' || newView === 'wakacl' || newView === 'two_leagues') setActiveMode(newView as TournamentMode);
+    if (['league', 'wakacl', 'two_leagues'].includes(newView)) setActiveMode(newView as TournamentMode);
     setView(newView);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  const handleLogout = async () => {
-      await signOutUser();
-      addToast('Anda telah keluar.', 'info');
-      setView('home');
-      setShowUserProfile(false);
-  }
-
-  const handleAddComment = (matchId: string, text: string) => {
-      if (!currentUser) { addToast('Silakan login terlebih dahulu.', 'error'); return; }
-      tournament.addMatchComment(matchId, currentUser.uid, currentUser.displayName || currentUser.email || 'User', currentUser.email || '', text, isAdminAuthenticated);
-  }
-
-  const handleRegisterTeamRequest = () => {
-      if (!currentUser) { addToast('Silakan login atau daftar akun terlebih dahulu.', 'info'); setShowUserAuth(true); }
-      else setShowTeamRegistration(true);
-  }
-
-  const userOwnedTeamIds = useMemo(() => userOwnedTeams.map(t => t.team.id), [userOwnedTeams]);
-
-  let currentLeader: Team | null = null;
-  if (tournament.groups.length > 0 && activeMode === 'league') {
-      const allStandings = tournament.groups.flatMap(g => g.standings).sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
-      if (allStandings.length > 0) currentLeader = allStandings[0].team;
-  } else if (tournament.knockoutStage?.Final?.[0]?.winnerId) {
-      const winnerId = tournament.knockoutStage.Final[0].winnerId;
-      currentLeader = tournament.teams.find(t => t.id === winnerId) || null;
-  }
+  const showBanners = view !== 'admin' && view !== 'hall_of_fame' && !['privacy', 'about', 'terms'].includes(view);
 
   return (
     <div className="min-h-screen font-sans flex flex-col relative selection:bg-brand-vibrant selection:text-white overflow-x-hidden">
-      <div className="fixed inset-0 bg-brand-primary z-[-1] overflow-hidden">
-         <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: `linear-gradient(rgba(37, 99, 235, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(37, 99, 235, 0.2) 1px, transparent 1px)`, backgroundSize: '40px 40px' }} />
-         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-brand-vibrant/20 blur-[140px] rounded-full animate-pulse-slow"></div>
-         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-brand-special/10 blur-[140px] rounded-full animate-pulse-slow" style={{ animationDelay: '1.5s' }}></div>
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-brand-vibrant/5 blur-[160px] rounded-full pointer-events-none"></div>
-         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(2,6,23,0.8)_100%)] pointer-events-none" />
+      <div className="fixed inset-0 bg-brand-primary z-[-1]">
+         <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: `linear-gradient(rgba(37, 99, 235, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(37, 99, 235, 0.2) 1px, transparent 1px)`, backgroundSize: '40px 40px' }} />
+         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-brand-vibrant/20 blur-[140px] rounded-full"></div>
       </div>
       
-      <Header currentView={view} setView={handleSetView} isAdminAuthenticated={isAdminAuthenticated} onAdminViewRequest={handleAdminViewRequest} onLogout={handleLogout} currentUser={currentUser} onUserAuthRequest={() => setShowUserAuth(true)} onUserLogout={handleLogout} onShowProfile={() => setShowUserProfile(true)} headerLogoUrl={tournament.headerLogoUrl} />
+      <Header 
+        currentView={view} 
+        setView={handleSetView} 
+        isAdminAuthenticated={isAdminAuthenticated} 
+        onAdminViewRequest={() => setView('admin')} 
+        onLogout={handleLogout} 
+        currentUser={currentUser} 
+        onUserAuthRequest={() => setShowUserAuth(true)} 
+        onUserLogout={handleLogout} 
+        onShowProfile={() => setShowUserProfile(true)} 
+        headerLogoUrl={tournament.headerLogoUrl} 
+      />
+
+      {showBanners && (
+          <div className="w-full flex flex-col">
+              <MarqueeBanner />
+              <div className="container mx-auto px-4 pt-6">
+                {tournament.banners && tournament.banners.length > 0 && <BannerCarousel banners={tournament.banners} />}
+              </div>
+          </div>
+      )}
+
+      {view !== 'admin' && <NavigationMenu currentView={view} setView={handleSetView} />}
       
-      <main className="container mx-auto px-3 py-4 md:p-8 pb-32 md:pb-8 flex-grow relative z-20">
+      <main className="container mx-auto px-4 py-6 md:p-8 flex-grow relative z-20">
         <Suspense fallback={<div className="flex justify-center py-20"><Spinner size={40} /></div>}>
-          {tournament.isLoading ? (
-             <DashboardSkeleton />
-          ) : (
+          {tournament.isLoading ? <DashboardSkeleton /> : (
             <>
-              {view === 'home' && (
-                <HomeDashboard 
-                    onSelectMode={handleSelectMode} 
-                    teamCount={globalStats.teamCount} 
-                    partnerCount={globalStats.partnerCount} 
-                    banners={tournament.banners} 
-                    onRegisterTeam={handleRegisterTeamRequest} 
-                    isRegistrationOpen={tournament.isRegistrationOpen} 
-                    userOwnedTeams={userOwnedTeams}
-                    allMatches={tournament.matches}
-                />
+              {view === 'home' && <HomeDashboard onSelectMode={handleSelectMode} teamCount={tournament.teams.length} partnerCount={tournament.partners.length} onRegisterTeam={() => setShowTeamRegistration(true)} isRegistrationOpen={tournament.isRegistrationOpen} userOwnedTeams={userOwnedTeams} allMatches={tournament.matches} news={tournament.news} />}
+              {view === 'news' && <NewsPortal news={tournament.news || []} categories={tournament.newsCategories} />}
+              {view === 'shop' && <StoreFront products={tournament.products || []} categories={tournament.shopCategories} />}
+              {(view === 'privacy' || view === 'about' || view === 'terms') && <StaticPages type={view as any} onBack={() => setView('home')} />}
+              {(['league', 'wakacl', 'two_leagues'] as View[]).includes(view) && (
+                <PublicView groups={tournament.groups} matches={tournament.matches} knockoutStage={(view === 'wakacl' || view === 'two_leagues') ? tournament.knockoutStage : null} rules={tournament.rules} onSelectTeam={setViewingTeam} currentUser={currentUser} onAddMatchComment={tournament.addMatchComment} isAdmin={isAdminAuthenticated} onUpdateMatchScore={tournament.updateMatchScore} onUpdateKnockoutScore={tournament.updateKnockoutMatch} userOwnedTeamIds={userOwnedTeams.map(t => t.team.id)} />
               )}
-              {(view === 'league' || view === 'wakacl' || view === 'two_leagues') && (
-                <PublicView 
-                    groups={tournament.groups} 
-                    matches={tournament.matches} 
-                    knockoutStage={(view === 'wakacl' || view === 'two_leagues') ? tournament.knockoutStage : null} 
-                    rules={tournament.rules} 
-                    banners={tournament.banners} 
-                    onSelectTeam={setViewingTeam} 
-                    currentUser={currentUser} 
-                    onAddMatchComment={handleAddComment}
-                    isAdmin={isAdminAuthenticated}
-                    onUpdateMatchScore={tournament.updateMatchScore}
-                    onUpdateKnockoutScore={(id, data) => tournament.updateKnockoutMatch(id, { ...tournament.knockoutStage![data.round].find(m => m.id === id)!, ...data })}
-                    userOwnedTeamIds={userOwnedTeamIds}
-                />
-              )}
-              {view === 'hall_of_fame' && (
-                <HallOfFame history={allHistory} currentStatus={tournament.status} mode={activeMode} currentLeader={currentLeader} onBack={() => setView('home')} />
-              )}
-              {view === 'admin' && isAdminAuthenticated && (
-                <AdminPanel 
-                    {...tournament} 
-                    mode={activeMode} 
-                    setMode={setActiveMode} 
-                    setTournamentState={tournament.setTournamentState}
-                />
-              )}
+              {view === 'hall_of_fame' && <HallOfFame history={tournament.history} currentStatus={tournament.status} mode={activeMode} onBack={() => setView('home')} />}
+              {view === 'admin' && isAdminAuthenticated && <AdminPanel {...tournament} mode={activeMode} setMode={setActiveMode} onUpdateNews={tournament.updateNews} updateProducts={tournament.updateProducts} updateNewsCategories={tournament.updateNewsCategories} updateShopCategories={tournament.updateShopCategories} />}
             </>
           )}
         </Suspense>
       </main>
       
       <GlobalChat currentUser={currentUser} isAdmin={isAdminAuthenticated} onLoginRequest={() => setShowUserAuth(true)} />
-      {showAdminLogin && ( <Login onLoginSuccess={() => { setShowAdminLogin(false); setView('admin'); }} onClose={() => setShowAdminLogin(false)} /> )}
-      {showUserAuth && ( <UserAuthModal onClose={() => setShowUserAuth(false)} onSuccess={() => setShowUserAuth(false)} /> )}
-      {showUserProfile && currentUser && ( <UserProfileModal currentUser={currentUser} teams={tournament.teams} onClose={() => setShowUserProfile(false)} onLogout={handleLogout} /> )}
-      {showTeamRegistration && currentUser && ( <TeamRegistrationModal currentUser={currentUser} onClose={() => setShowTeamRegistration(false)} /> )}
-      {viewingTeam && ( <TeamProfileModal team={viewingTeam} matches={tournament.matches} onClose={() => setViewingTeam(null)} /> )}
-      <Footer partners={tournament.partners} onAdminLogin={() => setShowAdminLogin(true)} />
+      {showAdminLogin && <Login onLoginSuccess={handleAdminLoginSuccess} onClose={() => setShowAdminLogin(false)} />}
+      {showUserAuth && <UserAuthModal onClose={() => setShowUserAuth(false)} onSuccess={() => setShowUserAuth(false)} />}
+      {showUserProfile && currentUser && <UserProfileModal currentUser={currentUser} teams={tournament.teams} onClose={() => setShowUserProfile(false)} onLogout={handleLogout} />}
+      {showTeamRegistration && currentUser && <TeamRegistrationModal currentUser={currentUser} onClose={() => setShowTeamRegistration(false)} />}
+      {viewingTeam && <TeamProfileModal team={viewingTeam} matches={tournament.matches} onClose={() => setViewingTeam(null)} />}
+      <Footer partners={tournament.partners} onAdminLogin={() => setShowAdminLogin(true)} setView={handleSetView} />
     </div>
   );
 }
 
-function App() {
-  return (
-    <ToastProvider>
-      <AppContent />
-    </ToastProvider>
-  )
-}
-
+function App() { return ( <ToastProvider> <AppContent /> </ToastProvider> ) }
 export default App;

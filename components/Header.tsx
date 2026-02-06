@@ -1,9 +1,8 @@
 
-import React, { useState } from 'react';
-import type { View, Team } from '../types';
-import { Shield, LogOut, Zap, Home, User as UserIcon, LogIn, Globe } from 'lucide-react';
+import React from 'react';
+import type { View } from '../types';
+import { Shield, Zap, User as UserIcon, LogIn } from 'lucide-react';
 import type { User } from 'firebase/auth';
-import { UserProfileModal } from './public/UserProfileModal';
 
 interface HeaderProps {
   currentView: View;
@@ -15,7 +14,7 @@ interface HeaderProps {
   onUserAuthRequest: () => void;
   onUserLogout: () => void;
   onShowProfile?: () => void;
-  headerLogoUrl?: string; // New prop for custom logo
+  headerLogoUrl?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -23,164 +22,90 @@ export const Header: React.FC<HeaderProps> = ({
     setView, 
     isAdminAuthenticated, 
     onAdminViewRequest, 
-    onLogout, // Admin Logout
     currentUser,
     onUserAuthRequest,
-    onUserLogout,
     onShowProfile,
     headerLogoUrl
 }) => {
   return (
-    <header className="sticky top-0 z-50 bg-brand-primary/80 backdrop-blur-md border-b border-white/5 shadow-2xl">
-      <div className="container mx-auto px-3 md:px-8 py-2.5 sm:py-3 flex justify-between items-center">
+    <header className="sticky top-0 z-50 bg-brand-primary/95 backdrop-blur-xl border-b border-white/5 shadow-[0_15px_50px_rgba(0,0,0,0.8)]">
+      <div className="container mx-auto px-4 md:px-8 h-20 sm:h-32 flex justify-between items-center relative">
         
-        {/* Logo Area */}
-        <div className="flex items-center gap-2 group cursor-pointer min-w-0" onClick={() => setView('home')}>
-            {headerLogoUrl ? (
-                <div className="relative h-8 sm:h-12 w-auto flex-shrink-0 transition-transform duration-300 group-hover:scale-105">
+        {/* LEFT: LARGE LOGO */}
+        <div 
+            className="flex items-center group cursor-pointer z-20" 
+            onClick={() => setView('home')}
+        >
+            <div className="relative">
+                {headerLogoUrl ? (
                     <img 
                         src={headerLogoUrl} 
-                        alt="Tournament Logo" 
-                        className="h-full w-auto object-contain drop-shadow-[0_0_8px_rgba(37,99,235,0.5)]"
+                        alt="Logo" 
+                        className="h-14 sm:h-24 w-auto object-contain drop-shadow-[0_0_20px_rgba(37,99,235,0.7)] group-hover:scale-105 transition-transform duration-500" 
                     />
-                </div>
-            ) : (
-                <>
-                    <div className="relative flex-shrink-0">
-                        <Shield size={24} className="sm:w-8 sm:h-8 text-brand-vibrant fill-brand-vibrant/20 drop-shadow-[0_0_8px_rgba(37,99,235,0.5)] group-hover:scale-110 transition-transform duration-300"/>
-                        <Zap size={10} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-special animate-pulse sm:w-[14px] sm:h-[14px]" />
+                ) : (
+                    <div className="relative">
+                        <Shield size={52} className="text-brand-vibrant fill-brand-vibrant/10 group-hover:scale-105 transition-transform sm:w-20 sm:h-20 drop-shadow-[0_0_20px_rgba(37,99,235,0.6)]"/>
+                        <Zap size={22} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-brand-special animate-pulse sm:w-10 sm:h-10" />
                     </div>
-                    <div className="min-w-0 flex flex-col">
-                        <h1 className="text-sm sm:text-lg md:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-brand-vibrant to-brand-special tracking-tighter uppercase italic leading-none truncate">
-                            WAY KANAN
-                        </h1>
-                        <p className="text-[7px] sm:text-[10px] md:text-xs font-bold text-brand-light tracking-widest uppercase">WAKACL Hub</p>
-                    </div>
-                </>
-            )}
+                )}
+            </div>
         </div>
 
-        {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-1 bg-brand-secondary/50 p-1 rounded-full border border-white/5">
-          <button
+        {/* CENTER: MASSIVE BRANDING TEXT (Reduced by ~30%) */}
+        <div 
+            className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none sm:pointer-events-auto cursor-pointer group"
             onClick={() => setView('home')}
-            className={`px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-              currentView === 'home'
-                ? 'bg-white/10 text-brand-vibrant'
-                : 'text-brand-light hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Home size={16} />
-          </button>
-
-          <button
-            onClick={() => setView('league')}
-            className={`px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-              currentView === 'league'
-                ? 'bg-gradient-to-r from-brand-vibrant to-blue-700 text-white shadow-lg'
-                : 'text-brand-light hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <span>Liga</span>
-          </button>
-
-          <button
-            onClick={() => setView('two_leagues')}
-            className={`px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-              currentView === 'two_leagues'
-                ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-lg'
-                : 'text-brand-light hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <span>2 Wilayah</span>
-          </button>
-
-          <button
-            onClick={() => setView('wakacl')}
-            className={`px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-              currentView === 'wakacl'
-                ? 'bg-gradient-to-r from-brand-special to-yellow-600 text-brand-primary shadow-lg'
-                : 'text-brand-light hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <span>WAKACL</span>
-          </button>
-          
-          {isAdminAuthenticated && (
-            <>
-                <div className="w-px h-6 bg-white/10 mx-1"></div>
-                <button
-                    onClick={onAdminViewRequest}
-                    className={`px-4 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-                    currentView === 'admin'
-                        ? 'bg-gradient-to-r from-brand-vibrant to-indigo-600 text-white shadow-lg'
-                        : 'text-brand-light hover:text-white hover:bg-white/5'
-                    }`}
-                >
-                    <Shield size={16} />
-                    <span className="hidden lg:inline">Admin</span>
-                </button>
-            </>
-          )}
-          
-          <div className="w-px h-6 bg-white/10 mx-1"></div>
-          
-          {currentUser ? (
-              <button 
-                onClick={onShowProfile}
-                className="flex items-center gap-2 px-1 pl-2 py-1 hover:bg-white/5 rounded-full transition-colors group"
-              >
-                   <div className="flex items-center gap-2 px-3 py-1.5 bg-brand-vibrant/10 rounded-full border border-brand-vibrant/20 group-hover:bg-brand-vibrant/20 transition-colors">
-                      {currentUser.photoURL ? (
-                          <img src={currentUser.photoURL} alt="Profile" className="w-5 h-5 rounded-full ring-1 ring-brand-vibrant" />
-                      ) : (
-                          <UserIcon size={16} className="text-brand-vibrant" />
-                      )}
-                      <span className="text-xs font-bold text-white max-w-[100px] truncate">
-                        {currentUser.displayName || currentUser.email?.split('@')[0] || 'Member'}
-                      </span>
-                   </div>
-              </button>
-          ) : (
-             <button
-                onClick={onUserAuthRequest}
-                className="px-5 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-2 bg-brand-vibrant text-white hover:bg-blue-600 shadow-lg shadow-blue-500/20"
-              >
-                <LogIn size={14} />
-                <span>Masuk</span>
-              </button>
-          )}
+        >
+            <h1 className="text-xl sm:text-5xl font-black text-white italic leading-none tracking-tighter uppercase group-hover:text-brand-vibrant transition-all duration-500 drop-shadow-[0_5px_15px_rgba(0,0,0,1)]">
+                Way Kanan
+            </h1>
+            <div className="flex items-center gap-2 sm:gap-4 mt-1">
+                <div className="h-px w-6 sm:w-16 bg-gradient-to-r from-transparent to-brand-vibrant opacity-50"></div>
+                <span className="text-[7px] sm:text-base font-black bg-gradient-to-r from-blue-500 via-blue-400 to-brand-special bg-clip-text text-transparent uppercase tracking-[0.3em] sm:tracking-[0.5em] leading-tight drop-shadow-[0_0_10px_rgba(37,99,235,0.5)]">
+                    eFootball Mobile
+                </span>
+                <div className="h-px w-6 sm:w-16 bg-gradient-to-l from-transparent to-brand-special opacity-50"></div>
+            </div>
         </div>
 
-        {/* Mobile View Toggle */}
-        <div className="md:hidden flex items-center gap-1.5">
-            <button 
-                onClick={() => setView('home')}
-                className={`p-2 rounded-lg ${currentView === 'home' ? 'text-brand-vibrant bg-white/5' : 'text-brand-light'}`}
-            >
-                <Home size={18} />
-            </button>
+        {/* RIGHT: AUTH/PROFILE & ADMIN */}
+        <div className="flex items-center gap-3 sm:gap-6 shrink-0 z-20">
+            {currentUser ? (
+                <button 
+                    onClick={onShowProfile}
+                    className="flex items-center gap-3 p-2 pl-3 sm:pl-5 pr-1.5 bg-white/[0.03] border border-white/10 rounded-full hover:bg-white/10 transition-all group shadow-2xl"
+                >
+                    <span className="hidden xl:block text-[10px] font-black text-brand-light uppercase group-hover:text-white transition-colors max-w-[100px] truncate">
+                        {currentUser.displayName || 'Pemain'}
+                    </span>
+                    <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-brand-vibrant/40 group-hover:border-brand-vibrant transition-all shadow-inner">
+                        {currentUser.photoURL ? (
+                            <img src={currentUser.photoURL} alt="User" className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full bg-brand-vibrant/20 flex items-center justify-center text-brand-vibrant">
+                                <UserIcon size={20} />
+                            </div>
+                        )}
+                    </div>
+                </button>
+            ) : (
+                <button
+                    onClick={onUserAuthRequest}
+                    className="p-2 sm:px-6 sm:py-3.5 rounded-full text-[9px] sm:text-xs font-black uppercase tracking-[0.2em] transition-all bg-brand-vibrant text-white hover:bg-blue-600 shadow-[0_0_30px_rgba(37,99,235,0.4)] active:scale-95 flex items-center gap-2 border border-white/10"
+                >
+                    <LogIn size={16} />
+                    <span className="hidden md:inline font-black">Login Member</span>
+                </button>
+            )}
             
-             {currentUser ? (
-                <button onClick={onShowProfile} className="p-1.5 rounded-lg text-brand-light hover:text-brand-vibrant">
-                     {currentUser.photoURL ? (
-                          <img src={currentUser.photoURL} alt="Profile" className="w-6 h-6 rounded-full ring-1 ring-brand-vibrant/50" />
-                      ) : (
-                          <UserIcon size={18} />
-                      )}
-                </button>
-             ) : (
-                <button onClick={onUserAuthRequest} className="p-2 rounded-lg text-brand-vibrant bg-white/5">
-                    <LogIn size={18} />
-                </button>
-             )}
-
             {isAdminAuthenticated && (
                 <button 
                     onClick={onAdminViewRequest}
-                    className={`p-2 transition-colors ${currentView === 'admin' ? 'text-brand-vibrant' : 'text-brand-light hover:text-white'}`}
+                    className={`p-2.5 sm:p-3 rounded-full transition-all border ${currentView === 'admin' ? 'bg-red-500/20 border-red-500 text-red-500 shadow-[0_0_30px_rgba(239,68,68,0.5)]' : 'bg-white/5 border-white/10 text-brand-light hover:text-white'}`}
+                    title="Panel Admin"
                 >
-                    <Shield size={18} />
+                    <Shield size={20} />
                 </button>
             )}
         </div>

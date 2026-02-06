@@ -3,14 +3,34 @@ export interface Team {
   id: string;
   name: string;
   logoUrl?: string;
-  squadPhotoUrl?: string; // New: URL for squad formation or team photo
+  squadPhotoUrl?: string;
   manager?: string;
   socialMediaUrl?: string;
   whatsappNumber?: string;
   isTopSeed?: boolean;
   assignedGroup?: string;
-  ownerEmail?: string; // Link to registered user email
-  requestedOwnerEmail?: string; // New: Email of user requesting to claim this team
+  ownerEmail?: string;
+  requestedOwnerEmail?: string;
+}
+
+export interface NewsItem {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl: string;
+  date: number;
+  category: string;
+  author: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  imageUrl: string;
+  category: string;
+  isAvailable: boolean;
 }
 
 export interface Standing {
@@ -21,7 +41,7 @@ export interface Standing {
   losses: number;
   goalDifference: number;
   points: number;
-  form: ('W' | 'D' | 'L')[]; // New: Array of last 5 results
+  form: ('W' | 'D' | 'L')[];
 }
 
 export interface Group {
@@ -65,7 +85,7 @@ export interface Match {
   proofUrl?: string;
   leg?: number;
   matchday?: number;
-  comments?: MatchComment[]; // New: Chat/Comments specific to this match
+  comments?: MatchComment[];
 }
 
 export interface KnockoutMatch {
@@ -82,8 +102,7 @@ export interface KnockoutMatch {
   nextMatchId: string | null;
   placeholderA: string;
   placeholderB: string;
-  proofUrl?: string; // New: Proof for knockout matches
-  // Fix: Added comments to KnockoutMatch to support match-specific chat functionality
+  proofUrl?: string;
   comments?: MatchComment[];
 }
 
@@ -107,11 +126,11 @@ export type TournamentStatus = 'active' | 'completed';
 
 export interface SeasonHistory {
   seasonId: string;
-  seasonName: string; // e.g. "Season 1", "Jan 2024"
+  seasonName: string;
   champion: Team;
   runnerUp?: Team;
   dateCompleted: number;
-  mode?: TournamentMode; // New: Track which mode this champion won in
+  mode?: TournamentMode;
 }
 
 export interface TournamentState {
@@ -126,8 +145,12 @@ export interface TournamentState {
   isDoubleRoundRobin: boolean;
   status: TournamentStatus;
   history: SeasonHistory[];
-  isRegistrationOpen: boolean; // New: Controls visibility of registration button
-  headerLogoUrl?: string; // New: Custom logo for header
+  isRegistrationOpen: boolean;
+  headerLogoUrl?: string;
+  news?: NewsItem[];
+  products?: Product[];
+  newsCategories?: string[];
+  shopCategories?: string[];
 }
 
-export type View = 'home' | 'league' | 'wakacl' | 'two_leagues' | 'admin' | 'hall_of_fame';
+export type View = 'home' | 'league' | 'wakacl' | 'two_leagues' | 'admin' | 'hall_of_fame' | 'news' | 'privacy' | 'about' | 'terms' | 'shop';

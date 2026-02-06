@@ -1,21 +1,22 @@
 
 import React from 'react';
 import { Shield, Instagram, Twitter, MessageCircle, Gamepad2, Trophy, Monitor, Lock, Mail, Phone } from 'lucide-react';
-import type { Partner } from '../types';
+import type { Partner, View } from '../types';
 
 interface FooterProps {
     partners?: Partner[];
     onAdminLogin?: () => void;
+    setView?: (view: View) => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin }) => {
+export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin, setView }) => {
   const hasPartners = partners && partners.length > 0;
 
   return (
     <footer className="bg-brand-secondary/30 border-t border-white/5 pt-12 pb-24 md:pb-8 mt-auto relative z-0 backdrop-blur-sm">
       <div className="container mx-auto px-4 md:px-8">
         
-        {/* Official Partners Banner - SIZED DOWN */}
+        {/* Official Partners Banner */}
         <div className="flex flex-col items-center justify-center mb-12 space-y-6">
             <div className="flex items-center gap-4 w-full max-w-4xl">
                 <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent flex-grow"></div>
@@ -44,23 +45,18 @@ export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin }) => {
                     ))
                 ) : (
                     <>
-                        {/* Default Placeholders - SIZED DOWN */}
                          <div className="flex items-center gap-3 group cursor-default transition-all">
                             <Gamepad2 size={32} className="text-brand-vibrant fill-brand-vibrant/10 transition-colors" />
                             <span className="font-black text-xl text-brand-text tracking-tighter italic group-hover:text-white transition-colors">eFootball™</span>
                         </div>
-
                         <div className="h-8 w-px bg-white/10 hidden sm:block"></div>
-
                         <div className="flex items-center gap-3 group cursor-default transition-all">
                              <Monitor size={32} className="text-purple-400 fill-purple-400/10 transition-colors" />
                             <span className="font-bold text-lg text-brand-text tracking-wide group-hover:text-white transition-colors">
                                 S<span className="text-purple-400">TREAM</span>LABS
                             </span>
                         </div>
-
                         <div className="h-8 w-px bg-white/10 hidden sm:block"></div>
-
                         <div className="flex items-center gap-3 group cursor-default transition-all">
                             <Trophy size={32} className="text-yellow-400 fill-yellow-400/10 transition-colors" />
                             <div className="flex flex-col leading-none">
@@ -74,10 +70,8 @@ export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin }) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12 border-t border-white/5 pt-12">
-          
-          {/* Brand Column */}
           <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <div className="flex items-center gap-2 mb-4 group cursor-pointer">
+            <div className="flex items-center gap-2 mb-4 group cursor-pointer" onClick={() => setView?.('home')}>
                <div className="relative">
                    <Shield size={32} className="text-brand-vibrant fill-brand-vibrant/10" />
                    <div className="absolute inset-0 bg-brand-vibrant/20 blur-lg rounded-full"></div>
@@ -92,65 +86,42 @@ export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin }) => {
             </p>
           </div>
 
-          {/* Quick Links */}
           <div className="flex flex-col items-center md:items-center text-center">
-            <h4 className="font-bold text-brand-text mb-6 uppercase tracking-wider text-xs border-b border-brand-vibrant/50 pb-2">Tournament</h4>
+            <h4 className="font-bold text-brand-text mb-6 uppercase tracking-wider text-xs border-b border-brand-vibrant/50 pb-2">Informasi & Bantuan</h4>
             <ul className="space-y-3 text-sm text-brand-light">
-                <li><span className="hover:text-brand-vibrant transition-colors cursor-pointer">Group Stage</span></li>
-                <li><span className="hover:text-brand-vibrant transition-colors cursor-pointer">Knockout Bracket</span></li>
-                <li><span className="hover:text-brand-vibrant transition-colors cursor-pointer">Match Schedule</span></li>
-                <li><span className="hover:text-brand-vibrant transition-colors cursor-pointer">Rules & Regulations</span></li>
+                <li><button onClick={() => setView?.('about')} className="hover:text-brand-vibrant transition-colors">Tentang Kami</button></li>
+                <li><button onClick={() => setView?.('terms')} className="hover:text-brand-vibrant transition-colors">Ketentuan Layanan</button></li>
+                <li><button onClick={() => setView?.('privacy')} className="hover:text-brand-vibrant transition-colors">Kebijakan Privasi</button></li>
+                <li><button onClick={() => setView?.('league')} className="hover:text-brand-vibrant transition-colors">Jadwal Liga</button></li>
             </ul>
           </div>
 
-          {/* Connect */}
           <div className="flex flex-col items-center md:items-end text-center md:text-right">
-             <h4 className="font-bold text-brand-text mb-6 uppercase tracking-wider text-xs border-b border-brand-vibrant/50 pb-2">Community & Social</h4>
+             <h4 className="font-bold text-brand-text mb-6 uppercase tracking-wider text-xs border-b border-brand-vibrant/50 pb-2">Hubungi Kami</h4>
              <div className="flex gap-4 mb-4">
-                <a 
-                    href="https://www.instagram.com/waykanan_efootball?igsh=MXh6Y3dzdXdpMmtqbA==" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="p-2.5 bg-white/5 rounded-xl hover:bg-brand-vibrant hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-brand-vibrant"
-                    title="Instagram Official"
-                >
+                <a href="https://www.instagram.com/waykanan_efootball?igsh=MXh6Y3dzdXdpMmtqbA==" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-white/5 rounded-xl hover:bg-brand-vibrant hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-brand-vibrant">
                     <Instagram size={20} />
                 </a>
-                 <a 
-                    href="https://wa.me/6289646800884" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="p-2.5 bg-white/5 rounded-xl hover:bg-green-500 hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-green-500"
-                    title="WhatsApp Admin"
-                >
+                 <a href="https://wa.me/6289646800884" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-white/5 rounded-xl hover:bg-green-500 hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-green-500">
                     <MessageCircle size={20} />
                 </a>
-                 <a 
-                    href="mailto:kanyepocof@gmail.com" 
-                    className="p-2.5 bg-white/5 rounded-xl hover:bg-brand-special hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-brand-special"
-                    title="Email Support"
-                >
+                 <a href="mailto:kanyepocof@gmail.com" className="p-2.5 bg-white/5 rounded-xl hover:bg-brand-special hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-brand-special">
                     <Mail size={20} />
                 </a>
              </div>
              <p className="text-brand-light/60 text-xs">
-                Ada pertanyaan? <a href="https://wa.me/6289646800884" target="_blank" rel="noopener noreferrer" className="text-brand-vibrant hover:underline">Hubungi Admin</a>
+                Ada pertanyaan? <a href="https://wa.me/6289646800884" target="_blank" rel="noopener noreferrer" className="text-brand-vibrant hover:underline">Chat Admin</a>
              </p>
           </div>
         </div>
 
-        {/* Bottom Bar */}
         <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-brand-light/40 font-medium">
             <p>&copy; 2024 Way Kanan eFootball Community.</p>
             <div className="flex gap-6 items-center">
-                <span className="hover:text-brand-light transition-colors cursor-pointer">Privacy Policy</span>
-                <span className="hover:text-brand-light transition-colors cursor-pointer">Terms</span>
+                <button onClick={() => setView?.('privacy')} className="hover:text-brand-light transition-colors">Privacy Policy</button>
+                <button onClick={() => setView?.('terms')} className="hover:text-brand-light transition-colors">Terms</button>
                 {onAdminLogin && (
-                    <button 
-                        onClick={onAdminLogin}
-                        className="hover:text-brand-vibrant transition-colors"
-                        title="Admin Login"
-                    >
+                    <button onClick={onAdminLogin} className="hover:text-brand-vibrant transition-colors" title="Admin Login">
                         <Lock size={12} />
                     </button>
                 )}
