@@ -6,6 +6,7 @@ import { Button } from '../shared/Button';
 import { Plus, Trash2, Newspaper, Image as ImageIcon, Save, X, Edit, Loader, Tag } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { CategoryManager } from './CategoryManager';
+import { RichTextEditor } from '../shared/RichTextEditor';
 
 interface NewsManagerProps {
     news: NewsItem[];
@@ -38,7 +39,8 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!title.trim() || !content.trim()) {
+        // Check content length slightly differently for HTML strings
+        if (!title.trim() || content.trim() === '' || content === '<br>') {
             addToast('Judul dan isi berita wajib diisi.', 'error');
             return;
         }
@@ -116,7 +118,7 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
                             <h4 className="font-black text-brand-vibrant uppercase tracking-widest italic">
                                 {editingId ? 'Edit Artikel' : 'Tulis Artikel Baru'}
                             </h4>
-                            <button onClick={resetForm} className="text-brand-light hover:text-white p-1 transition-all">
+                            <button onClick={resetForm} type="button" className="text-brand-light hover:text-white p-1 transition-all">
                                 <X size={20} />
                             </button>
                         </div>
@@ -152,11 +154,12 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
                                     </div>
                                 </div>
                             </div>
-                            <div>
+                            <div className="flex flex-col">
                                 <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5">Isi Berita</label>
-                                <textarea 
-                                    value={content} onChange={(e) => setContent(e.target.value)} placeholder="Tuliskan berita lengkap di sini..."
-                                    className="w-full h-40 p-4 bg-brand-primary border border-brand-accent rounded-xl text-white text-sm focus:ring-1 focus:ring-brand-vibrant outline-none resize-none custom-scrollbar" required
+                                <RichTextEditor 
+                                    value={content} 
+                                    onChange={setContent} 
+                                    placeholder="Tulis berita lengkap, gunakan toolbar untuk memformat teks..."
                                 />
                             </div>
                         </div>
@@ -179,7 +182,10 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
                         </div>
                         <div className="p-4 flex-grow">
                             <h4 className="font-black text-white italic uppercase text-xs line-clamp-2 mb-2">{item.title}</h4>
-                            <p className="text-[10px] text-brand-light line-clamp-3 opacity-60 mb-4">{item.content}</p>
+                            {/* Remove Tags for preview text to keep it clean */}
+                            <p className="text-[10px] text-brand-light line-clamp-3 opacity-60 mb-4">
+                                {item.content.replace(/<[^>]+>/g, '')}
+                            </p>
                         </div>
                         <div className="p-3 bg-black/20 border-t border-white/5 flex justify-between items-center">
                             <span className="text-[9px] font-bold text-brand-light opacity-40">{new Date(item.date).toLocaleDateString()}</span>

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import type { View } from '../types';
-import { Trophy, Crown, ListOrdered, Globe, ChevronDown, LayoutGrid, Zap, Newspaper, ShoppingBag } from 'lucide-react';
+import { Trophy, Crown, ListOrdered, Globe, ChevronDown, LayoutGrid, Zap, Newspaper, ShoppingBag, Home } from 'lucide-react';
 
 interface NavigationMenuProps {
   currentView: View;
@@ -30,6 +30,17 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ currentView, set
         {/* Changed from overflow-x-auto to flex-wrap for better dropdown visibility */}
         <div className="flex flex-wrap items-center justify-center py-3 sm:py-5 gap-2 sm:gap-6 overflow-visible">
             
+            {/* HOME BUTTON (Only visible when not on home) */}
+            {currentView !== 'home' && (
+                <button
+                    onClick={() => setView('home')}
+                    className="px-4 sm:px-8 py-2.5 sm:py-3 rounded-xl text-[10px] sm:text-sm font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap border text-brand-light border-white/5 hover:text-white hover:bg-white/5 hover:border-brand-vibrant/30 group"
+                >
+                    <Home size={18} className="group-hover:text-brand-vibrant transition-colors" />
+                    <span>Home</span>
+                </button>
+            )}
+
             {/* 1. LIGA DROPDOWN */}
             <div className="relative" ref={dropdownRef}>
                 <button

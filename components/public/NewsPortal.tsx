@@ -68,8 +68,20 @@ export const NewsPortal: React.FC<NewsPortalProps> = ({ news = [], categories = 
                     </div>
                 </div>
 
-                <div className="px-4 prose prose-invert max-w-none prose-p:text-brand-light prose-p:leading-relaxed prose-strong:text-white prose-p:mb-6 whitespace-pre-line text-lg">
-                    {readingItem.content}
+                {/* Render HTML Content */}
+                <div className="px-4">
+                    <div 
+                        className="prose prose-invert max-w-none prose-p:text-brand-light prose-p:leading-relaxed prose-strong:text-white prose-headings:text-white prose-a:text-brand-vibrant prose-ul:list-disc prose-ul:pl-5 prose-ol:list-decimal prose-ol:pl-5 news-content"
+                        dangerouslySetInnerHTML={{ __html: readingItem.content }}
+                    />
+                    {/* Add specific styles for Lists because Tailwind sometimes resets them too hard */}
+                    <style>{`
+                        .news-content ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+                        .news-content ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+                        .news-content h1 { font-size: 2em; margin-bottom: 0.5em; margin-top: 1em; font-weight: 800; font-style: italic; }
+                        .news-content h2 { font-size: 1.5em; margin-bottom: 0.5em; margin-top: 1em; font-weight: 700; }
+                        .news-content p { margin-bottom: 1em; }
+                    `}</style>
                 </div>
                 
                 <div className="mt-16 pt-8 border-t border-white/5 flex justify-center">
@@ -147,8 +159,9 @@ export const NewsPortal: React.FC<NewsPortalProps> = ({ news = [], categories = 
                                         <h3 className="text-2xl md:text-4xl font-black text-white italic uppercase tracking-tighter leading-tight mb-2">
                                             {featuredItem.title}
                                         </h3>
+                                        {/* Strip tags for preview */}
                                         <p className="text-brand-light/80 text-xs md:text-sm line-clamp-2 max-w-2xl font-medium">
-                                            {featuredItem.content}
+                                            {featuredItem.content.replace(/<[^>]+>/g, '')}
                                         </p>
                                     </div>
                                 </div>
