@@ -4,7 +4,6 @@ import type { Team, Group, Match, KnockoutStageRounds, KnockoutMatch, Tournament
 import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
-// Added missing Newspaper and ShoppingBag imports from lucide-react
 import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, Crown, ImageIcon, ShieldCheck, Share2, FileJson, LayoutGrid, Zap, Sparkles, AlertTriangle, Check, RefreshCw, X, Info, Newspaper, ShoppingBag } from 'lucide-react';
 import { Card } from '../shared/Card';
 import { RulesEditor } from './RulesEditor';
@@ -75,12 +74,12 @@ const ADMIN_TABS: { id: AdminTab; label: string; icon: any; color: string }[] = 
     { id: 'teams', label: 'Tim & Manager', icon: Users, color: 'text-blue-400' },
     { id: 'group-fixtures', label: 'Jadwal Liga', icon: ListChecks, color: 'text-indigo-400' },
     { id: 'knockout', label: 'Knockout', icon: Trophy, color: 'text-yellow-400' },
-    { id: 'news', label: 'News Manager', icon: Newspaper, color: 'text-orange-400' },
-    { id: 'shop', label: 'Shop Manager', icon: ShoppingBag, color: 'text-emerald-400' },
-    { id: 'banners', label: 'Banner Home', icon: ImageIcon, color: 'text-pink-400' },
+    { id: 'news', label: 'Berita', icon: Newspaper, color: 'text-orange-400' },
+    { id: 'shop', label: 'Waka Shop', icon: ShoppingBag, color: 'text-emerald-400' },
+    { id: 'banners', label: 'Banner', icon: ImageIcon, color: 'text-pink-400' },
     { id: 'partners', label: 'Sponsor', icon: Share2, color: 'text-emerald-400' },
     { id: 'branding', label: 'Logo Web', icon: ShieldCheck, color: 'text-cyan-400' },
-    { id: 'history', label: 'Riwayat Juara', icon: Crown, color: 'text-orange-400' },
+    { id: 'history', label: 'Riwayat', icon: Crown, color: 'text-orange-400' },
     { id: 'rules', label: 'Aturan', icon: BookOpen, color: 'text-brand-light' },
     { id: 'data', label: 'Database', icon: FileJson, color: 'text-rose-400' },
     { id: 'settings', label: 'System', icon: Settings, color: 'text-white' },
@@ -104,7 +103,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     switch(activeTab) {
       case 'teams': return <TeamManager {...props as any} onGenerationSuccess={() => setActiveTab('group-fixtures')} />;
       case 'group-fixtures': return (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
             {props.groups.map(group => {
                 const groupMatches = props.matches.filter(m => m.group === group.id || m.group === group.name.replace('Group ', '').trim());
                 if (groupMatches.length === 0) return null;
@@ -114,13 +113,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                 }, {} as Record<string, Match[]>);
                 const activeKey = selectedMatchdays[group.id] || Object.keys(schedule)[0];
                 return (
-                    <div key={group.id} className="bg-brand-secondary/30 p-5 rounded-[1.5rem] border border-white/5 shadow-xl">
-                        <div className="flex justify-between items-center mb-5 pb-3 border-b border-white/5">
-                            <h4 className="text-lg font-black text-brand-vibrant uppercase italic tracking-tight">{group.name}</h4>
+                    <div key={group.id} className="bg-brand-secondary/30 p-4 sm:p-5 rounded-[1.5rem] border border-white/5 shadow-xl">
+                        <div className="flex justify-between items-center mb-4 pb-2 border-b border-white/5">
+                            <h4 className="text-base sm:text-lg font-black text-brand-vibrant uppercase italic tracking-tight">{group.name}</h4>
                             <select 
                                 value={activeKey} 
                                 onChange={(e) => setSelectedMatchdays(prev => ({...prev, [group.id]: e.target.value}))}
-                                className="bg-brand-primary border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white font-bold outline-none"
+                                className="bg-brand-primary border border-white/10 rounded-lg px-2 py-1 text-[9px] sm:text-[10px] text-white font-bold outline-none"
                             >
                                 {Object.keys(schedule).map(k => <option key={k} value={k}>{k.replace('L', 'Leg ').replace('D', ' Day ')}</option>)}
                             </select>
@@ -136,20 +135,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         </div>
       );
       case 'knockout': return (
-        <div className="space-y-8">
-            <Card className="border-brand-vibrant/30 bg-brand-vibrant/5 !p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
-                    <h3 className="text-xl font-black text-white italic uppercase tracking-tight flex items-center gap-2">
-                        <Zap size={20} className="text-brand-vibrant" /> Kontrol Bracket Knockout
+        <div className="space-y-6 sm:space-y-8">
+            <Card className="border-brand-vibrant/30 bg-brand-vibrant/5 !p-4 sm:!p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-center sm:text-left">
+                    <h3 className="text-lg sm:text-xl font-black text-white italic uppercase tracking-tight flex items-center justify-center sm:justify-start gap-2">
+                        <Zap size={20} className="text-brand-vibrant" /> Bracket Knockout
                     </h3>
-                    <p className="text-xs text-brand-light mt-1">Gunakan data klasemen grup terbaru untuk membuat bagan secara otomatis.</p>
+                    <p className="text-[10px] text-brand-light mt-1">Generate otomatis dari klasemen grup.</p>
                 </div>
-                <div className="flex gap-2">
-                    <Button onClick={handleGenerateBracket} className="!bg-brand-vibrant hover:!bg-blue-600 shadow-xl">
-                        <Sparkles size={16} /> Auto-Generate (Top 2)
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <Button onClick={handleGenerateBracket} className="flex-1 sm:flex-none !py-2 !text-[10px] !bg-brand-vibrant shadow-xl">
+                        <Sparkles size={14} /> Auto-Generate
                     </Button>
-                    <Button onClick={props.initializeEmptyKnockoutStage} variant="secondary">
-                        Clear Bracket
+                    <Button onClick={props.initializeEmptyKnockoutStage} variant="secondary" className="flex-1 sm:flex-none !py-2 !text-[10px]">
+                        Clear
                     </Button>
                 </div>
             </Card>
@@ -157,19 +156,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
             {(['Round of 16', 'Quarter-finals', 'Semi-finals', 'Final'] as (keyof KnockoutStageRounds)[]).map(round => {
                 const matches = props.knockoutStage?.[round] || [];
                 return (
-                    <div key={round} className="space-y-4">
-                        <div className="flex items-center justify-between px-2">
-                            <h4 className="text-sm font-black text-brand-light uppercase tracking-[0.3em] flex items-center gap-2">
+                    <div key={round} className="space-y-3">
+                        <div className="flex items-center justify-between px-1">
+                            <h4 className="text-[10px] sm:text-sm font-black text-brand-light uppercase tracking-[0.2em] flex items-center gap-2">
                                 <Trophy size={14} className="text-yellow-500" /> {round} <span className="opacity-40">({matches.length})</span>
                             </h4>
                             <button 
                                 onClick={() => setShowKoForm({ round })}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-vibrant/10 hover:bg-brand-vibrant text-brand-vibrant hover:text-white rounded-lg text-[10px] font-black uppercase transition-all"
+                                className="flex items-center gap-1 px-3 py-1.5 bg-brand-vibrant/10 text-brand-vibrant rounded-lg text-[9px] font-black uppercase transition-all"
                             >
-                                <Plus size={12} /> Add Match
+                                <Plus size={10} /> Add
                             </button>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
                             {matches.map(m => (
                                 <KnockoutMatchEditor 
                                     key={m.id} 
@@ -179,7 +178,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                                     onDelete={() => props.deleteKnockoutMatch(round, m.id)} 
                                 />
                             ))}
-                            {matches.length === 0 && <div className="col-span-full py-10 text-center opacity-20 border border-dashed border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest italic">Belum ada pertandingan di babak ini</div>}
+                            {matches.length === 0 && <div className="col-span-full py-8 text-center opacity-20 border border-dashed border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-widest italic">Kosong</div>}
                         </div>
                     </div>
                 );
@@ -197,77 +196,70 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       case 'rules': return <RulesEditor rules={props.rules} onSave={props.updateRules} />;
       case 'data': return <DataManager teams={props.teams} matches={props.matches} groups={props.groups} rules={props.rules} banners={props.banners} partners={props.partners} headerLogoUrl={props.headerLogoUrl || ''} mode={props.mode} knockoutStage={props.knockoutStage} setTournamentState={props.setTournamentState} />;
       case 'settings': return (
-        <div className="max-w-3xl mx-auto space-y-6">
-            <Card className="border-brand-vibrant/20 !p-8">
-                <h3 className="text-xl font-black text-white uppercase italic tracking-tight mb-6 flex items-center gap-3">
-                    <Settings className="text-brand-vibrant" size={28} /> System Controls
+        <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
+            <Card className="border-brand-vibrant/20 !p-4 sm:!p-8">
+                <h3 className="text-lg sm:text-xl font-black text-white uppercase italic tracking-tight mb-4 sm:mb-6 flex items-center gap-3">
+                    <Settings className="text-brand-vibrant" size={24} /> System Controls
                 </h3>
                 
-                <div className="space-y-8">
+                <div className="space-y-4 sm:space-y-8">
                     {/* Registration Toggle */}
-                    <div className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/5">
-                        <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-xl ${props.isRegistrationOpen ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                                <Users size={24} />
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 sm:p-3 rounded-xl ${props.isRegistrationOpen ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                <Users size={20} className="sm:w-6 sm:h-6" />
                             </div>
                             <div>
-                                <h4 className="font-bold text-white uppercase tracking-wider text-sm">Pendaftaran Tim Baru</h4>
-                                <p className="text-[11px] text-brand-light opacity-60">Status pendaftaran saat ini: <strong>{props.isRegistrationOpen ? 'TERBUKA' : 'TERTUTUP'}</strong></p>
+                                <h4 className="font-bold text-white uppercase tracking-wider text-[11px] sm:text-sm">Pendaftaran</h4>
+                                <p className="text-[9px] sm:text-[11px] text-brand-light opacity-60">Status: <strong>{props.isRegistrationOpen ? 'BUKA' : 'TUTUP'}</strong></p>
                             </div>
                         </div>
                         <button 
                             onClick={() => props.setRegistrationOpen(!props.isRegistrationOpen)}
-                            className={`px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all ${props.isRegistrationOpen ? 'bg-red-500 text-white shadow-lg' : 'bg-green-500 text-white shadow-lg'}`}
+                            className={`w-full sm:w-auto px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${props.isRegistrationOpen ? 'bg-red-500' : 'bg-green-500'} text-white shadow-lg`}
                         >
                             {props.isRegistrationOpen ? 'Tutup Pendaftaran' : 'Buka Pendaftaran'}
                         </button>
                     </div>
 
                     {/* Tournament Status Toggle */}
-                    <div className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/5">
-                        <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-xl ${props.status === 'active' ? 'bg-brand-vibrant/20 text-brand-vibrant' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                                <Trophy size={24} />
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 gap-4">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 sm:p-3 rounded-xl ${props.status === 'active' ? 'bg-brand-vibrant/20 text-brand-vibrant' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                                <Trophy size={20} className="sm:w-6 sm:h-6" />
                             </div>
                             <div>
-                                <h4 className="font-bold text-white uppercase tracking-wider text-sm">Status Turnamen</h4>
-                                <p className="text-[11px] text-brand-light opacity-60">Status saat ini: <strong>{props.status.toUpperCase()}</strong></p>
+                                <h4 className="font-bold text-white uppercase tracking-wider text-[11px] sm:text-sm">Status Turnamen</h4>
+                                <p className="text-[9px] sm:text-[11px] text-brand-light opacity-60">Status: <strong>{props.status.toUpperCase()}</strong></p>
                             </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 w-full sm:w-auto">
                              <button 
                                 onClick={() => props.setTournamentStatus('active')}
-                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase border transition-all ${props.status === 'active' ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-transparent text-brand-light border-white/10'}`}
+                                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-[9px] font-black uppercase border transition-all ${props.status === 'active' ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-transparent text-brand-light border-white/10'}`}
                             >
                                 Active
                             </button>
                             <button 
                                 onClick={() => props.setTournamentStatus('completed')}
-                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase border transition-all ${props.status === 'completed' ? 'bg-brand-special text-brand-primary border-brand-special' : 'bg-transparent text-brand-light border-white/10'}`}
+                                className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-[9px] font-black uppercase border transition-all ${props.status === 'completed' ? 'bg-brand-special text-brand-primary border-brand-special' : 'bg-transparent text-brand-light border-white/10'}`}
                             >
                                 Completed
                             </button>
                         </div>
                     </div>
-
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl flex gap-4">
-                         <Info size={20} className="text-yellow-500 shrink-0" />
-                         <p className="text-xs text-yellow-200/70 leading-relaxed italic">
-                            Catatan: Pengaturan ini hanya berlaku untuk mode turnamen yang sedang aktif (<strong>{props.mode.toUpperCase()}</strong>). Gunakan navigasi utama jika ingin mengubah pengaturan di kompetisi lain.
-                         </p>
-                    </div>
                 </div>
             </Card>
 
-            <Card className="border-red-500/20 bg-red-500/5 !p-8">
+            <Card className="border-red-500/20 bg-red-500/5 !p-6 sm:!p-8">
                 <div className="flex items-center gap-3 mb-4">
-                    <AlertTriangle className="text-red-500" size={28} />
-                    <h3 className="text-xl font-black text-white uppercase italic">Danger Zone</h3>
+                    <AlertTriangle className="text-red-500" size={24} />
+                    <h3 className="text-lg sm:text-xl font-black text-white uppercase italic">Danger Zone</h3>
                 </div>
-                <p className="text-sm text-brand-light mb-6">Reset total akan menghapus seluruh data tim, grup, dan pertandingan di musim ini.</p>
+                <p className="text-[11px] sm:text-sm text-brand-light mb-6">Reset total akan menghapus seluruh data tim, grup, dan pertandingan di musim ini secara permanen.</p>
                 <button 
                     onClick={() => { if(window.confirm("RESET TOTAL? Data tidak bisa dikembalikan!")) props.resetTournament(); }}
-                    className="w-full py-4 bg-red-600/10 hover:bg-red-600 border border-red-500/30 text-red-500 hover:text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl"
+                    className="w-full py-3 sm:py-4 bg-red-600/10 hover:bg-red-600 border border-red-500/30 text-red-500 hover:text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl text-xs"
                 >
                     Hard Reset Musim Ini
                 </button>
@@ -291,9 +283,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           </nav>
       </aside>
 
-      <div className="lg:hidden w-full bg-brand-secondary/80 backdrop-blur-md border-b border-white/5 overflow-x-auto no-scrollbar py-2 px-3 flex gap-2 shrink-0 z-40">
+      {/* MOBILE ADMIN NAV */}
+      <div className="lg:hidden w-full bg-brand-secondary/80 backdrop-blur-md border-b border-white/5 overflow-x-auto snap-x no-scrollbar py-2 px-3 flex gap-2 shrink-0 z-40">
           {ADMIN_TABS.map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase italic whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-brand-vibrant text-white shadow-lg' : 'bg-white/5 text-brand-light'}`}>
+              <button 
+                key={tab.id} 
+                onClick={() => setActiveTab(tab.id)} 
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase italic whitespace-nowrap snap-center transition-all ${activeTab === tab.id ? 'bg-brand-vibrant text-white shadow-lg' : 'bg-white/5 text-brand-light'}`}
+              >
                   <tab.icon size={14} className={activeTab === tab.id ? 'text-white' : tab.color} />
                   {tab.label}
               </button>
@@ -301,17 +298,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       </div>
 
       <main className="flex-1 flex flex-col min-w-0 relative">
-        <header className="bg-brand-primary/40 border-b border-white/5 px-6 sm:px-8 py-4 sm:py-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 shrink-0 backdrop-blur-sm relative z-40">
-             <h1 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter flex items-center gap-3">
-                {currentTabInfo?.icon && <currentTabInfo.icon size={28} className={currentTabInfo.color} />} {currentTabInfo?.label}
+        <header className="bg-brand-primary/40 border-b border-white/5 px-4 sm:px-8 py-3 sm:py-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4 shrink-0 backdrop-blur-sm relative z-40">
+             <h1 className="text-lg sm:text-4xl font-black text-white italic uppercase tracking-tighter flex items-center gap-2 sm:gap-3">
+                {currentTabInfo?.icon && <currentTabInfo.icon size={22} className={`${currentTabInfo.color} sm:w-7 sm:h-7`} />} {currentTabInfo?.label}
              </h1>
              <div className="flex items-center gap-2">
-                 <span className="text-[10px] font-black uppercase text-brand-light opacity-60">Active: {props.mode.toUpperCase()}</span>
-                 <div className={`w-2 h-2 rounded-full ${props.isSyncing ? 'bg-yellow-400 animate-pulse' : 'bg-green-500'}`}></div>
+                 <span className="text-[8px] sm:text-[10px] font-black uppercase text-brand-light opacity-60">Mode: {props.mode.toUpperCase()}</span>
+                 <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${props.isSyncing ? 'bg-yellow-400 animate-pulse' : 'bg-green-500'}`}></div>
              </div>
         </header>
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-8">
-             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-7xl mx-auto pb-32 lg:pb-8">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-8">
+             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-7xl mx-auto pb-24 lg:pb-8">
                 {renderContent()}
              </div>
         </div>
