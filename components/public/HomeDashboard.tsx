@@ -1,12 +1,12 @@
 
-import React, { useMemo } from 'react';
-import { Star, PlusCircle, Calendar, ArrowRight, Newspaper, Clock, Trophy } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { PlusCircle, Calendar, ArrowRight, Newspaper, Clock, Zap, Star, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card } from '../shared/Card';
 import { TournamentMode, Team, Match, NewsItem } from '../../types';
 import { TeamLogo } from '../shared/TeamLogo';
 
 interface HomeDashboardProps {
-  onSelectMode: (mode: TournamentMode | 'hall_of_fame' | 'news') => void;
+  onSelectMode: (mode: TournamentMode | 'hall_of_fame' | 'news' | 'shop') => void;
   teamCount: number;
   partnerCount: number;
   onRegisterTeam?: () => void;
@@ -26,7 +26,25 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     allMatches = [],
     news = []
 }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
   
+  const latestNews = useMemo(() => {
+      return [...news].sort((a, b) => b.date - a.date).slice(0, 5);
+  }, [news]);
+
+  // Auto-slide logic
+  useEffect(() => {
+    if (latestNews.length <= 1 || isPaused) return;
+    const interval = setInterval(() => {
+        setCurrentIndex((prev) => (prev + 1) % latestNews.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [latestNews.length, isPaused]);
+
+  const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % latestNews.length);
+  const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + latestNews.length) % latestNews.length);
+
   const nextMatchInfo = useMemo(() => {
     if (userOwnedTeams.length === 0 || allMatches.length === 0) return null;
     const userTeamIds = userOwnedTeams.map(t => t.team.id);
@@ -39,14 +57,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     return { match, mode: userTeamMode };
   }, [userOwnedTeams, allMatches]);
 
-  const latestNews = useMemo(() => {
-      return [...news].sort((a, b) => b.date - a.date).slice(0, 3);
-  }, [news]);
-
   return (
     <div className="space-y-8 md:space-y-12 py-2 md:py-4 animate-in fade-in duration-700 relative z-10">
       
-      {/* STATS BAR (Ringkasan Tipis sebagai pengganti Hero) */}
+      {/* STATS BAR */}
       <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-brand-secondary/40 border border-white/5 rounded-2xl backdrop-blur-md">
           <div className="flex items-center gap-6">
               <div className="flex flex-col">
@@ -71,39 +85,101 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           )}
       </div>
 
-      {/* BERITA TERKINI SECTION */}
+      {/* BERITA SLIDESHOW (GANTI DARI MARQUEE) */}
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div className="flex items-center justify-between mb-6 px-1">
             <h3 className="text-xs md:text-sm font-black text-white uppercase tracking-[0.2em] flex items-center gap-2">
-                <Newspaper size={18} className="text-brand-vibrant" /> Berita Terkini
+                <Newspaper size={18} className="text-brand-vibrant" /> Headline News
             </h3>
             <button onClick={() => onSelectMode('news')} className="text-[10px] font-black text-brand-vibrant uppercase flex items-center gap-1 hover:text-white transition-colors">
                 Lihat Semua <ArrowRight size={12} />
             </button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {latestNews.length > 0 ? latestNews.map((item) => (
-                <div key={item.id} className="group cursor-pointer" onClick={() => onSelectMode('news')}>
-                    <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/5 mb-3 shadow-xl">
-                        <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                        <div className="absolute top-3 left-3">
-                            <span className="px-2 py-1 bg-brand-vibrant/90 backdrop-blur-md text-white text-[8px] font-black uppercase rounded-lg shadow-lg">
-                                {item.category}
-                            </span>
+        <div 
+            className="relative w-full group"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+        >
+            {latestNews.length > 0 ? (
+                <div className="relative overflow-hidden rounded-[2rem] border border-white/10 shadow-2xl bg-brand-secondary/40 aspect-[16/9] md:aspect-[21/8]">
+                    {/* Slides Wrapper */}
+                    <div 
+                        className="flex h-full transition-transform duration-700 ease-out"
+                        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                    >
+                        {latestNews.map((item) => (
+                            <div 
+                                key={item.id} 
+                                className="relative flex-shrink-0 w-full h-full cursor-pointer"
+                                onClick={() => onSelectMode('news')}
+                            >
+                                <img 
+                                    src={item.imageUrl} 
+                                    alt={item.title} 
+                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" 
+                                />
+                                {/* Overlay Gradient */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-brand-primary via-brand-primary/20 to-transparent"></div>
+                                
+                                {/* Content Overlay */}
+                                <div className="absolute inset-0 p-6 md:p-12 flex flex-col justify-end">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <span className="px-3 py-1 bg-brand-vibrant text-white text-[8px] md:text-[10px] font-black uppercase rounded-lg shadow-lg">
+                                            {item.category}
+                                        </span>
+                                        <span className="text-white/60 text-[8px] md:text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                            <Clock size={12} /> {new Date(item.date).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <h4 className="text-xl md:text-5xl font-black text-white italic uppercase tracking-tighter leading-tight line-clamp-2 drop-shadow-2xl">
+                                        {item.title}
+                                    </h4>
+                                    <p className="hidden md:block text-brand-light/80 text-sm line-clamp-2 max-w-2xl font-medium mt-3">
+                                        {item.content.replace(/<[^>]+>/g, '')}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Navigation Buttons */}
+                    {latestNews.length > 1 && (
+                        <>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); prevSlide(); }}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/40 text-white backdrop-blur-md border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-brand-vibrant"
+                            >
+                                <ChevronLeft size={24} />
+                            </button>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); nextSlide(); }}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/40 text-white backdrop-blur-md border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-brand-vibrant"
+                            >
+                                <ChevronRight size={24} />
+                            </button>
+                        </>
+                    )}
+
+                    {/* Pagination Indicators */}
+                    {latestNews.length > 1 && (
+                        <div className="absolute bottom-6 right-6 md:right-12 z-20 flex gap-2">
+                            {latestNews.map((_, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); }}
+                                    className={`h-1.5 rounded-full transition-all duration-500 ${
+                                        idx === currentIndex 
+                                            ? 'bg-brand-vibrant w-8 shadow-[0_0_10px_rgba(37,99,235,0.8)]' 
+                                            : 'bg-white/20 w-2 hover:bg-white/40'
+                                    }`}
+                                />
+                            ))}
                         </div>
-                    </div>
-                    <h4 className="text-sm font-black text-white leading-snug group-hover:text-brand-vibrant transition-colors line-clamp-2 uppercase italic mb-2">
-                        {item.title}
-                    </h4>
-                    <div className="flex items-center gap-3 text-[10px] text-brand-light font-bold opacity-60">
-                        <div className="flex items-center gap-1"><Clock size={12} /> {new Date(item.date).toLocaleDateString()}</div>
-                        <div className="w-1 h-1 rounded-full bg-white/20"></div>
-                        <span>Admin</span>
-                    </div>
+                    )}
                 </div>
-            )) : (
-                <div className="col-span-full py-12 bg-white/[0.02] rounded-2xl border border-dashed border-white/5 text-center text-brand-light italic text-xs">
+            ) : (
+                <div className="py-24 bg-white/[0.02] rounded-[2rem] border border-dashed border-white/5 text-center text-brand-light italic text-xs">
                     Belum ada berita yang diterbitkan.
                 </div>
             )}
