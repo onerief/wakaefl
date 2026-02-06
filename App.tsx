@@ -138,7 +138,25 @@ function AppContent() {
                 <PublicView groups={tournament.groups} matches={tournament.matches} knockoutStage={(view === 'wakacl' || view === 'two_leagues') ? tournament.knockoutStage : null} rules={tournament.rules} onSelectTeam={setViewingTeam} currentUser={currentUser} onAddMatchComment={tournament.addMatchComment} isAdmin={isAdminAuthenticated} onUpdateMatchScore={tournament.updateMatchScore} onUpdateKnockoutScore={tournament.updateKnockoutMatch} userOwnedTeamIds={userOwnedTeams.map(t => t.team.id)} />
               )}
               {view === 'hall_of_fame' && <HallOfFame history={tournament.history} currentStatus={tournament.status} mode={activeMode} onBack={() => setView('home')} />}
-              {view === 'admin' && isAdminAuthenticated && <AdminPanel {...tournament} mode={activeMode} setMode={setActiveMode} onUpdateNews={tournament.updateNews} updateProducts={tournament.updateProducts} updateNewsCategories={tournament.updateNewsCategories} updateShopCategories={tournament.updateShopCategories} />}
+              {view === 'admin' && isAdminAuthenticated && (
+                <AdminPanel 
+                    {...tournament} 
+                    mode={activeMode} 
+                    setMode={setActiveMode} 
+                    onUpdateNews={tournament.updateNews} 
+                    updateProducts={tournament.updateProducts} 
+                    updateNewsCategories={tournament.updateNewsCategories} 
+                    updateShopCategories={tournament.updateShopCategories}
+                    generateKnockoutBracket={tournament.generateKnockoutBracket}
+                    initializeEmptyKnockoutStage={tournament.initializeEmptyKnockoutStage}
+                    addKnockoutMatch={tournament.addKnockoutMatch}
+                    deleteKnockoutMatch={tournament.deleteKnockoutMatch}
+                    resetTournament={tournament.resetTournament}
+                    setRegistrationOpen={tournament.setRegistrationOpen}
+                    setTournamentStatus={tournament.setTournamentStatus}
+                    updateHeaderLogo={tournament.updateHeaderLogo}
+                />
+              )}
             </>
           )}
         </Suspense>

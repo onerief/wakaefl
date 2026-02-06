@@ -93,19 +93,17 @@ type Action =
   | { type: 'UPDATE_NEWS_CATEGORIES'; payload: string[] }
   | { type: 'UPDATE_SHOP_CATEGORIES'; payload: string[] }
   | { type: 'RESET'; payload: FullTournamentState }
-  | { type: 'START_NEW_SEASON' }
-  | { type: 'FINALIZE_SEASON'; payload: SeasonHistory }
   | { type: 'SET_STATUS'; payload: 'active' | 'completed' }
   | { type: 'UPDATE_RULES', payload: string }
   | { type: 'UPDATE_BANNERS', payload: string[] }
   | { type: 'UPDATE_PARTNERS', payload: Partner[] }
   | { type: 'SET_REGISTRATION_STATUS', payload: boolean }
   | { type: 'UPDATE_HEADER_LOGO', payload: string }
+  | { type: 'ADD_HISTORY_ENTRY', payload: SeasonHistory }
   | { type: 'DELETE_HISTORY_ENTRY', payload: string }
-  | { type: 'UNBIND_TEAM'; payload: string }
-  | { type: 'RESOLVE_CLAIM'; payload: { teamId: string; approved: boolean } }
-  | { type: 'UPDATE_MATCH_SCHEDULE'; payload: { matchId: string; teamAId: string; teamBId: string } }
-  | { type: 'ADD_MATCH_COMMENT'; payload: { matchId: string; comment: MatchComment } };
+  | { type: 'ADD_KNOCKOUT_MATCH'; payload: KnockoutMatch }
+  | { type: 'DELETE_KNOCKOUT_MATCH'; payload: { round: keyof KnockoutStageRounds, id: string } }
+  | { type: 'GENERATE_KNOCKOUT_BRACKET'; payload: KnockoutStageRounds };
 
 const tournamentReducer = (state: FullTournamentState, action: Action): FullTournamentState => {
   let newState: FullTournamentState;
@@ -124,6 +122,20 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
         newState = { ...state, knockoutStage: ks };
         break;
     }
+    case 'ADD_KNOCKOUT_MATCH': {
+        const ks = state.knockoutStage || { 'Play-offs': [], 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': [] };
+        ks[action.payload.round] = [...ks[action.payload.round], action.payload];
+        newState = { ...state, knockoutStage: { ...ks } };
+        break;
+    }
+    case 'DELETE_KNOCKOUT_MATCH': {
+        if (!state.knockoutStage) return state;
+        const ks = { ...state.knockoutStage };
+        ks[action.payload.round] = ks[action.payload.round].filter(m => m.id !== action.payload.id);
+        newState = { ...state, knockoutStage: ks };
+        break;
+    }
+    case 'GENERATE_KNOCKOUT_BRACKET': newState = { ...state, knockoutStage: action.payload }; break;
     case 'UPDATE_NEWS': newState = { ...state, news: action.payload }; break;
     case 'UPDATE_PRODUCTS': newState = { ...state, products: action.payload }; break;
     case 'UPDATE_NEWS_CATEGORIES': newState = { ...state, newsCategories: action.payload }; break;
@@ -131,9 +143,12 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'UPDATE_RULES': newState = { ...state, rules: action.payload }; break;
     case 'UPDATE_BANNERS': newState = { ...state, banners: action.payload }; break;
     case 'UPDATE_PARTNERS': newState = { ...state, partners: action.payload }; break;
-    case 'RESET': newState = action.payload; break;
-    case 'FINALIZE_SEASON': newState = { ...state, status: 'completed', history: [action.payload, ...state.history] }; break;
-    case 'START_NEW_SEASON': newState = { ...createInitialState(state.mode), history: state.history, partners: state.partners, banners: state.banners, rules: state.rules, headerLogoUrl: state.headerLogoUrl, news: state.news, products: state.products, newsCategories: state.newsCategories, shopCategories: state.shopCategories }; break;
+    case 'UPDATE_HEADER_LOGO': newState = { ...state, headerLogoUrl: action.payload }; break;
+    case 'SET_REGISTRATION_STATUS': newState = { ...state, isRegistrationOpen: action.payload }; break;
+    case 'SET_STATUS': newState = { ...state, status: action.payload }; break;
+    case 'ADD_HISTORY_ENTRY': newState = { ...state, history: [action.payload, ...state.history] }; break;
+    case 'DELETE_HISTORY_ENTRY': newState = { ...state, history: state.history.filter(h => h.seasonId !== action.payload) }; break;
+    case 'RESET': newState = createInitialState(state.mode); break;
     default: return state;
   }
   return hydrateTournamentData(newState);
@@ -171,6 +186,35 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
     }
   }, [state, isLoading, activeMode, isAdmin]);
 
+  const generateKnockoutBracket = useCallback(() => {
+    const topTeams: Team[] = [];
+    state.groups.forEach(group => {
+        const sorted = [...group.standings].sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
+        if (sorted[0]) topTeams.push(sorted[0].team);
+        if (sorted[1]) topTeams.push(sorted[1].team);
+    });
+
+    if (topTeams.length < 2) return { success: false, message: "Minimal butuh 2 tim dari grup untuk membuat bracket." };
+
+    const newKnockout: KnockoutStageRounds = {
+        'Play-offs': [], 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': []
+    };
+
+    // Simple auto-bracket logic for 8/16 teams
+    const roundName = topTeams.length <= 4 ? 'Semi-finals' : topTeams.length <= 8 ? 'Quarter-finals' : 'Round of 16';
+    for (let i = 0; i < topTeams.length; i += 2) {
+        if (topTeams[i+1]) {
+            newKnockout[roundName].push({
+                id: `ko-${Date.now()}-${i}`, round: roundName, matchNumber: (i/2) + 1,
+                teamA: topTeams[i], teamB: topTeams[i+1], scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
+                winnerId: null, nextMatchId: null, placeholderA: '', placeholderB: ''
+            });
+        }
+    }
+    dispatch({ type: 'GENERATE_KNOCKOUT_BRACKET', payload: newKnockout });
+    return { success: true };
+  }, [state.groups]);
+
   return { 
       ...state, 
       isLoading, isSyncing,
@@ -186,10 +230,24 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => 
         dispatch({ type: 'UPDATE_MATCH_SCORE', payload: { matchId, scoreA, scoreB, proofUrl } }),
       updateKnockoutMatch: (id: string, m: KnockoutMatch) => dispatch({ type: 'UPDATE_KNOCKOUT_MATCH', payload: m }),
+      addKnockoutMatch: (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string, matchNumber: number) => {
+          const teamA = state.teams.find(t => t.id === teamAId) || null;
+          const teamB = state.teams.find(t => t.id === teamBId) || null;
+          dispatch({ type: 'ADD_KNOCKOUT_MATCH', payload: { id: `ko-${Date.now()}`, round, matchNumber, teamA, teamB, placeholderA, placeholderB, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null } });
+      },
+      deleteKnockoutMatch: (round: keyof KnockoutStageRounds, id: string) => dispatch({ type: 'DELETE_KNOCKOUT_MATCH', payload: { round, id } }),
+      generateKnockoutBracket,
+      initializeEmptyKnockoutStage: () => dispatch({ type: 'GENERATE_KNOCKOUT_BRACKET', payload: { 'Play-offs': [], 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': [] } }),
       updateRules: (r: string) => dispatch({ type: 'UPDATE_RULES', payload: r }),
       updateBanners: (b: string[]) => dispatch({ type: 'UPDATE_BANNERS', payload: b }),
       updatePartners: (p: Partner[]) => dispatch({ type: 'UPDATE_PARTNERS', payload: p }),
+      updateHeaderLogo: (url: string) => dispatch({ type: 'UPDATE_HEADER_LOGO', payload: url }),
+      setRegistrationOpen: (open: boolean) => dispatch({ type: 'SET_REGISTRATION_STATUS', payload: open }),
+      setTournamentStatus: (status: 'active' | 'completed') => dispatch({ type: 'SET_STATUS', payload: status }),
+      addHistoryEntry: (entry: SeasonHistory) => dispatch({ type: 'ADD_HISTORY_ENTRY', payload: entry }),
+      deleteHistoryEntry: (id: string) => dispatch({ type: 'DELETE_HISTORY_ENTRY', payload: id }),
       setTournamentState: (s: FullTournamentState) => dispatch({ type: 'SET_STATE', payload: s }),
+      resetTournament: () => dispatch({ type: 'RESET', payload: createInitialState(state.mode) }),
       manualAddGroup: (n: string) => dispatch({ type: 'GENERATE_GROUPS', payload: { groups: [...state.groups, { id: `g${Date.now()}`, name: n, teams: [], standings: [] }], matches: state.matches, knockoutStage: state.knockoutStage } }),
       manualDeleteGroup: (id: string) => dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups.filter(g => g.id !== id), matches: state.matches, knockoutStage: state.knockoutStage } }),
       manualAddTeamToGroup: (tid: string, gid: string) => {
