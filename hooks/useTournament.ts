@@ -1,6 +1,6 @@
 
-import { useReducer, useCallback, useState, useEffect, useRef } from 'react';
-import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment, SeasonHistory, NewsItem, Product } from '../types';
+import { useReducer, useCallback, useState, useEffect, useRef, useMemo } from 'react';
+import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment, SeasonHistory, NewsItem, Product, PlayerStat, MatchPlayerStats } from '../types';
 import { generateSummary } from '../services/geminiService';
 import { subscribeToTournamentData, saveTournamentData, sanitizeData } from '../services/firebaseService';
 import { useToast } from '../components/shared/Toast';
@@ -24,7 +24,8 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
   news: [],
   products: [],
   newsCategories: ['Match', 'Transfer', 'Info', 'Interview'],
-  shopCategories: ['Coin', 'Account', 'Jasa', 'Merch']
+  shopCategories: ['Coin', 'Account', 'Jasa', 'Merch'],
+  marqueeMessages: []
 });
 
 const calculateStandings = (teams: Team[], matches: Match[], groupId: string, groupName: string): Standing[] => {
@@ -86,12 +87,13 @@ type Action =
   | { type: 'UPDATE_TEAM'; payload: Team }
   | { type: 'DELETE_TEAM'; payload: string }
   | { type: 'GENERATE_GROUPS'; payload: { groups: Group[], matches: Match[], knockoutStage: KnockoutStageRounds | null } }
-  | { type: 'UPDATE_MATCH_SCORE'; payload: { matchId: string; scoreA: number; scoreB: number; proofUrl?: string } }
+  | { type: 'UPDATE_MATCH_SCORE'; payload: { matchId: string; scoreA: number; scoreB: number; proofUrl?: string; playerStats?: MatchPlayerStats } }
   | { type: 'UPDATE_KNOCKOUT_MATCH'; payload: KnockoutMatch }
   | { type: 'UPDATE_NEWS'; payload: NewsItem[] }
   | { type: 'UPDATE_PRODUCTS'; payload: Product[] }
   | { type: 'UPDATE_NEWS_CATEGORIES'; payload: string[] }
   | { type: 'UPDATE_SHOP_CATEGORIES'; payload: string[] }
+  | { type: 'UPDATE_MARQUEE'; payload: string[] }
   | { type: 'RESET'; payload: FullTournamentState }
   | { type: 'SET_STATUS'; payload: 'active' | 'completed' }
   | { type: 'UPDATE_RULES', payload: string }
@@ -140,6 +142,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'UPDATE_PRODUCTS': newState = { ...state, products: action.payload }; break;
     case 'UPDATE_NEWS_CATEGORIES': newState = { ...state, newsCategories: action.payload }; break;
     case 'UPDATE_SHOP_CATEGORIES': newState = { ...state, shopCategories: action.payload }; break;
+    case 'UPDATE_MARQUEE': newState = { ...state, marqueeMessages: action.payload }; break;
     case 'UPDATE_RULES': newState = { ...state, rules: action.payload }; break;
     case 'UPDATE_BANNERS': newState = { ...state, banners: action.payload }; break;
     case 'UPDATE_PARTNERS': newState = { ...state, partners: action.payload }; break;
@@ -176,6 +179,13 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
 
   useEffect(() => {
     if (isAdmin && !isLoading && !isUpdatingFromServer.current) {
+       const hasGlobalData = (state.news && state.news.length > 0) || 
+                            (state.products && state.products.length > 0) ||
+                            (state.banners && state.banners.length > 0) ||
+                            (state.marqueeMessages && state.marqueeMessages.length > 0);
+                            
+       if (!hasGlobalData) return;
+
        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
        saveTimeoutRef.current = setTimeout(async () => { 
            setIsSyncing(true); 
@@ -187,48 +197,98 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   }, [state, isLoading, activeMode, isAdmin]);
 
   const generateKnockoutBracket = useCallback(() => {
-    const topTeams: Team[] = [];
-    state.groups.forEach(group => {
+    const topTeamsByGroup: { winner: Team | null, runnerUp: Team | null }[] = state.groups.map(group => {
         const sorted = [...group.standings].sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
-        if (sorted[0]) topTeams.push(sorted[0].team);
-        if (sorted[1]) topTeams.push(sorted[1].team);
+        return {
+            winner: sorted[0]?.team || null,
+            runnerUp: sorted[1]?.team || null
+        };
     });
 
-    if (topTeams.length < 2) return { success: false, message: "Minimal butuh 2 tim dari grup untuk membuat bracket." };
+    if (topTeamsByGroup.some(g => !g.winner)) {
+        return { success: false, message: "Pastikan semua grup memiliki pemenang sebelum membuat bracket." };
+    }
 
     const newKnockout: KnockoutStageRounds = {
         'Play-offs': [], 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': []
     };
 
-    // Simple auto-bracket logic for 8/16 teams
-    const roundName = topTeams.length <= 4 ? 'Semi-finals' : topTeams.length <= 8 ? 'Quarter-finals' : 'Round of 16';
-    for (let i = 0; i < topTeams.length; i += 2) {
-        if (topTeams[i+1]) {
-            newKnockout[roundName].push({
-                id: `ko-${Date.now()}-${i}`, round: roundName, matchNumber: (i/2) + 1,
-                teamA: topTeams[i], teamB: topTeams[i+1], scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
-                winnerId: null, nextMatchId: null, placeholderA: '', placeholderB: ''
-            });
+    if (state.groups.length === 2) {
+        const gA = topTeamsByGroup[0];
+        const gB = topTeamsByGroup[1];
+        newKnockout['Semi-finals'].push({
+            id: `ko-sf-1`, round: 'Semi-finals', matchNumber: 1,
+            teamA: gA.winner, teamB: gB.runnerUp, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
+            winnerId: null, nextMatchId: 'ko-final-1', placeholderA: 'Winner A', placeholderB: 'Runner B'
+        });
+        newKnockout['Semi-finals'].push({
+            id: `ko-sf-2`, round: 'Semi-finals', matchNumber: 2,
+            teamA: gB.winner, teamB: gA.runnerUp, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
+            winnerId: null, nextMatchId: 'ko-final-1', placeholderA: 'Winner B', placeholderB: 'Runner A'
+        });
+        newKnockout['Final'].push({
+            id: `ko-final-1`, round: 'Final', matchNumber: 1,
+            teamA: null, teamB: null, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
+            winnerId: null, nextMatchId: null, placeholderA: 'Winner SF1', placeholderB: 'Winner SF2'
+        });
+    } 
+    else {
+        const topTeams: Team[] = [];
+        topTeamsByGroup.forEach(g => {
+            if (g.winner) topTeams.push(g.winner);
+            if (g.runnerUp) topTeams.push(g.runnerUp);
+        });
+        if (topTeams.length < 2) return { success: false, message: "Minimal butuh 2 tim untuk membuat bracket." };
+        const roundName = topTeams.length <= 4 ? 'Semi-finals' : topTeams.length <= 8 ? 'Quarter-finals' : 'Round of 16';
+        for (let i = 0; i < topTeams.length; i += 2) {
+            if (topTeams[i+1]) {
+                newKnockout[roundName].push({
+                    id: `ko-${Date.now()}-${i}`, round: roundName, matchNumber: (i/2) + 1,
+                    teamA: topTeams[i], teamB: topTeams[i+1], scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
+                    winnerId: null, nextMatchId: null, placeholderA: '', placeholderB: ''
+                });
+            }
         }
     }
     dispatch({ type: 'GENERATE_KNOCKOUT_BRACKET', payload: newKnockout });
     return { success: true };
   }, [state.groups]);
 
+  const clubStats = useMemo(() => {
+      const stats: Record<string, { team: Team, goals: number }> = {};
+      state.teams.forEach(t => { if (t && t.id) stats[t.id] = { team: t, goals: 0 }; });
+      const processMatch = (m: Match | KnockoutMatch) => {
+          if ('status' in m) {
+              if (m.status !== 'finished') return;
+              if (m.teamA?.id && stats[m.teamA.id]) stats[m.teamA.id].goals += (m.scoreA || 0);
+              if (m.teamB?.id && stats[m.teamB.id]) stats[m.teamB.id].goals += (m.scoreB || 0);
+          } 
+          else {
+              if (m.scoreA1 === null) return;
+              if (m.teamA?.id && stats[m.teamA.id]) stats[m.teamA.id].goals += (m.scoreA1 || 0) + (m.scoreA2 || 0);
+              if (m.teamB?.id && stats[m.teamB.id]) stats[m.teamB.id].goals += (m.scoreB1 || 0) + (m.scoreB2 || 0);
+          }
+      };
+      state.matches.forEach(processMatch);
+      if (state.knockoutStage) { Object.values(state.knockoutStage).flat().forEach(m => processMatch(m as any)); }
+      return Object.values(stats).sort((a, b) => b.goals - a.goals).filter(s => s.goals > 0);
+  }, [state.matches, state.knockoutStage, state.teams]);
+
   return { 
       ...state, 
-      isLoading, isSyncing,
+      isLoading, isSyncing, clubStats,
       updateNews: (news: NewsItem[]) => dispatch({ type: 'UPDATE_NEWS', payload: news }),
       updateProducts: (products: Product[]) => dispatch({ type: 'UPDATE_PRODUCTS', payload: products }),
       updateNewsCategories: (cats: string[]) => dispatch({ type: 'UPDATE_NEWS_CATEGORIES', payload: cats }),
       updateShopCategories: (cats: string[]) => dispatch({ type: 'UPDATE_SHOP_CATEGORIES', payload: cats }),
+      updateMarqueeMessages: (msgs: string[]) => dispatch({ type: 'UPDATE_MARQUEE', payload: msgs }),
       addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => 
         dispatch({ type: 'ADD_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber, ownerEmail } }),
       updateTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean, ownerEmail?: string) => 
         dispatch({ type: 'UPDATE_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber, isTopSeed, ownerEmail } }),
       deleteTeam: (id: string) => dispatch({ type: 'DELETE_TEAM', payload: id }),
-      updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => 
-        dispatch({ type: 'UPDATE_MATCH_SCORE', payload: { matchId, scoreA, scoreB, proofUrl } }),
+      updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string, playerStats?: MatchPlayerStats) => 
+        dispatch({ type: 'UPDATE_MATCH_SCORE', payload: { matchId, scoreA, scoreB, proofUrl, playerStats } }),
       updateKnockoutMatch: (id: string, m: KnockoutMatch) => dispatch({ type: 'UPDATE_KNOCKOUT_MATCH', payload: m }),
       addKnockoutMatch: (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string, matchNumber: number) => {
           const teamA = state.teams.find(t => t.id === teamAId) || null;
@@ -271,7 +331,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
                   for (let i = 0; i < n / 2; i++) {
                       const tA = teamsForScheduling[i]; const tB = teamsForScheduling[n - 1 - i];
                       if (tA.id !== 'bye' && tB.id !== 'bye') {
-                          newMatches.push({ id: `m-${g.id}-${round}-${i}`, teamA: tA, teamB: tB, scoreA: null, scoreB: null, status: 'scheduled', group: g.id, leg: 1, matchday: round + 1 });
+                          newMatches.push({ id: `m-${g.id}-${round}-${i}`, teamA: tA, teamB: tB, scoreA: null, scoreB: null, status: 'finished' as const, group: g.id, leg: 1, matchday: round + 1 });
                       }
                   }
                   teamsForScheduling.splice(1, 0, teamsForScheduling.pop()!);

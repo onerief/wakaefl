@@ -13,10 +13,9 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ banners }) => {
     useEffect(() => {
         if (banners.length <= 1 || isPaused) return;
 
-        // Waktu tunggu tetap 2000ms (2 detik)
         const interval = setInterval(() => {
             setCurrentIndex((prevIndex) => (prevIndex + 1) % banners.length);
-        }, 2000);
+        }, 3000);
 
         return () => clearInterval(interval);
     }, [banners.length, isPaused]);
@@ -32,8 +31,8 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ banners }) => {
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
         >
-            {/* Main Carousel Container with Overflow Hidden */}
-            <div className="relative aspect-[21/9] sm:aspect-[21/7] w-full overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-brand-secondary/20">
+            {/* Aspect Video (16:9) on Mobile, 21:7 on SM+ screens */}
+            <div className="relative aspect-video sm:aspect-[21/7] w-full overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-brand-secondary/20">
                 
                 {/* Slidable Wrapper */}
                 <div 
@@ -51,7 +50,6 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ banners }) => {
                                 className="w-full h-full object-cover"
                                 loading={index === 0 ? "eager" : "lazy"}
                             />
-                            {/* Decorative Overlays for each slide */}
                             <div className="absolute inset-0 bg-gradient-to-t from-brand-primary/90 via-transparent to-transparent opacity-60"></div>
                         </div>
                     ))}
@@ -73,7 +71,7 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ banners }) => {
                     </button>
                 </div>
 
-                {/* Progress Indicators (Dots) */}
+                {/* Progress Indicators */}
                 {banners.length > 1 && (
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex gap-2.5">
                         {banners.map((_, index) => (
@@ -91,7 +89,6 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ banners }) => {
                     </div>
                 )}
                 
-                {/* Static Outer Ring */}
                 <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-2xl pointer-events-none z-40"></div>
             </div>
         </div>

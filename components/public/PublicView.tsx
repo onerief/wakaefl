@@ -1,14 +1,16 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Group, Match, KnockoutStageRounds, Team, KnockoutMatch } from '../../types';
+import type { Group, Match, KnockoutStageRounds, Team, KnockoutMatch, TournamentMode } from '../../types';
 import { GroupStage } from './GroupStage';
 import { MatchCard } from './MatchList';
 import { KnockoutStageView } from './KnockoutStageView';
 import { RulesView } from './RulesView';
-import { Users, ListChecks, Trophy, BookOpen, Crown, ChevronDown, Zap, ShieldCheck, Star, Lock, Calendar, Info } from 'lucide-react';
+import { StatsStandings } from './StatsStandings';
+import { Users, ListChecks, Trophy, BookOpen, Crown, ChevronDown, Zap, ShieldCheck, Star, Lock, Calendar, Info, BarChart3 } from 'lucide-react';
 import type { User } from 'firebase/auth';
 
 interface PublicViewProps {
+  mode: TournamentMode;
   groups: Group[];
   matches: Match[];
   knockoutStage: KnockoutStageRounds | null;
@@ -20,9 +22,10 @@ interface PublicViewProps {
   onUpdateMatchScore?: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => void;
   onUpdateKnockoutScore?: (matchId: string, data: Partial<KnockoutMatch> & { round: keyof KnockoutStageRounds }) => void;
   userOwnedTeamIds?: string[];
+  clubStats?: any[];
 }
 
-type PublicTab = 'groups' | 'fixtures' | 'knockout' | 'final' | 'rules';
+type PublicTab = 'groups' | 'fixtures' | 'knockout' | 'final' | 'stats' | 'rules';
 
 const TabButton: React.FC<{
     isActive: boolean;
@@ -52,10 +55,10 @@ const MobileTabButton: React.FC<{
             isActive ? 'text-brand-vibrant bg-white/[0.04]' : 'text-brand-light'
         }`}
     >
-        <div className={`mb-0.5 transition-transform duration-300 ${isActive ? 'scale-110 -translate-y-0.5' : ''}`}>
+        <div className={`mb-1 transition-transform duration-300 ${isActive ? 'scale-110 -translate-y-0.5' : ''}`}>
             {icon}
         </div>
-        <span className={`text-[8px] font-black tracking-tight uppercase leading-none transition-all ${isActive ? 'opacity-100' : 'opacity-70'}`}>
+        <span className={`text-[9px] font-black tracking-tight uppercase leading-none transition-all ${isActive ? 'opacity-100' : 'opacity-70'}`}>
             {label}
         </span>
         {isActive && (
@@ -67,9 +70,9 @@ const MobileTabButton: React.FC<{
 );
 
 export const PublicView: React.FC<PublicViewProps> = ({ 
-    groups, matches, knockoutStage, rules, onSelectTeam, 
+    mode, groups, matches, knockoutStage, rules, onSelectTeam, 
     currentUser, onAddMatchComment, isAdmin, onUpdateMatchScore, onUpdateKnockoutScore,
-    userOwnedTeamIds = []
+    userOwnedTeamIds = [], clubStats = []
 }) => {
   const [activeTab, setActiveTab] = useState<PublicTab>('groups');
   const [selectedMatchdays, setSelectedMatchdays] = useState<Record<string, string>>({});
@@ -77,6 +80,10 @@ export const PublicView: React.FC<PublicViewProps> = ({
   const [focusMyTeam, setFocusMyTeam] = useState(false);
 
   const hasMyTeam = userOwnedTeamIds.length > 0;
+  
+  // LOGIC: Show Knockout Tabs if mode supports it (2 Regions or WAKACL)
+  const supportsKnockout = mode === 'two_leagues' || mode === 'wakacl';
+  const koLabel = mode === 'two_leagues' ? 'Semi Final' : 'Knockout';
 
   useEffect(() => {
     if (groups.length === 0 || matches.length === 0) return;
@@ -277,7 +284,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
       case 'knockout':
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter px-1">Knockout Stage</h2>
+            <h2 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter px-1">{koLabel} Stage</h2>
             <AdminToggle />
             <KnockoutStageView knockoutStage={knockoutStage || {}} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateKnockoutScore} userOwnedTeamIds={userOwnedTeamIds} />
           </div>
@@ -293,6 +300,16 @@ export const PublicView: React.FC<PublicViewProps> = ({
             <KnockoutStageView knockoutStage={{ Final: knockoutStage?.Final || [] }} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateKnockoutScore} userOwnedTeamIds={userOwnedTeamIds} />
           </div>
         );
+      case 'stats':
+          return (
+            <div className="space-y-6">
+                 <h2 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter px-1 flex items-center gap-4">
+                    <BarChart3 className="text-brand-special" size={32} />
+                    <span>Peringkat Produktivitas Klub</span>
+                </h2>
+                <StatsStandings clubStats={clubStats} />
+            </div>
+          )
       case 'rules': return <RulesView rules={rules} />;
       default: return null;
     }
@@ -301,26 +318,36 @@ export const PublicView: React.FC<PublicViewProps> = ({
   return (
     <div className="space-y-6 pb-32 md:pb-12">
         {/* Desktop Navigation Sub-Tabs */}
-        <div className="hidden md:flex justify-center mb-10 sticky top-52 z-30">
+        <div className="hidden md:flex justify-center mb-10 sticky top-32 z-30">
             <div className="flex bg-brand-secondary/90 backdrop-blur-2xl p-1.5 rounded-full border border-white/10 shadow-2xl">
                 <TabButton isActive={activeTab === 'groups'} onClick={() => setActiveTab('groups')}><Users size={16}/> <span>Groups</span></TabButton>
                 <TabButton isActive={activeTab === 'fixtures'} onClick={() => setActiveTab('fixtures')}><ListChecks size={16}/> <span>Fixtures</span></TabButton>
-                <TabButton isActive={activeTab === 'knockout'} onClick={() => setActiveTab('knockout')}><Trophy size={16}/> <span>Knockout</span></TabButton>
-                <TabButton isActive={activeTab === 'final'} onClick={() => setActiveTab('final')}><Crown size={16} className="text-yellow-400"/> <span className="text-yellow-100">Final</span></TabButton>
+                {supportsKnockout && (
+                    <>
+                        <TabButton isActive={activeTab === 'knockout'} onClick={() => setActiveTab('knockout')}><Trophy size={16}/> <span>{koLabel}</span></TabButton>
+                        <TabButton isActive={activeTab === 'final'} onClick={() => setActiveTab('final')}><Crown size={16} className="text-yellow-400"/> <span className="text-yellow-100">Final</span></TabButton>
+                    </>
+                )}
+                <TabButton isActive={activeTab === 'stats'} onClick={() => setActiveTab('stats')}><BarChart3 size={16} className="text-brand-special"/> <span>Stats</span></TabButton>
                 <TabButton isActive={activeTab === 'rules'} onClick={() => setActiveTab('rules')}><BookOpen size={16}/> <span>Rules</span></TabButton>
             </div>
         </div>
 
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 relative z-10">{renderContent()}</div>
 
-        {/* Mobile Navigation Navigation (Bottom) - Higher Z-Index */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-brand-secondary/95 backdrop-blur-2xl border-t border-white/10 z-[80] h-[72px] shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-             <div className="grid grid-cols-5 h-full items-center px-2">
-                <MobileTabButton isActive={activeTab === 'groups'} onClick={() => setActiveTab('groups')} label="Grup" icon={<Users size={20} />} />
-                <MobileTabButton isActive={activeTab === 'fixtures'} onClick={() => setActiveTab('fixtures')} label="Jadwal" icon={<ListChecks size={20} />} />
-                <MobileTabButton isActive={activeTab === 'knockout'} onClick={() => setActiveTab('knockout')} label="Knockout" icon={<Trophy size={20} />} />
-                <MobileTabButton isActive={activeTab === 'final'} onClick={() => setActiveTab('final')} label="Final" icon={<Crown size={20} className={activeTab === 'final' ? 'text-yellow-500' : ''} />} />
-                <MobileTabButton isActive={activeTab === 'rules'} onClick={() => setActiveTab('rules')} label="Aturan" icon={<BookOpen size={20} />} />
+        {/* Mobile Navigation Navigation (Bottom) - Dynamic Grid Columns */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-brand-secondary/95 backdrop-blur-2xl border-t border-white/10 z-[80] h-[72px] pb-safe shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+             <div className={`grid ${supportsKnockout ? 'grid-cols-6' : 'grid-cols-4'} h-full items-center px-1`}>
+                <MobileTabButton isActive={activeTab === 'groups'} onClick={() => setActiveTab('groups')} label="Grup" icon={<Users size={18} />} />
+                <MobileTabButton isActive={activeTab === 'fixtures'} onClick={() => setActiveTab('fixtures')} label="Jadwal" icon={<ListChecks size={18} />} />
+                {supportsKnockout && (
+                    <>
+                        <MobileTabButton isActive={activeTab === 'knockout'} onClick={() => setActiveTab('knockout')} label={mode === 'two_leagues' ? 'SF' : 'KO'} icon={<Trophy size={18} />} />
+                        <MobileTabButton isActive={activeTab === 'final'} onClick={() => setActiveTab('final')} label="Final" icon={<Crown size={18} className={activeTab === 'final' ? 'text-yellow-500' : ''} />} />
+                    </>
+                )}
+                <MobileTabButton isActive={activeTab === 'stats'} onClick={() => setActiveTab('stats')} label="Stats" icon={<BarChart3 size={18} className={activeTab === 'stats' ? 'text-brand-special' : ''} />} />
+                <MobileTabButton isActive={activeTab === 'rules'} onClick={() => setActiveTab('rules')} label="Aturan" icon={<BookOpen size={18} />} />
              </div>
         </div>
     </div>

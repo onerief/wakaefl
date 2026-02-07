@@ -64,7 +64,6 @@ function AppContent() {
     return () => unsubscribe();
   }, []);
 
-  // Fetch Global Stats whenever view changes to home or data updates
   useEffect(() => {
     if (view === 'home') {
         const fetchStats = async () => {
@@ -134,7 +133,7 @@ function AppContent() {
 
       {showBanners && (
           <div className="w-full flex flex-col">
-              <MarqueeBanner />
+              <MarqueeBanner messages={tournament.marqueeMessages} />
               <div className="container mx-auto px-4 pt-6">
                 {tournament.banners && tournament.banners.length > 0 && <BannerCarousel banners={tournament.banners} />}
               </div>
@@ -163,7 +162,21 @@ function AppContent() {
               {view === 'shop' && <StoreFront products={tournament.products || []} categories={tournament.shopCategories} />}
               {(view === 'privacy' || view === 'about' || view === 'terms') && <StaticPages type={view as any} onBack={() => setView('home')} />}
               {(['league', 'wakacl', 'two_leagues'] as View[]).includes(view) && (
-                <PublicView groups={tournament.groups} matches={tournament.matches} knockoutStage={(view === 'wakacl' || view === 'two_leagues') ? tournament.knockoutStage : null} rules={tournament.rules} onSelectTeam={setViewingTeam} currentUser={currentUser} onAddMatchComment={tournament.addMatchComment} isAdmin={isAdminAuthenticated} onUpdateMatchScore={tournament.updateMatchScore} onUpdateKnockoutScore={tournament.updateKnockoutMatch} userOwnedTeamIds={userOwnedTeams.map(t => t.team.id)} />
+                <PublicView 
+                    mode={activeMode}
+                    groups={tournament.groups} 
+                    matches={tournament.matches} 
+                    knockoutStage={(view === 'wakacl' || view === 'two_leagues') ? tournament.knockoutStage : null} 
+                    rules={tournament.rules} 
+                    onSelectTeam={setViewingTeam} 
+                    currentUser={currentUser} 
+                    onAddMatchComment={tournament.addMatchComment} 
+                    isAdmin={isAdminAuthenticated} 
+                    onUpdateMatchScore={tournament.updateMatchScore} 
+                    onUpdateKnockoutScore={tournament.updateKnockoutMatch} 
+                    userOwnedTeamIds={userOwnedTeams.map(t => t.team.id)} 
+                    clubStats={tournament.clubStats} 
+                />
               )}
               {view === 'hall_of_fame' && <HallOfFame history={tournament.history} currentStatus={tournament.status} mode={activeMode} onBack={() => setView('home')} />}
               {view === 'admin' && isAdminAuthenticated && (
@@ -175,6 +188,7 @@ function AppContent() {
                     updateProducts={tournament.updateProducts} 
                     updateNewsCategories={tournament.updateNewsCategories} 
                     updateShopCategories={tournament.updateShopCategories}
+                    updateMarqueeMessages={tournament.updateMarqueeMessages}
                     generateKnockoutBracket={tournament.generateKnockoutBracket}
                     initializeEmptyKnockoutStage={tournament.initializeEmptyKnockoutStage}
                     addKnockoutMatch={tournament.addKnockoutMatch}

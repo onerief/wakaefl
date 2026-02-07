@@ -4,8 +4,7 @@ import type { Team, Group, Match, KnockoutStageRounds, KnockoutMatch, Tournament
 import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
-// Added missing Newspaper and ShoppingBag imports from lucide-react
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, Crown, ImageIcon, ShieldCheck, Share2, FileJson, LayoutGrid, Zap, Sparkles, AlertTriangle, Check, RefreshCw, X, Info, Newspaper, ShoppingBag } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, Crown, ImageIcon, ShieldCheck, Share2, FileJson, LayoutGrid, Zap, Sparkles, AlertTriangle, Check, RefreshCw, X, Info, Newspaper, ShoppingBag, Type } from 'lucide-react';
 import { Card } from '../shared/Card';
 import { RulesEditor } from './RulesEditor';
 import { BannerSettings } from './BannerSettings';
@@ -15,6 +14,7 @@ import { HistoryManager } from './HistoryManager';
 import { NewsManager } from './NewsManager';
 import { ProductManager } from './ProductManager';
 import { DataManager } from './DataManager';
+import { MarqueeSettings } from './MarqueeSettings';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { useToast } from '../shared/Toast';
@@ -31,6 +31,7 @@ interface AdminPanelProps {
   products?: Product[];
   newsCategories?: string[];
   shopCategories?: string[];
+  marqueeMessages?: string[];
   mode: TournamentMode;
   status: TournamentStatus;
   history: SeasonHistory[];
@@ -46,6 +47,7 @@ interface AdminPanelProps {
   updateProducts: (products: Product[]) => void;
   updateNewsCategories: (cats: string[]) => void;
   updateShopCategories: (cats: string[]) => void;
+  updateMarqueeMessages: (msgs: string[]) => void;
   generateKnockoutBracket: () => { success: boolean; message?: string };
   updateKnockoutMatch: (matchId: string, match: KnockoutMatch) => void;
   addKnockoutMatch: (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string, matchNumber: number) => void;
@@ -69,7 +71,7 @@ interface AdminPanelProps {
   setTournamentStatus: (status: 'active' | 'completed') => void;
 }
 
-type AdminTab = 'teams' | 'group-fixtures' | 'knockout' | 'news' | 'shop' | 'banners' | 'partners' | 'history' | 'rules' | 'branding' | 'data' | 'settings';
+type AdminTab = 'teams' | 'group-fixtures' | 'knockout' | 'news' | 'shop' | 'marquee' | 'banners' | 'partners' | 'history' | 'rules' | 'branding' | 'data' | 'settings';
 
 const ADMIN_TABS: { id: AdminTab; label: string; icon: any; color: string }[] = [
     { id: 'teams', label: 'Tim & Manager', icon: Users, color: 'text-blue-400' },
@@ -77,6 +79,7 @@ const ADMIN_TABS: { id: AdminTab; label: string; icon: any; color: string }[] = 
     { id: 'knockout', label: 'Knockout', icon: Trophy, color: 'text-yellow-400' },
     { id: 'news', label: 'News Manager', icon: Newspaper, color: 'text-orange-400' },
     { id: 'shop', label: 'Shop Manager', icon: ShoppingBag, color: 'text-emerald-400' },
+    { id: 'marquee', label: 'Running Text', icon: Type, color: 'text-brand-vibrant' },
     { id: 'banners', label: 'Banner Home', icon: ImageIcon, color: 'text-pink-400' },
     { id: 'partners', label: 'Sponsor', icon: Share2, color: 'text-emerald-400' },
     { id: 'branding', label: 'Logo Web', icon: ShieldCheck, color: 'text-cyan-400' },
@@ -190,6 +193,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       );
       case 'news': return <NewsManager news={props.news || []} onUpdateNews={props.onUpdateNews} categories={props.newsCategories} onUpdateCategories={props.updateNewsCategories} />;
       case 'shop': return <ProductManager products={props.products || []} onUpdateProducts={props.updateProducts} categories={props.shopCategories} onUpdateCategories={props.updateShopCategories} />;
+      case 'marquee': return <MarqueeSettings messages={props.marqueeMessages || []} onUpdate={props.updateMarqueeMessages} />;
       case 'banners': return <BannerSettings banners={props.banners} onUpdateBanners={props.updateBanners} />;
       case 'partners': return <PartnerSettings partners={props.partners} onUpdatePartners={props.updatePartners} />;
       case 'branding': return <BrandingSettings headerLogoUrl={props.headerLogoUrl || ''} onUpdateHeaderLogo={props.updateHeaderLogo || (() => {})} />;
@@ -204,7 +208,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                 </h3>
                 
                 <div className="space-y-8">
-                    {/* Registration Toggle */}
                     <div className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/5">
                         <div className="flex items-center gap-4">
                             <div className={`p-3 rounded-xl ${props.isRegistrationOpen ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
@@ -223,7 +226,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                         </button>
                     </div>
 
-                    {/* Tournament Status Toggle */}
                     <div className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/5">
                         <div className="flex items-center gap-4">
                             <div className={`p-3 rounded-xl ${props.status === 'active' ? 'bg-brand-vibrant/20 text-brand-vibrant' : 'bg-yellow-500/20 text-yellow-400'}`}>

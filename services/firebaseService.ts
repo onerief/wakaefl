@@ -74,7 +74,8 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
     const cleanMatches = (state.matches || []).map(m => ({
         ...m,
         teamA: dehydrateTeam(m.teamA),
-        teamB: dehydrateTeam(m.teamB)
+        teamB: dehydrateTeam(m.teamB),
+        playerStats: m.playerStats || null
     }));
 
     const cleanGroups = (state.groups || []).map(g => ({
@@ -84,11 +85,11 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
     }));
 
     const cleanKnockout = state.knockoutStage ? {
-        'Play-offs': (state.knockoutStage['Play-offs'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB) })),
-        'Round of 16': (state.knockoutStage['Round of 16'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB) })),
-        'Quarter-finals': (state.knockoutStage['Quarter-finals'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB) })),
-        'Semi-finals': (state.knockoutStage['Semi-finals'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB) })),
-        'Final': (state.knockoutStage['Final'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB) }))
+        'Play-offs': (state.knockoutStage['Play-offs'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB), playerStats: m.playerStats || null })),
+        'Round of 16': (state.knockoutStage['Round of 16'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB), playerStats: m.playerStats || null })),
+        'Quarter-finals': (state.knockoutStage['Quarter-finals'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB), playerStats: m.playerStats || null })),
+        'Semi-finals': (state.knockoutStage['Semi-finals'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB), playerStats: m.playerStats || null })),
+        'Final': (state.knockoutStage['Final'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB), playerStats: m.playerStats || null }))
     } : null;
 
     const cleanHistory = (state.history || []).map(h => ({
@@ -105,18 +106,19 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
         status: state.status || 'active',
         history: cleanHistory,
         isRegistrationOpen: state.isRegistrationOpen ?? true,
-        mode: state.mode,
-        news: sanitizeData(state.news || []),
-        products: sanitizeData(state.products || []),
-        newsCategories: sanitizeData(state.newsCategories || []),
-        shopCategories: sanitizeData(state.shopCategories || [])
+        mode: state.mode
     };
 
     const globalData = {
         banners: state.banners || [],
         partners: state.partners || [],
         rules: state.rules || '',
-        headerLogoUrl: state.headerLogoUrl || ''
+        headerLogoUrl: state.headerLogoUrl || '',
+        news: sanitizeData(state.news || []),
+        products: sanitizeData(state.products || []),
+        newsCategories: sanitizeData(state.newsCategories || []),
+        shopCategories: sanitizeData(state.shopCategories || []),
+        marqueeMessages: sanitizeData(state.marqueeMessages || [])
     };
 
     await Promise.all([
@@ -130,51 +132,73 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
   }
 };
 
-// DIRECT TEAM ADDITION - Bypasses hook for approval safety
-export const addApprovedTeamToFirestore = async (mode: TournamentMode, teamData: Team) => {
-    const docRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const snap = await transaction.get(docRef);
-            if (!snap.exists()) throw new Error("Document tournament tidak ditemukan");
-            const data = snap.data();
-            const existingTeams = data.teams || [];
-            transaction.update(docRef, {
-                teams: [...existingTeams, teamData]
-            });
-        });
-        return true;
-    } catch (e) {
-        console.error("Gagal menambah tim ke Firestore:", e);
-        throw e;
-    }
-};
-
 export const subscribeToTournamentData = (mode: TournamentMode, callback: (data: TournamentState) => void) => {
     const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+    const leagueDocRef = doc(firestore, TOURNAMENT_COLLECTION, 'league'); // For data fallback
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
     
     let modeData: any = undefined; 
     let globalData: any = undefined;
+    let leagueData: any = undefined;
 
     const emit = () => { 
-        if (modeData !== undefined && globalData !== undefined) { 
+        if (modeData !== undefined && globalData !== undefined && leagueData !== undefined) { 
             const safeModeData = modeData || {};
             const safeGlobalData = globalData || {};
+            const safeLeagueData = leagueData || {};
             
+            // PRIORITY:
+            // 1. global_settings (The new standard)
+            // 2. 'league' document (Where most old data likely lives)
+            // 3. Current mode document (e.g. 'wakacl')
+            
+            const news = (safeGlobalData.news && safeGlobalData.news.length > 0) 
+                ? safeGlobalData.news 
+                : (safeLeagueData.news && safeLeagueData.news.length > 0)
+                    ? safeLeagueData.news
+                    : (safeModeData.news || []);
+
+            const products = (safeGlobalData.products && safeGlobalData.products.length > 0)
+                ? safeGlobalData.products
+                : (safeLeagueData.products && safeLeagueData.products.length > 0)
+                    ? safeLeagueData.products
+                    : (safeModeData.products || []);
+
+            const newsCategories = (safeGlobalData.newsCategories && safeGlobalData.newsCategories.length > 0)
+                ? safeGlobalData.newsCategories
+                : (safeLeagueData.newsCategories || ['Match', 'Transfer', 'Info', 'Interview']);
+
+            const shopCategories = (safeGlobalData.shopCategories && safeGlobalData.shopCategories.length > 0)
+                ? safeGlobalData.shopCategories
+                : (safeLeagueData.shopCategories || ['Coin', 'Account', 'Jasa', 'Merch']);
+
+            const marqueeMessages = (safeGlobalData.marqueeMessages && safeGlobalData.marqueeMessages.length > 0)
+                ? safeGlobalData.marqueeMessages
+                : (safeLeagueData.marqueeMessages || [
+                    "SELAMAT DATANG DI WAKACL HUB - TURNAMEN EFOOTBALL TERGOKIL SE-WAY KANAN!",
+                    "SIAPKAN STRATEGI TERBAIKMU DAN RAIH GELAR JUARA!",
+                    "WAKACL SEASON 1: THE GLORY AWAITS...",
+                    "MAINKAN DENGAN SPORTIF, MENANG DENGAN ELEGAN!",
+                    "UPDATE SKOR DAN KLASEMEN SECARA REAL-TIME DI SINI!"
+                  ]);
+
             callback({ 
                 ...safeModeData,
                 teams: safeModeData.teams || [],
                 groups: safeModeData.groups || [],
                 matches: safeModeData.matches || [],
-                news: safeModeData.news || [],
                 history: safeModeData.history || [],
-                products: safeModeData.products || [],
                 
-                banners: safeGlobalData.banners || [], 
-                partners: safeGlobalData.partners || [], 
-                rules: safeGlobalData.rules || '', 
-                headerLogoUrl: safeGlobalData.headerLogoUrl || '' 
+                news,
+                products,
+                newsCategories,
+                shopCategories,
+                marqueeMessages,
+                
+                banners: safeGlobalData.banners || safeLeagueData.banners || safeModeData.banners || [], 
+                partners: safeGlobalData.partners || safeLeagueData.partners || safeModeData.partners || [], 
+                rules: safeGlobalData.rules || safeModeData.rules || '', 
+                headerLogoUrl: safeGlobalData.headerLogoUrl || safeModeData.headerLogoUrl || '' 
             }); 
         } 
     };
@@ -182,22 +206,22 @@ export const subscribeToTournamentData = (mode: TournamentMode, callback: (data:
     const unsubMode = onSnapshot(modeDocRef, (snap) => { 
         modeData = snap.exists() ? snap.data() : null; 
         emit(); 
-    }, (error) => {
-        console.error("Error subscribing to tournament mode:", error);
-        if (modeData === undefined) { modeData = null; emit(); }
-    });
+    }, () => { if (modeData === undefined) { modeData = null; emit(); } });
+
+    const unsubLeague = onSnapshot(leagueDocRef, (snap) => {
+        leagueData = snap.exists() ? snap.data() : null;
+        emit();
+    }, () => { if (leagueData === undefined) { leagueData = null; emit(); } });
 
     const unsubGlobal = onSnapshot(settingsDocRef, (snap) => { 
         globalData = snap.exists() ? snap.data() : null; 
         emit(); 
-    }, (error) => {
-        console.error("Error subscribing to global settings:", error);
-        if (globalData === undefined) { globalData = null; emit(); }
-    });
+    }, () => { if (globalData === undefined) { globalData = null; emit(); } });
 
-    return () => { unsubMode(); unsubGlobal(); };
+    return () => { unsubMode(); unsubLeague(); unsubGlobal(); };
 };
 
+// ... Rest of the file unchanged ...
 export const onAuthChange = (callback: (user: User | null) => void) => onAuthStateChanged(auth, callback);
 export const signOutUser = () => signOut(auth);
 export const signInUser = (email: string, password: string) => signInWithEmailAndPassword(auth, email, password);
@@ -372,4 +396,23 @@ export const updateUserTeamData = async (mode: TournamentMode, teamId: string, u
         teams[teamIndex] = { ...teams[teamIndex], ...updates };
         transaction.update(docRef, { teams });
     });
+};
+
+export const addApprovedTeamToFirestore = async (mode: TournamentMode, teamData: Team) => {
+    const docRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const snap = await transaction.get(docRef);
+            if (!snap.exists()) throw new Error("Document tournament tidak ditemukan");
+            const data = snap.data();
+            const existingTeams = data.teams || [];
+            transaction.update(docRef, {
+                teams: [...existingTeams, teamData]
+            });
+        });
+        return true;
+    } catch (e) {
+        console.error("Gagal menambah tim ke Firestore:", e);
+        throw e;
+    }
 };

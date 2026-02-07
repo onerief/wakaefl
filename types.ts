@@ -13,6 +13,17 @@ export interface Team {
   requestedOwnerEmail?: string;
 }
 
+export interface PlayerStat {
+    name: string;
+    goals: number;
+    assists: number;
+}
+
+export interface MatchPlayerStats {
+    teamA: PlayerStat[];
+    teamB: PlayerStat[];
+}
+
 export interface NewsItem {
   id: string;
   title: string;
@@ -86,6 +97,7 @@ export interface Match {
   leg?: number;
   matchday?: number;
   comments?: MatchComment[];
+  playerStats?: MatchPlayerStats;
 }
 
 export interface KnockoutMatch {
@@ -104,6 +116,7 @@ export interface KnockoutMatch {
   placeholderB: string;
   proofUrl?: string;
   comments?: MatchComment[];
+  playerStats?: MatchPlayerStats;
 }
 
 export interface KnockoutStageRounds {
@@ -151,6 +164,7 @@ export interface TournamentState {
   products?: Product[];
   newsCategories?: string[];
   shopCategories?: string[];
+  marqueeMessages?: string[];
 }
 
 export type View = 'home' | 'league' | 'wakacl' | 'two_leagues' | 'admin' | 'hall_of_fame' | 'news' | 'privacy' | 'about' | 'terms' | 'shop';
