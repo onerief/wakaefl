@@ -23,8 +23,13 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
   const { addToast } = useToast();
 
   const handleSave = () => {
-    onUpdateScore(match.id, scoreA, scoreB, proofUrl);
-    addToast('Skor berhasil disimpan!', 'success');
+    try {
+        onUpdateScore(match.id, scoreA, scoreB, proofUrl);
+        addToast('Skor berhasil disimpan!', 'success');
+    } catch (e) {
+        console.error(e);
+        addToast('Gagal menyimpan skor.', 'error');
+    }
   };
 
   const adjustScore = (team: 'A' | 'B', delta: number) => {

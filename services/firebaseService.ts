@@ -63,13 +63,46 @@ export const sanitizeData = (data: any): any => {
 
 export const saveTournamentData = async (mode: TournamentMode, state: TournamentState) => {
   try {
+    // Dehydrate function to convert Team objects back to IDs
+    const dehydrateTeam = (t: any) => {
+        if (!t) return null;
+        if (typeof t === 'string') return t;
+        return t.id || null;
+    };
+
+    const cleanMatches = (state.matches || []).map(m => ({
+        ...m,
+        teamA: dehydrateTeam(m.teamA),
+        teamB: dehydrateTeam(m.teamB)
+    }));
+
+    const cleanGroups = (state.groups || []).map(g => ({
+        ...g,
+        teams: (g.teams || []).map(t => dehydrateTeam(t)),
+        standings: [] // Standings are derived, do not persist
+    }));
+
+    const cleanKnockout = state.knockoutStage ? {
+        'Play-offs': (state.knockoutStage['Play-offs'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB) })),
+        'Round of 16': (state.knockoutStage['Round of 16'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB) })),
+        'Quarter-finals': (state.knockoutStage['Quarter-finals'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB) })),
+        'Semi-finals': (state.knockoutStage['Semi-finals'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB) })),
+        'Final': (state.knockoutStage['Final'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB) }))
+    } : null;
+
+    const cleanHistory = (state.history || []).map(h => ({
+        ...h,
+        champion: dehydrateTeam(h.champion),
+        runnerUp: h.runnerUp ? dehydrateTeam(h.runnerUp) : undefined
+    }));
+
     const cleanState = {
-        teams: sanitizeData(state.teams),
-        groups: sanitizeData(state.groups),
-        matches: sanitizeData(state.matches),
-        knockoutStage: sanitizeData(state.knockoutStage),
+        teams: sanitizeData(state.teams), // Teams list is the source of truth
+        groups: cleanGroups,
+        matches: cleanMatches,
+        knockoutStage: cleanKnockout,
         status: state.status || 'active',
-        history: sanitizeData(state.history || []),
+        history: cleanHistory,
         isRegistrationOpen: state.isRegistrationOpen ?? true,
         mode: state.mode,
         news: sanitizeData(state.news || []),
@@ -77,18 +110,23 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
         newsCategories: sanitizeData(state.newsCategories || []),
         shopCategories: sanitizeData(state.shopCategories || [])
     };
+
     const globalData = {
         banners: state.banners || [],
         partners: state.partners || [],
         rules: state.rules || '',
         headerLogoUrl: state.headerLogoUrl || ''
     };
+
     await Promise.all([
         setDoc(doc(firestore, TOURNAMENT_COLLECTION, mode), cleanState),
         setDoc(doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC), globalData)
     ]);
     return true;
-  } catch (error) { console.error(error); throw error; }
+  } catch (error) { 
+      console.error("Error saving tournament data:", error); 
+      throw error; 
+  }
 };
 
 export const subscribeToTournamentData = (mode: TournamentMode, callback: (data: TournamentState) => void) => {

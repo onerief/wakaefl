@@ -9,7 +9,7 @@ import { TeamLogo } from '../shared/TeamLogo';
 
 interface KnockoutMatchEditorProps {
   match: KnockoutMatch;
-  onUpdateScore: (matchId: string, data: Partial<KnockoutMatch>) => void;
+  onUpdateScore: (matchId: string, data: KnockoutMatch) => void;
   onEdit: (match: KnockoutMatch) => void;
   onDelete: () => void;
 }
@@ -29,27 +29,18 @@ export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match,
   const aggA = (sA1 || 0) + (sA2 || 0);
   const aggB = (sB1 || 0) + (sB2 || 0);
 
-  // Auto-calculate winner
-  const calculatedWinnerId = (() => {
-      if (sA1 === null || sB1 === null) return null;
-      if (!isFinal && (sA2 === null || sB2 === null)) return null;
-
-      if (aggA > aggB) return match.teamA?.id || null;
-      if (aggB > aggA) return match.teamB?.id || null;
-      return manualWinnerId; // Jika seri, gunakan pilihan manual
-  })();
-
   const handleSave = () => {
     if (!isEditable) return;
     
     onUpdateScore(match.id, { 
+        ...match,
         scoreA1: sA1, 
         scoreB1: sB1, 
         scoreA2: sA2, 
         scoreB2: sB2,
-        winnerId: calculatedWinnerId
+        winnerId: manualWinnerId
     });
-    addToast('Skor disimpan & tim otomatis lanjut!', 'success');
+    addToast('Skor berhasil disimpan.', 'success');
   };
 
   const adjust = (leg: 1 | 2, team: 'A' | 'B', delta: number) => {
@@ -87,12 +78,12 @@ export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match,
 
       <div className="space-y-4">
         <div className="flex items-center justify-between text-center gap-2">
-            <div className={`flex flex-col items-center gap-1 flex-1 min-w-0 transition-opacity ${calculatedWinnerId === match.teamA?.id ? 'opacity-100' : calculatedWinnerId ? 'opacity-30' : 'opacity-100'}`}>
+            <div className={`flex flex-col items-center gap-1 flex-1 min-w-0 transition-opacity ${manualWinnerId === match.teamA?.id ? 'opacity-100' : manualWinnerId ? 'opacity-30' : 'opacity-100'}`}>
                 <TeamLogo logoUrl={match.teamA?.logoUrl} teamName={teamAName} className="w-10 h-10" />
                 <span className="text-[10px] font-bold text-white truncate w-full uppercase">{teamAName}</span>
             </div>
             <div className="text-brand-light/30 font-black italic">VS</div>
-            <div className={`flex flex-col items-center gap-1 flex-1 min-w-0 transition-opacity ${calculatedWinnerId === match.teamB?.id ? 'opacity-100' : calculatedWinnerId ? 'opacity-30' : 'opacity-100'}`}>
+            <div className={`flex flex-col items-center gap-1 flex-1 min-w-0 transition-opacity ${manualWinnerId === match.teamB?.id ? 'opacity-100' : manualWinnerId ? 'opacity-30' : 'opacity-100'}`}>
                 <TeamLogo logoUrl={match.teamB?.logoUrl} teamName={teamBName} className="w-10 h-10" />
                 <span className="text-[10px] font-bold text-white truncate w-full uppercase">{teamBName}</span>
             </div>
@@ -150,8 +141,8 @@ export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match,
             )}
         </div>
 
-        <Button onClick={handleSave} disabled={!isEditable || (!isFinal && aggA === aggB && !manualWinnerId)} className="w-full !py-3 bg-brand-vibrant hover:bg-blue-600 border-none shadow-lg shadow-blue-900/20">
-            <Save size={16}/> <span>Simpan & Loloskan Tim</span>
+        <Button onClick={handleSave} disabled={!isEditable} className="w-full !py-3 bg-brand-vibrant hover:bg-blue-600 border-none shadow-lg shadow-blue-900/20">
+            <Save size={16}/> <span>Simpan Skor</span>
         </Button>
       </div>
     </Card>
