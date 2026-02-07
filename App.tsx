@@ -194,7 +194,7 @@ function AppContent() {
       {showAdminLogin && <Login onLoginSuccess={handleAdminLoginSuccess} onClose={() => setShowAdminLogin(false)} />}
       {showUserAuth && <UserAuthModal onClose={() => setShowUserAuth(false)} onSuccess={() => setShowUserAuth(false)} />}
       {showUserProfile && currentUser && <UserProfileModal currentUser={currentUser} teams={tournament.teams} onClose={() => setShowUserProfile(false)} onLogout={handleLogout} />}
-      {showTeamRegistration && currentUser && <TeamRegistrationModal currentUser={currentUser} onClose={() => setShowTeamRegistration(false)} />}
+      {showTeamRegistration && currentUser && <TeamRegistrationModal currentUser={currentUser} onClose={() => setShowTeamRegistration(false)} userOwnedTeams={userOwnedTeams} />}
       {viewingTeam && <TeamProfileModal team={viewingTeam} matches={tournament.matches} onClose={() => setViewingTeam(null)} />}
       <Footer partners={tournament.partners} onAdminLogin={() => setShowAdminLogin(true)} setView={handleSetView} />
     </div>

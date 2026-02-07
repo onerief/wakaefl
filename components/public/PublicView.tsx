@@ -299,8 +299,8 @@ export const PublicView: React.FC<PublicViewProps> = ({
   }
 
   return (
-    <div className="space-y-6 pb-24 md:pb-12">
-        {/* Desktop Navigation Sub-Tabs - Adjusted top for better spacing below main Nav */}
+    <div className="space-y-6 pb-32 md:pb-12">
+        {/* Desktop Navigation Sub-Tabs */}
         <div className="hidden md:flex justify-center mb-10 sticky top-52 z-30">
             <div className="flex bg-brand-secondary/90 backdrop-blur-2xl p-1.5 rounded-full border border-white/10 shadow-2xl">
                 <TabButton isActive={activeTab === 'groups'} onClick={() => setActiveTab('groups')}><Users size={16}/> <span>Groups</span></TabButton>
@@ -313,8 +313,8 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 relative z-10">{renderContent()}</div>
 
-        {/* Mobile Navigation Navigation (Bottom) */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-brand-secondary/95 backdrop-blur-2xl border-t border-white/10 z-[60] h-[72px] shadow-2xl">
+        {/* Mobile Navigation Navigation (Bottom) - Higher Z-Index */}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-brand-secondary/95 backdrop-blur-2xl border-t border-white/10 z-[80] h-[72px] shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
              <div className="grid grid-cols-5 h-full items-center px-2">
                 <MobileTabButton isActive={activeTab === 'groups'} onClick={() => setActiveTab('groups')} label="Grup" icon={<Users size={20} />} />
                 <MobileTabButton isActive={activeTab === 'fixtures'} onClick={() => setActiveTab('fixtures')} label="Jadwal" icon={<ListChecks size={20} />} />

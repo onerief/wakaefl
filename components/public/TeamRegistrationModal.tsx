@@ -1,20 +1,21 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { X, Upload, UserCircle, MessageCircle, Instagram, Loader, Send, Trophy, ChevronDown, Phone, AlertCircle } from 'lucide-react';
+import { X, Upload, UserCircle, MessageCircle, Instagram, Loader, Send, Trophy, ChevronDown, Phone, AlertCircle, Copy, Check } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { uploadTeamLogo, submitNewTeamRegistration } from '../../services/firebaseService';
 import { TeamLogo } from '../shared/TeamLogo';
 import type { User } from 'firebase/auth';
-import type { TournamentMode } from '../../types';
+import type { TournamentMode, Team } from '../../types';
 
 interface TeamRegistrationModalProps {
     currentUser: User;
     onClose: () => void;
+    userOwnedTeams?: { mode: TournamentMode, team: Team }[];
 }
 
-export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ currentUser, onClose }) => {
+export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ currentUser, onClose, userOwnedTeams = [] }) => {
     const [name, setName] = useState('');
     const [manager, setManager] = useState(currentUser.displayName || '');
     const [whatsappNumber, setWhatsappNumber] = useState('');
@@ -27,6 +28,26 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
     
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { addToast } = useToast();
+
+    // Unique list of teams owned by user (to avoid duplicates if same team in multiple modes)
+    const uniqueExistingTeams = useMemo(() => {
+        const map = new Map<string, Team>();
+        userOwnedTeams.forEach(ut => map.set(ut.team.id, ut.team));
+        return Array.from(map.values());
+    }, [userOwnedTeams]);
+
+    const handleUseExistingTeam = (teamId: string) => {
+        if (!teamId) return;
+        const team = uniqueExistingTeams.find(t => t.id === teamId);
+        if (team) {
+            setName(team.name || '');
+            setManager(team.manager || currentUser.displayName || '');
+            setWhatsappNumber(team.whatsappNumber || '');
+            setSocialMediaUrl(team.socialMediaUrl || '');
+            setLogoUrl(team.logoUrl || '');
+            addToast(`Data tim "${team.name}" berhasil dimuat!`, 'success');
+        }
+    };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -59,10 +80,8 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
         }
 
         setIsSubmitting(true);
-        console.log("Submitting team registration...");
-
         try {
-            const registrationId = await submitNewTeamRegistration({
+            await submitNewTeamRegistration({
                 name: name.trim(),
                 manager: manager.trim(),
                 whatsappNumber: whatsappNumber.trim(),
@@ -72,11 +91,9 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                 preferredMode: preferredMode
             }, currentUser.email || '');
             
-            console.log("Registration complete! ID:", registrationId);
             addToast('Formulir pendaftaran berhasil dikirim! Tunggu persetujuan admin.', 'success');
             onClose();
         } catch (error: any) {
-            console.error("Submit Error:", error);
             setSubmitError(`Gagal mengirim: ${error.message || 'Masalah Jaringan'}`);
             addToast('Gagal mengirim pendaftaran.', 'error');
         } finally {
@@ -92,18 +109,44 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                     <div className="bg-brand-secondary/50 p-5 border-b border-white/5 flex justify-between items-center">
                         <div>
                             <h2 className="text-xl font-black text-white italic uppercase tracking-tighter">Form Pendaftaran Tim</h2>
-                            <p className="text-xs text-brand-light">Daftarkan tim baru untuk mengikuti kompetisi.</p>
+                            <p className="text-xs text-brand-light">Daftarkan tim untuk musim kompetisi baru.</p>
                         </div>
                         <button onClick={onClose} className="text-brand-light hover:text-white transition-colors">
                             <X size={24} />
                         </button>
                     </div>
 
-                    <div className="p-6">
+                    <div className="p-6 overflow-y-auto max-h-[80vh] custom-scrollbar">
                         {submitError && (
                             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3 text-red-400">
                                 <AlertCircle size={20} />
                                 <p className="text-xs font-bold">{submitError}</p>
+                            </div>
+                        )}
+
+                        {/* USE EXISTING TEAM SELECTOR */}
+                        {uniqueExistingTeams.length > 0 && (
+                            <div className="mb-8 p-4 bg-brand-vibrant/5 border border-brand-vibrant/20 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-500">
+                                <label className="block text-[10px] font-black text-brand-vibrant uppercase tracking-widest mb-2 flex items-center gap-2">
+                                    <Check size={14} className="bg-brand-vibrant text-white rounded-full p-0.5" />
+                                    Pilih Tim Anda Yang Sudah Ada
+                                </label>
+                                <div className="relative">
+                                    <select
+                                        onChange={(e) => handleUseExistingTeam(e.target.value)}
+                                        className="w-full pl-4 pr-10 py-3 bg-brand-primary border border-brand-accent rounded-xl text-white text-xs font-bold focus:ring-2 focus:ring-brand-vibrant outline-none appearance-none"
+                                        defaultValue=""
+                                    >
+                                        <option value="">-- Gunakan Data Tim Sebelumnya --</option>
+                                        {uniqueExistingTeams.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-light">
+                                        <ChevronDown size={16} />
+                                    </div>
+                                </div>
+                                <p className="text-[9px] text-brand-light/50 mt-2 italic">* Memilih tim akan mengisi otomatis Nama, Manager, WA, IG, dan Logo.</p>
                             </div>
                         )}
 

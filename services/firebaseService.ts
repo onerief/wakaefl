@@ -15,7 +15,9 @@ import {
   initializeFirestore,
   persistentLocalCache,
   getFirestore,
-  getDocs
+  getDocs,
+  updateDoc,
+  arrayUnion
 } from "firebase/firestore";
 import { 
   getAuth, 
@@ -63,7 +65,6 @@ export const sanitizeData = (data: any): any => {
 
 export const saveTournamentData = async (mode: TournamentMode, state: TournamentState) => {
   try {
-    // Dehydrate function to convert Team objects back to IDs
     const dehydrateTeam = (t: any) => {
         if (!t) return null;
         if (typeof t === 'string') return t;
@@ -79,7 +80,7 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
     const cleanGroups = (state.groups || []).map(g => ({
         ...g,
         teams: (g.teams || []).map(t => dehydrateTeam(t)),
-        standings: [] // Standings are derived, do not persist
+        standings: []
     }));
 
     const cleanKnockout = state.knockoutStage ? {
@@ -97,7 +98,7 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
     }));
 
     const cleanState = {
-        teams: sanitizeData(state.teams), // Teams list is the source of truth
+        teams: sanitizeData(state.teams),
         groups: cleanGroups,
         matches: cleanMatches,
         knockoutStage: cleanKnockout,
@@ -127,6 +128,26 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
       console.error("Error saving tournament data:", error); 
       throw error; 
   }
+};
+
+// DIRECT TEAM ADDITION - Bypasses hook for approval safety
+export const addApprovedTeamToFirestore = async (mode: TournamentMode, teamData: Team) => {
+    const docRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const snap = await transaction.get(docRef);
+            if (!snap.exists()) throw new Error("Document tournament tidak ditemukan");
+            const data = snap.data();
+            const existingTeams = data.teams || [];
+            transaction.update(docRef, {
+                teams: [...existingTeams, teamData]
+            });
+        });
+        return true;
+    } catch (e) {
+        console.error("Gagal menambah tim ke Firestore:", e);
+        throw e;
+    }
 };
 
 export const subscribeToTournamentData = (mode: TournamentMode, callback: (data: TournamentState) => void) => {
@@ -222,7 +243,6 @@ export const getGlobalStats = async () => {
         const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
         const uniqueTeamIds = new Set<string>();
         
-        // Fetch all mode documents to count unique teams
         for (const mode of modes) {
             const snap = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
             if (snap.exists()) {
@@ -232,7 +252,6 @@ export const getGlobalStats = async () => {
             }
         }
 
-        // Fetch settings for partner count
         const settingsSnap = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC));
         const partnerCount = settingsSnap.exists() ? (settingsSnap.data().partners?.length || 0) : 0;
 
@@ -275,6 +294,7 @@ export const submitNewTeamRegistration = async (data: any, email: string) => {
 export const deleteRegistration = async (id: string) => {
     try {
         await deleteDoc(doc(firestore, REGISTRATIONS_COLLECTION, id));
+        return true;
     } catch (error) {
         console.error("Error deleting registration:", error);
         throw error;
@@ -349,7 +369,6 @@ export const updateUserTeamData = async (mode: TournamentMode, teamId: string, u
         
         if (teamIndex === -1) throw new Error("Team not found");
         
-        // Merge updates securely
         teams[teamIndex] = { ...teams[teamIndex], ...updates };
         transaction.update(docRef, { teams });
     });
