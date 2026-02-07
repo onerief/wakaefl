@@ -64,6 +64,38 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
                     <ToolbarButton icon={Type} command="formatBlock" arg="P" title="Paragraf Normal" />
                 </div>
                 
+                {/* Font Controls */}
+                <div className="flex gap-1 border-r border-white/10 pr-2 mr-2 items-center">
+                    <select
+                        onChange={(e) => execCommand('fontName', e.target.value)}
+                        className="h-7 bg-black/30 border border-white/10 rounded-md text-[10px] text-white outline-none px-1 focus:border-brand-vibrant cursor-pointer"
+                        title="Ganti Font"
+                        defaultValue="Inter"
+                    >
+                        <option value="Inter">Default</option>
+                        <option value="Arial">Arial</option>
+                        <option value="Georgia">Serif</option>
+                        <option value="Courier New">Mono</option>
+                        <option value="Impact">Impact</option>
+                        <option value="Verdana">Verdana</option>
+                    </select>
+
+                    <select
+                        onChange={(e) => execCommand('fontSize', e.target.value)}
+                        className="h-7 w-16 bg-black/30 border border-white/10 rounded-md text-[10px] text-white outline-none px-1 focus:border-brand-vibrant cursor-pointer"
+                        title="Ukuran Font"
+                        defaultValue="3"
+                    >
+                        <option value="1">Kecil (10px)</option>
+                        <option value="2">Sedang (13px)</option>
+                        <option value="3">Normal (16px)</option>
+                        <option value="4">Sub (18px)</option>
+                        <option value="5">Besar (24px)</option>
+                        <option value="6">Judul (32px)</option>
+                        <option value="7">Jumbo (48px)</option>
+                    </select>
+                </div>
+                
                 <div className="flex gap-0.5 border-r border-white/10 pr-2 mr-2">
                     <ToolbarButton icon={Bold} command="bold" title="Tebal" />
                     <ToolbarButton icon={Italic} command="italic" title="Miring" />
@@ -92,7 +124,8 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
                 onBlur={() => setIsFocused(false)}
                 className="min-h-[250px] p-4 text-white text-sm outline-none overflow-y-auto prose prose-invert max-w-none custom-list-style"
                 style={{
-                    lineHeight: '1.6'
+                    lineHeight: '1.6',
+                    fontFamily: 'Inter, sans-serif'
                 }}
             />
             
@@ -105,6 +138,14 @@ export const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange,
                 .custom-list-style p { margin-bottom: 0.5em; }
                 .custom-list-style b, .custom-list-style strong { color: #f8fafc; font-weight: 800; }
                 .custom-list-style blockquote { border-left: 4px solid #2563eb; padding-left: 1em; font-style: italic; color: #94a3b8; }
+                /* Font fixes for dark mode editor */
+                .custom-list-style font[size="1"] { font-size: 10px; }
+                .custom-list-style font[size="2"] { font-size: 13px; }
+                .custom-list-style font[size="3"] { font-size: 16px; }
+                .custom-list-style font[size="4"] { font-size: 18px; }
+                .custom-list-style font[size="5"] { font-size: 24px; }
+                .custom-list-style font[size="6"] { font-size: 32px; }
+                .custom-list-style font[size="7"] { font-size: 48px; }
             `}</style>
 
             {!value && !isFocused && (
