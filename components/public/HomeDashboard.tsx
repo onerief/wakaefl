@@ -14,6 +14,7 @@ interface HomeDashboardProps {
   userOwnedTeams?: { mode: TournamentMode, team: Team }[];
   allMatches?: Match[];
   news?: NewsItem[];
+  visibleModes?: TournamentMode[];
 }
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({ 
@@ -24,7 +25,8 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     isRegistrationOpen = true,
     userOwnedTeams = [],
     allMatches = [],
-    news = []
+    news = [],
+    visibleModes = ['league', 'wakacl', 'two_leagues']
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -54,8 +56,12 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     if (upcoming.length === 0) return null;
     const match = upcoming[0];
     const userTeamMode = userOwnedTeams.find(ut => ut.team.id === match.teamA.id || ut.team.id === match.teamB.id)?.mode;
+    
+    // Check if the match belongs to a visible mode
+    if (userTeamMode && !visibleModes.includes(userTeamMode)) return null;
+    
     return { match, mode: userTeamMode };
-  }, [userOwnedTeams, allMatches]);
+  }, [userOwnedTeams, allMatches, visibleModes]);
 
   return (
     <div className="space-y-6 md:space-y-12 py-2 md:py-4 animate-in fade-in duration-700 relative z-10">
@@ -80,7 +86,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 className="flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 bg-brand-vibrant hover:bg-blue-600 text-white rounded-lg sm:rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 active:scale-95 whitespace-nowrap"
               >
                   <PlusCircle size={12} className="sm:w-3.5 sm:h-3.5" />
-                  <span>Daftar</span>
+                  <span>Daftarkan Tim</span>
               </button>
           )}
       </div>

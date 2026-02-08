@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import type { SeasonHistory, Team, TournamentMode } from '../../types';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { Plus, Trash2, Crown, Trophy, Calendar, Globe, ListOrdered, Shield } from 'lucide-react';
+import { Plus, Trash2, Crown, Trophy, Calendar, Globe, ListOrdered, Shield, X, Edit, Layout } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { TeamLogo } from '../shared/TeamLogo';
 
@@ -19,19 +19,44 @@ export const HistoryManager: React.FC<HistoryManagerProps> = ({ history, teams, 
     const [championId, setChampionId] = useState('');
     const [runnerUpId, setRunnerUpId] = useState('');
     const [mode, setMode] = useState<TournamentMode>('league');
+    
+    // Manual Input Overrides
+    const [useManualEntry, setUseManualEntry] = useState(false);
+    const [manualChampName, setManualChampName] = useState('');
+    const [manualChampLogo, setManualChampLogo] = useState('');
+    const [manualChampMgr, setManualChampMgr] = useState('');
+
     const { addToast } = useToast();
 
     const handleAdd = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!seasonName.trim() || !championId) {
-            addToast('Nama Musim dan Juara wajib diisi.', 'error');
+        if (!seasonName.trim()) {
+            addToast('Nama Musim wajib diisi.', 'error');
             return;
         }
 
-        const champion = teams.find(t => t.id === championId);
-        if (!champion) return;
+        let champion: Team | undefined;
+        let runnerUp: Team | undefined;
 
-        const runnerUp = teams.find(t => t.id === runnerUpId);
+        if (useManualEntry) {
+            if (!manualChampName.trim()) {
+                addToast('Nama Juara manual wajib diisi.', 'error');
+                return;
+            }
+            champion = {
+                id: `manual-${Date.now()}`,
+                name: manualChampName.trim(),
+                logoUrl: manualChampLogo.trim() || 'https://aistudiocdn.com/lucide-react@^0.553.0',
+                manager: manualChampMgr.trim()
+            };
+        } else {
+            champion = teams.find(t => t.id === championId);
+            if (!champion) {
+                addToast('Pilih Juara dari daftar.', 'error');
+                return;
+            }
+            runnerUp = teams.find(t => t.id === runnerUpId);
+        }
 
         const newEntry: SeasonHistory = {
             seasonId: `s-manual-${Date.now()}`,
@@ -46,7 +71,10 @@ export const HistoryManager: React.FC<HistoryManagerProps> = ({ history, teams, 
         setSeasonName('');
         setChampionId('');
         setRunnerUpId('');
-        addToast('Riwayat berhasil ditambahkan!', 'success');
+        setManualChampName('');
+        setManualChampLogo('');
+        setManualChampMgr('');
+        addToast('Riwayat Juara berhasil ditambahkan!', 'success');
     };
 
     const getModeIcon = (m?: TournamentMode) => {
@@ -61,111 +89,166 @@ export const HistoryManager: React.FC<HistoryManagerProps> = ({ history, teams, 
     return (
         <div className="space-y-6">
             <Card className="border-brand-accent/50">
-                <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
-                    <Crown size={20} className="text-yellow-500" />
-                    Tambah Juara Manual
-                </h3>
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-black text-white uppercase italic tracking-widest flex items-center gap-3">
+                        <Crown size={24} className="text-yellow-500" />
+                        Tambah Legenda Baru
+                    </h3>
+                    <button 
+                        onClick={() => setUseManualEntry(!useManualEntry)}
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-2 border ${useManualEntry ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-white/5 text-brand-light border-white/10 hover:text-white'}`}
+                    >
+                        {useManualEntry ? <Layout size={14}/> : <Edit size={14}/>}
+                        {useManualEntry ? 'Gunakan Daftar Tim' : 'Input Manual (Tim Lama)'}
+                    </button>
+                </div>
                 
-                <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-brand-primary p-4 rounded-xl border border-white/5">
-                    <div className="md:col-span-2">
-                        <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5">Nama Musim / Judul</label>
-                        <input 
-                            type="text"
-                            value={seasonName}
-                            onChange={(e) => setSeasonName(e.target.value)}
-                            placeholder="Contoh: Season 1 (Januari 2024)"
-                            className="w-full p-2.5 bg-brand-secondary border border-brand-accent rounded-lg text-white text-sm focus:ring-1 focus:ring-brand-vibrant outline-none"
-                        />
+                <form onSubmit={handleAdd} className="space-y-6 bg-brand-primary p-5 rounded-2xl border border-white/5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="md:col-span-2">
+                            <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5 ml-1">Judul Musim / Kompetisi</label>
+                            <input 
+                                type="text"
+                                value={seasonName}
+                                onChange={(e) => setSeasonName(e.target.value)}
+                                placeholder="Contoh: Season 1 - The First Battle"
+                                className="w-full p-3 bg-brand-secondary border border-brand-accent rounded-xl text-white text-sm font-bold focus:ring-1 focus:ring-brand-vibrant outline-none shadow-inner"
+                            />
+                        </div>
+
+                        {useManualEntry ? (
+                            <>
+                                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-yellow-500/5 rounded-xl border border-yellow-500/10">
+                                    <div className="md:col-span-3 pb-2"><span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Detail Juara Manual</span></div>
+                                    <div>
+                                        <label className="block text-[9px] font-bold text-brand-light uppercase mb-1">Nama Tim</label>
+                                        <input type="text" value={manualChampName} onChange={e => setManualChampName(e.target.value)} className="w-full p-2 bg-brand-secondary border border-brand-accent rounded-lg text-white text-xs outline-none" placeholder="Nama Tim" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[9px] font-bold text-brand-light uppercase mb-1">URL Logo</label>
+                                        <input type="text" value={manualChampLogo} onChange={e => setManualChampLogo(e.target.value)} className="w-full p-2 bg-brand-secondary border border-brand-accent rounded-lg text-white text-xs outline-none" placeholder="https://..." />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[9px] font-bold text-brand-light uppercase mb-1">Nama Manager</label>
+                                        <input type="text" value={manualChampMgr} onChange={e => setManualChampMgr(e.target.value)} className="w-full p-2 bg-brand-secondary border border-brand-accent rounded-lg text-white text-xs outline-none" placeholder="Nama Manager" />
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div>
+                                    <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5 ml-1">Pilih Juara (1st)</label>
+                                    <select 
+                                        value={championId}
+                                        onChange={(e) => setChampionId(e.target.value)}
+                                        className="w-full p-3 bg-brand-secondary border border-brand-accent rounded-xl text-white text-sm font-bold focus:ring-1 focus:ring-brand-vibrant outline-none appearance-none cursor-pointer"
+                                    >
+                                        <option value="">-- Pilih dari Tim Aktif --</option>
+                                        {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5 ml-1">Runner Up (2nd)</label>
+                                    <select 
+                                        value={runnerUpId}
+                                        onChange={(e) => setRunnerUpId(e.target.value)}
+                                        className="w-full p-3 bg-brand-secondary border border-brand-accent rounded-xl text-white text-sm font-bold focus:ring-1 focus:ring-brand-vibrant outline-none appearance-none cursor-pointer"
+                                    >
+                                        <option value="">-- Pilih dari Tim Aktif --</option>
+                                        {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                    </select>
+                                </div>
+                            </>
+                        )}
+
+                        <div>
+                            <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5 ml-1">Kategori Turnamen</label>
+                            <select 
+                                value={mode}
+                                onChange={(e) => setMode(e.target.value as TournamentMode)}
+                                className="w-full p-3 bg-brand-secondary border border-brand-accent rounded-xl text-white text-sm font-bold focus:ring-1 focus:ring-brand-vibrant outline-none appearance-none cursor-pointer"
+                            >
+                                <option value="league">Liga Reguler</option>
+                                <option value="two_leagues">2 Wilayah (Region)</option>
+                                <option value="wakacl">WAKACL</option>
+                            </select>
+                        </div>
+
+                        <div className="flex items-end">
+                            <Button type="submit" className="w-full !py-3.5 !rounded-xl shadow-lg shadow-brand-vibrant/20">
+                                <Plus size={18} /> Simpan ke Hall of Fame
+                            </Button>
+                        </div>
                     </div>
                     
-                    <div>
-                        <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5">Pilih Juara (1st)</label>
-                        <select 
-                            value={championId}
-                            onChange={(e) => setChampionId(e.target.value)}
-                            className="w-full p-2.5 bg-brand-secondary border border-brand-accent rounded-lg text-white text-sm focus:ring-1 focus:ring-brand-vibrant outline-none appearance-none"
-                        >
-                            <option value="">-- Pilih Tim --</option>
-                            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5">Pilih Runner Up (2nd)</label>
-                        <select 
-                            value={runnerUpId}
-                            onChange={(e) => setRunnerUpId(e.target.value)}
-                            className="w-full p-2.5 bg-brand-secondary border border-brand-accent rounded-lg text-white text-sm focus:ring-1 focus:ring-brand-vibrant outline-none appearance-none"
-                        >
-                            <option value="">-- Pilih Tim (Opsional) --</option>
-                            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5">Jenis Turnamen</label>
-                        <select 
-                            value={mode}
-                            onChange={(e) => setMode(e.target.value as TournamentMode)}
-                            className="w-full p-2.5 bg-brand-secondary border border-brand-accent rounded-lg text-white text-sm focus:ring-1 focus:ring-brand-vibrant outline-none appearance-none"
-                        >
-                            <option value="league">Liga Reguler</option>
-                            <option value="two_leagues">2 Wilayah (Region)</option>
-                            <option value="wakacl">WAKACL</option>
-                        </select>
-                    </div>
-
-                    <div className="flex items-end">
-                        <Button type="submit" className="w-full py-2.5">
-                            <Plus size={16} /> Simpan Riwayat
-                        </Button>
+                    <div className="bg-brand-vibrant/5 p-3 rounded-xl flex items-center gap-3">
+                        <Trophy size={20} className="text-brand-vibrant shrink-0" />
+                        <p className="text-[10px] text-brand-light italic">
+                            Data "Legend" disimpan secara global. Champion akan mendapatkan lencana mahkota di klasemen Liga/WAKACL.
+                        </p>
                     </div>
                 </form>
             </Card>
 
             <Card className="border-brand-accent/50">
-                <h3 className="text-lg font-bold text-brand-text mb-4 flex items-center gap-2">
-                    <Trophy size={20} className="text-brand-vibrant" />
-                    Kelola Riwayat Terdaftar
+                <h3 className="text-lg font-black text-white uppercase italic tracking-widest mb-6 flex items-center gap-3">
+                    <Trophy size={24} className="text-brand-vibrant" />
+                    Manajemen Legenda Terdaftar
                 </h3>
 
                 <div className="space-y-3">
                     {history.length > 0 ? (
-                        history.map((entry) => (
-                            <div key={entry.seasonId} className="flex items-center justify-between p-3 bg-black/30 border border-white/5 rounded-xl group hover:border-brand-vibrant/30 transition-all">
+                        [...history].sort((a,b) => b.dateCompleted - a.dateCompleted).map((entry) => (
+                            <div key={entry.seasonId} className="flex items-center justify-between p-4 bg-brand-primary/60 border border-white/5 rounded-2xl group hover:border-brand-vibrant/30 transition-all shadow-lg">
                                 <div className="flex items-center gap-4">
                                     <div className="relative">
-                                        <TeamLogo logoUrl={entry.champion.logoUrl} teamName={entry.champion.name} className="w-10 h-10 ring-1 ring-yellow-500/50" />
-                                        <Trophy size={14} className="absolute -top-1 -right-1 text-yellow-500 fill-yellow-500" />
+                                        <TeamLogo logoUrl={entry.champion.logoUrl} teamName={entry.champion.name} className="w-12 h-12 sm:w-16 sm:h-16 ring-2 ring-yellow-500/30" />
+                                        <div className="absolute -top-1 -right-1 bg-yellow-500 rounded-full p-1 shadow-lg">
+                                            <Crown size={12} className="text-brand-primary fill-brand-primary" />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="font-bold text-white text-sm">{entry.seasonName}</h4>
-                                        <div className="flex items-center gap-2 mt-0.5">
-                                            <span className="text-[10px] text-brand-light font-bold">Juara: {entry.champion.name}</span>
+                                    <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                                            <h4 className="font-black text-white uppercase italic text-sm sm:text-base truncate">{entry.champion.name}</h4>
+                                            <ModeBadge mode={entry.mode} />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">{entry.seasonName}</span>
                                             <span className="w-1 h-1 rounded-full bg-white/10"></span>
-                                            <div className="flex items-center gap-1 text-[9px] uppercase font-black tracking-wider opacity-60">
-                                                {getModeIcon(entry.mode)}
-                                                {entry.mode}
-                                            </div>
+                                            <span className="text-[9px] text-brand-light font-bold">Mgr: {entry.champion.manager || 'N/A'}</span>
                                         </div>
                                     </div>
                                 </div>
                                 <button 
-                                    onClick={() => onDeleteEntry(entry.seasonId)}
-                                    className="p-2 text-brand-light hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"
+                                    onClick={() => { if(window.confirm('Hapus legenda ini?')) onDeleteEntry(entry.seasonId); }}
+                                    className="p-3 text-brand-light hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
                                     title="Hapus riwayat"
                                 >
-                                    <Trash2 size={16} />
+                                    <Trash2 size={20} />
                                 </button>
                             </div>
                         ))
                     ) : (
-                        <div className="text-center py-8 bg-black/20 rounded-xl border border-dashed border-white/10 text-xs text-brand-light italic">
-                            Belum ada riwayat manual di database ini.
+                        <div className="text-center py-16 bg-black/20 rounded-[2rem] border border-dashed border-white/10 text-xs text-brand-light/30 italic font-black uppercase tracking-widest">
+                            Hall of Fame masih kosong.
                         </div>
                     )}
                 </div>
             </Card>
         </div>
     );
+};
+
+const ModeBadge = ({ mode }: { mode?: TournamentMode }) => {
+    switch (mode) {
+        case 'league':
+            return <span className="flex items-center gap-1 text-[8px] font-black text-blue-400 uppercase tracking-widest bg-blue-400/10 px-1.5 py-0.5 rounded border border-blue-400/20">Liga</span>;
+        case 'two_leagues':
+            return <span className="flex items-center gap-1 text-[8px] font-black text-purple-400 uppercase tracking-widest bg-purple-400/10 px-1.5 py-0.5 rounded border border-purple-400/20">2 Region</span>;
+        case 'wakacl':
+            return <span className="flex items-center gap-1 text-[8px] font-black text-yellow-500 uppercase tracking-widest bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20">WAKACL</span>;
+        default:
+            return null;
+    }
 };

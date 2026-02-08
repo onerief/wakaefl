@@ -165,6 +165,7 @@ export interface TournamentState {
   newsCategories?: string[];
   shopCategories?: string[];
   marqueeMessages?: string[];
+  visibleModes?: TournamentMode[];
 }
 
 export type View = 'home' | 'league' | 'wakacl' | 'two_leagues' | 'admin' | 'hall_of_fame' | 'news' | 'privacy' | 'about' | 'terms' | 'shop';

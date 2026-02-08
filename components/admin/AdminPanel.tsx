@@ -4,7 +4,7 @@ import type { Team, Group, Match, KnockoutStageRounds, KnockoutMatch, Tournament
 import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Database, Crown, ImageIcon, ShieldCheck, Share2, FileJson, LayoutGrid, Zap, Sparkles, AlertTriangle, Check, RefreshCw, X, Info, Newspaper, ShoppingBag, Type } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Crown, ImageIcon, ShieldCheck, Share2, FileJson, LayoutGrid, Zap, Sparkles, X, Newspaper, ShoppingBag, Type, Globe, RefreshCw, Eye, EyeOff } from 'lucide-react';
 import { Card } from '../shared/Card';
 import { RulesEditor } from './RulesEditor';
 import { BannerSettings } from './BannerSettings';
@@ -38,6 +38,7 @@ interface AdminPanelProps {
   isDoubleRoundRobin: boolean;
   isSyncing?: boolean;
   isRegistrationOpen: boolean;
+  visibleModes?: TournamentMode[];
   setMode: (mode: TournamentMode) => void;
   updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => void;
   addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => void;
@@ -69,6 +70,7 @@ interface AdminPanelProps {
   updateHeaderLogo?: (url: string) => void;
   setRegistrationOpen: (open: boolean) => void;
   setTournamentStatus: (status: 'active' | 'completed') => void;
+  updateVisibleModes: (modes: TournamentMode[]) => void;
 }
 
 type AdminTab = 'teams' | 'group-fixtures' | 'knockout' | 'news' | 'shop' | 'marquee' | 'banners' | 'partners' | 'history' | 'rules' | 'branding' | 'data' | 'settings';
@@ -103,11 +105,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     else addToast(res.message || "Gagal membuat bracket.", "error");
   };
 
+  const ModeSwitcher = () => (
+      <div className="flex bg-black/40 p-1 rounded-xl border border-white/10 shrink-0">
+          {(['league', 'two_leagues', 'wakacl'] as TournamentMode[]).map(m => (
+              <button
+                key={m}
+                onClick={() => props.setMode(m)}
+                className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${props.mode === m ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
+              >
+                  {m === 'league' ? <LayoutGrid size={10}/> : m === 'two_leagues' ? <Globe size={10}/> : <Trophy size={10}/>}
+                  <span className="hidden sm:inline">{m === 'league' ? 'Liga' : m === 'two_leagues' ? '2 Wilayah' : 'Championship'}</span>
+              </button>
+          ))}
+      </div>
+  );
+
+  const toggleVisibility = (modeToToggle: TournamentMode) => {
+      const current = props.visibleModes || ['league', 'wakacl', 'two_leagues'];
+      let updated: TournamentMode[];
+      if (current.includes(modeToToggle)) {
+          updated = current.filter(m => m !== modeToToggle);
+      } else {
+          updated = [...current, modeToToggle];
+      }
+      props.updateVisibleModes(updated);
+      addToast(`Visibilitas ${modeToToggle.toUpperCase()} diperbarui.`, 'info');
+  };
+
   const renderContent = () => {
     switch(activeTab) {
       case 'teams': return <TeamManager {...props as any} onGenerationSuccess={() => setActiveTab('group-fixtures')} />;
       case 'group-fixtures': return (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-20">
             {props.groups.map(group => {
                 const groupMatches = props.matches.filter(m => m.group === group.id || m.group === group.name.replace('Group ', '').trim());
                 if (groupMatches.length === 0) return null;
@@ -139,20 +168,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         </div>
       );
       case 'knockout': return (
-        <div className="space-y-8">
+        <div className="space-y-8 pb-20">
             <Card className="border-brand-vibrant/30 bg-brand-vibrant/5 !p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                     <h3 className="text-xl font-black text-white italic uppercase tracking-tight flex items-center gap-2">
-                        <Zap size={20} className="text-brand-vibrant" /> Kontrol Bracket Knockout
+                        <Zap size={20} className="text-brand-vibrant" /> Kontrol Bracket
                     </h3>
-                    <p className="text-xs text-brand-light mt-1">Gunakan data klasemen grup terbaru untuk membuat bagan secara otomatis.</p>
+                    <p className="text-xs text-brand-light mt-1">Gunakan data klasemen terbaru untuk membuat bagan otomatis.</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button onClick={handleGenerateBracket} className="!bg-brand-vibrant hover:!bg-blue-600 shadow-xl">
-                        <Sparkles size={16} /> Auto-Generate (Top 2)
+                    <Button onClick={handleGenerateBracket} className="!bg-brand-vibrant hover:!bg-blue-600 shadow-xl !text-[10px] sm:!text-xs">
+                        <Sparkles size={14} /> Auto-Gen
                     </Button>
-                    <Button onClick={props.initializeEmptyKnockoutStage} variant="secondary">
-                        Clear Bracket
+                    <Button onClick={props.initializeEmptyKnockoutStage} variant="secondary" className="!text-[10px] sm:!text-xs">
+                        Clear
                     </Button>
                 </div>
             </Card>
@@ -162,14 +191,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                 return (
                     <div key={round} className="space-y-4">
                         <div className="flex items-center justify-between px-2">
-                            <h4 className="text-sm font-black text-brand-light uppercase tracking-[0.3em] flex items-center gap-2">
-                                <Trophy size={14} className="text-yellow-500" /> {round} <span className="opacity-40">({matches.length})</span>
+                            <h4 className="text-[10px] sm:text-xs font-black text-brand-light uppercase tracking-[0.2em] flex items-center gap-2">
+                                <Trophy size={12} className="text-yellow-500" /> {round}
                             </h4>
                             <button 
                                 onClick={() => setShowKoForm({ round })}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-vibrant/10 hover:bg-brand-vibrant text-brand-vibrant hover:text-white rounded-lg text-[10px] font-black uppercase transition-all"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-vibrant/10 hover:bg-brand-vibrant text-brand-vibrant hover:text-white rounded-lg text-[9px] font-black uppercase transition-all"
                             >
-                                <Plus size={12} /> Add Match
+                                <Plus size={10} /> Add
                             </button>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -182,7 +211,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                                     onDelete={() => props.deleteKnockoutMatch(round, m.id)} 
                                 />
                             ))}
-                            {matches.length === 0 && <div className="col-span-full py-10 text-center opacity-20 border border-dashed border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest italic">Belum ada pertandingan di babak ini</div>}
                         </div>
                     </div>
                 );
@@ -191,129 +219,144 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
             {showKoForm && <KnockoutMatchForm round={showKoForm.round} teams={props.teams} onClose={() => setShowKoForm(null)} onSave={(...args) => { props.addKnockoutMatch(...args); setShowKoForm(null); }} />}
         </div>
       );
-      case 'news': return <NewsManager news={props.news || []} onUpdateNews={props.onUpdateNews} categories={props.newsCategories} onUpdateCategories={props.updateNewsCategories} />;
-      case 'shop': return <ProductManager products={props.products || []} onUpdateProducts={props.updateProducts} categories={props.shopCategories} onUpdateCategories={props.updateShopCategories} />;
-      case 'marquee': return <MarqueeSettings messages={props.marqueeMessages || []} onUpdate={props.updateMarqueeMessages} />;
-      case 'banners': return <BannerSettings banners={props.banners} onUpdateBanners={props.updateBanners} />;
-      case 'partners': return <PartnerSettings partners={props.partners} onUpdatePartners={props.updatePartners} />;
-      case 'branding': return <BrandingSettings headerLogoUrl={props.headerLogoUrl || ''} onUpdateHeaderLogo={props.updateHeaderLogo || (() => {})} />;
-      case 'history': return <HistoryManager history={props.history} teams={props.teams} onAddEntry={props.addHistoryEntry} onDeleteEntry={props.deleteHistoryEntry} />;
-      case 'rules': return <RulesEditor rules={props.rules} onSave={props.updateRules} />;
-      case 'data': return <DataManager teams={props.teams} matches={props.matches} groups={props.groups} rules={props.rules} banners={props.banners} partners={props.partners} headerLogoUrl={props.headerLogoUrl || ''} mode={props.mode} knockoutStage={props.knockoutStage} setTournamentState={props.setTournamentState} />;
       case 'settings': return (
-        <div className="max-w-3xl mx-auto space-y-6">
-            <Card className="border-brand-vibrant/20 !p-8">
+        <div className="max-w-3xl mx-auto space-y-6 pb-20">
+            <Card className="border-brand-vibrant/20 !p-6 sm:!p-8">
                 <h3 className="text-xl font-black text-white uppercase italic tracking-tight mb-6 flex items-center gap-3">
-                    <Settings className="text-brand-vibrant" size={28} /> System Controls
+                    <Settings className="text-brand-vibrant" size={24} /> System Control
                 </h3>
-                
-                <div className="space-y-8">
-                    <div className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/5">
-                        <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-xl ${props.isRegistrationOpen ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                                <Users size={24} />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-white uppercase tracking-wider text-sm">Pendaftaran Tim Baru</h4>
-                                <p className="text-[11px] text-brand-light opacity-60">Status pendaftaran saat ini: <strong>{props.isRegistrationOpen ? 'TERBUKA' : 'TERTUTUP'}</strong></p>
-                            </div>
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                        <div className="flex items-center gap-3">
+                            <Users size={16} className="text-brand-light"/>
+                            <span className="text-xs font-bold text-white uppercase">Registrasi Tim Baru</span>
                         </div>
                         <button 
                             onClick={() => props.setRegistrationOpen(!props.isRegistrationOpen)}
-                            className={`px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-widest transition-all ${props.isRegistrationOpen ? 'bg-red-500 text-white shadow-lg' : 'bg-green-500 text-white shadow-lg'}`}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${props.isRegistrationOpen ? 'bg-red-500 text-white shadow-lg' : 'bg-green-500 text-white shadow-lg'}`}
                         >
-                            {props.isRegistrationOpen ? 'Tutup Pendaftaran' : 'Buka Pendaftaran'}
+                            {props.isRegistrationOpen ? 'Tutup' : 'Buka'}
                         </button>
-                    </div>
-
-                    <div className="flex items-center justify-between p-5 bg-white/5 rounded-2xl border border-white/5">
-                        <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-xl ${props.status === 'active' ? 'bg-brand-vibrant/20 text-brand-vibrant' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                                <Trophy size={24} />
-                            </div>
-                            <div>
-                                <h4 className="font-bold text-white uppercase tracking-wider text-sm">Status Turnamen</h4>
-                                <p className="text-[11px] text-brand-light opacity-60">Status saat ini: <strong>{props.status.toUpperCase()}</strong></p>
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                             <button 
-                                onClick={() => props.setTournamentStatus('active')}
-                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase border transition-all ${props.status === 'active' ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-transparent text-brand-light border-white/10'}`}
-                            >
-                                Active
-                            </button>
-                            <button 
-                                onClick={() => props.setTournamentStatus('completed')}
-                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase border transition-all ${props.status === 'completed' ? 'bg-brand-special text-brand-primary border-brand-special' : 'bg-transparent text-brand-light border-white/10'}`}
-                            >
-                                Completed
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl flex gap-4">
-                         <Info size={20} className="text-yellow-500 shrink-0" />
-                         <p className="text-xs text-yellow-200/70 leading-relaxed italic">
-                            Catatan: Pengaturan ini hanya berlaku untuk mode turnamen yang sedang aktif (<strong>{props.mode.toUpperCase()}</strong>). Gunakan navigasi utama jika ingin mengubah pengaturan di kompetisi lain.
-                         </p>
                     </div>
                 </div>
             </Card>
 
-            <Card className="border-red-500/20 bg-red-500/5 !p-8">
-                <div className="flex items-center gap-3 mb-4">
-                    <AlertTriangle className="text-red-500" size={28} />
-                    <h3 className="text-xl font-black text-white uppercase italic">Danger Zone</h3>
+            <Card className="border-cyan-500/20 !p-6 sm:!p-8">
+                <h3 className="text-xl font-black text-white uppercase italic tracking-tight mb-6 flex items-center gap-3">
+                    <Eye className="text-cyan-400" size={24} /> Visibilitas Menu Publik
+                </h3>
+                <p className="text-[10px] text-brand-light mb-4 uppercase tracking-widest opacity-60">Pilih menu yang ingin ditampilkan di navigasi bar bawah (Publik).</p>
+                
+                <div className="space-y-3">
+                    {(['league', 'two_leagues', 'wakacl'] as TournamentMode[]).map(m => {
+                        const isVisible = (props.visibleModes || ['league', 'wakacl', 'two_leagues']).includes(m);
+                        const label = m === 'league' ? 'Liga Reguler' : m === 'two_leagues' ? '2 Wilayah' : 'Championship';
+                        return (
+                            <div key={m} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5 group hover:border-cyan-500/30 transition-all">
+                                <div className="flex items-center gap-3">
+                                    {isVisible ? <Eye size={16} className="text-cyan-400" /> : <EyeOff size={16} className="text-red-400" />}
+                                    <span className={`text-[11px] font-black uppercase tracking-widest ${isVisible ? 'text-white' : 'text-brand-light opacity-40'}`}>{label}</span>
+                                </div>
+                                <button 
+                                    onClick={() => toggleVisibility(m)}
+                                    className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${isVisible ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-brand-light border border-white/10'}`}
+                                >
+                                    {isVisible ? 'Terlihat' : 'Tersembunyi'}
+                                </button>
+                            </div>
+                        );
+                    })}
                 </div>
-                <p className="text-sm text-brand-light mb-6">Reset total akan menghapus seluruh data tim, grup, dan pertandingan di musim ini.</p>
+            </Card>
+
+            <Card className="border-red-500/20 bg-red-500/5 !p-6 sm:!p-8">
+                <h3 className="text-xl font-black text-white uppercase italic mb-4">Danger Zone</h3>
                 <button 
                     onClick={() => { if(window.confirm("RESET TOTAL? Data tidak bisa dikembalikan!")) props.resetTournament(); }}
-                    className="w-full py-4 bg-red-600/10 hover:bg-red-600 border border-red-500/30 text-red-500 hover:text-white rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl"
+                    className="w-full py-4 bg-red-600/10 hover:bg-red-600 border border-red-500/30 text-red-500 hover:text-white rounded-2xl font-black uppercase tracking-widest transition-all"
                 >
-                    Hard Reset Musim Ini
+                    Hard Reset Mode Ini
                 </button>
             </Card>
         </div>
       );
-      default: return null;
+      default: return <div className="pb-20">{React.createElement(getComponentForTab(activeTab), props)}</div>;
     }
   }
 
+  const getComponentForTab = (tab: AdminTab): any => {
+      switch(tab) {
+          case 'news': return NewsManager;
+          case 'shop': return ProductManager;
+          case 'marquee': return MarqueeSettings;
+          case 'banners': return BannerSettings;
+          case 'partners': return PartnerSettings;
+          case 'branding': return BrandingSettings;
+          case 'history': return HistoryManager;
+          case 'rules': return RulesEditor;
+          case 'data': return DataManager;
+          default: return () => null;
+      }
+  }
+
   return (
-    <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-100px)] -mx-3 md:-mx-8 -my-4 md:-my-8 bg-brand-primary overflow-hidden"> 
-      <aside className="hidden lg:flex flex-col w-72 bg-brand-secondary/40 border-r border-white/5 backdrop-blur-md z-30">
-          <nav className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-1">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-140px)] -mx-3 md:-mx-8 -my-4 md:-my-8 bg-brand-primary overflow-hidden relative"> 
+      
+      {/* SIDEBAR NAVIGATION - Desktop (Fixed Height) */}
+      <aside className="hidden lg:flex flex-col w-64 bg-brand-secondary/40 border-r border-white/5 backdrop-blur-md z-30 overflow-hidden shrink-0">
+          <div className="p-6 border-b border-white/5 flex flex-col gap-4">
+              <h2 className="text-xl font-black text-white italic uppercase tracking-tighter flex items-center gap-2">
+                  <ShieldCheck className="text-brand-vibrant" size={24} /> Admin Hub
+              </h2>
+              <ModeSwitcher />
+          </div>
+          <nav className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1">
               {ADMIN_TABS.map((tab) => (
-                  <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-black uppercase italic transition-all ${activeTab === tab.id ? 'bg-white/10 text-white shadow-inner' : 'text-brand-light hover:bg-white/5 hover:text-white'}`}>
-                      <tab.icon size={18} className={activeTab === tab.id ? tab.color : 'opacity-40'} />
+                  <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase italic transition-all ${activeTab === tab.id ? 'bg-white/10 text-white shadow-inner' : 'text-brand-light hover:bg-white/5 hover:text-white'}`}>
+                      <tab.icon size={16} className={activeTab === tab.id ? tab.color : 'opacity-40'} />
                       {tab.label}
                   </button>
               ))}
           </nav>
       </aside>
 
-      <div className="lg:hidden w-full bg-brand-secondary/80 backdrop-blur-md border-b border-white/5 overflow-x-auto no-scrollbar py-2 px-3 flex gap-2 shrink-0 z-40">
-          {ADMIN_TABS.map((tab) => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase italic whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-brand-vibrant text-white shadow-lg' : 'bg-white/5 text-brand-light'}`}>
-                  <tab.icon size={14} className={activeTab === tab.id ? 'text-white' : tab.color} />
-                  {tab.label}
-              </button>
-          ))}
+      {/* MOBILE NAVIGATION - Top Fixed Header Area */}
+      <div className="lg:hidden w-full bg-brand-secondary/95 backdrop-blur-md border-b border-white/10 flex flex-col shrink-0 z-40">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-black/20">
+              <span className="text-[8px] font-black text-brand-vibrant uppercase tracking-widest flex items-center gap-1.5"><ShieldCheck size={12}/> Admin Panel</span>
+              <ModeSwitcher />
+          </div>
+          <div className="overflow-x-auto no-scrollbar py-2 px-3 flex gap-2 border-b border-white/5 shadow-lg">
+            {ADMIN_TABS.map((tab) => (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase italic whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-brand-vibrant text-white shadow-lg' : 'bg-white/5 text-brand-light'}`}>
+                    <tab.icon size={14} className={activeTab === tab.id ? 'text-white' : tab.color} />
+                    {tab.label}
+                </button>
+            ))}
+          </div>
       </div>
 
-      <main className="flex-1 flex flex-col min-w-0 relative">
-        <header className="bg-brand-primary/40 border-b border-white/5 px-6 sm:px-8 py-4 sm:py-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 shrink-0 backdrop-blur-sm relative z-40">
-             <h1 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter flex items-center gap-3">
-                {currentTabInfo?.icon && <currentTabInfo.icon size={28} className={currentTabInfo.color} />} {currentTabInfo?.label}
+      {/* MAIN CONTENT AREA - Independent Scrolling */}
+      <main className="flex-1 flex flex-col min-w-0 relative bg-black/10 overflow-hidden">
+        
+        {/* HEADER AREA (Desktop) */}
+        <header className="hidden lg:flex bg-brand-primary/60 border-b border-white/5 px-8 py-4 justify-between items-center shrink-0 backdrop-blur-xl relative z-40 shadow-xl">
+             <h1 className="text-2xl font-black text-white italic uppercase tracking-tighter flex items-center gap-3">
+                {currentTabInfo?.icon && <currentTabInfo.icon size={24} className={currentTabInfo.color} />} {currentTabInfo?.label}
              </h1>
-             <div className="flex items-center gap-2">
-                 <span className="text-[10px] font-black uppercase text-brand-light opacity-60">Active: {props.mode.toUpperCase()}</span>
-                 <div className={`w-2 h-2 rounded-full ${props.isSyncing ? 'bg-yellow-400 animate-pulse' : 'bg-green-500'}`}></div>
+             <div className="flex items-center gap-4">
+                 <div className="flex items-center gap-2">
+                     <div className={`w-1.5 h-1.5 rounded-full ${props.isSyncing ? 'bg-yellow-400 animate-pulse' : 'bg-green-500'}`}></div>
+                     <span className="text-[9px] font-black text-brand-light uppercase opacity-60">{props.isSyncing ? 'Syncing...' : 'Saved to Cloud'}</span>
+                 </div>
+                 <div className="h-4 w-px bg-white/10"></div>
+                 <span className="text-[10px] font-black text-brand-vibrant uppercase tracking-widest bg-brand-vibrant/5 px-3 py-1 rounded-full border border-brand-vibrant/20">Active Session</span>
              </div>
         </header>
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-8">
-             <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-7xl mx-auto pb-32 lg:pb-8">
+
+        {/* SCROLLABLE VIEWPORT */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-8 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] bg-fixed opacity-95">
+             <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-7xl mx-auto">
                 {renderContent()}
              </div>
         </div>

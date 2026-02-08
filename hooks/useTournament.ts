@@ -25,7 +25,8 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
   products: [],
   newsCategories: ['Match', 'Transfer', 'Info', 'Interview'],
   shopCategories: ['Coin', 'Account', 'Jasa', 'Merch'],
-  marqueeMessages: []
+  marqueeMessages: [],
+  visibleModes: ['league', 'wakacl', 'two_leagues']
 });
 
 const calculateStandings = (teams: Team[], matches: Match[], groupId: string, groupName: string): Standing[] => {
@@ -61,10 +62,16 @@ const hydrateTournamentData = (state: FullTournamentState): FullTournamentState 
     if (!state.teams || state.teams.length === 0) return state;
     const teamMap = new Map<string, Team>();
     state.teams.forEach(t => { if (t && t.id) teamMap.set(t.id, t); });
+    
     const getFullTeam = (val: any): Team => {
+        // If it's already a full object with name and logo, return it (Permanent record)
+        if (val && typeof val === 'object' && val.name && val.name !== 'TBD') {
+            return val;
+        }
         const id = (val && typeof val === 'object') ? val.id : val;
         return teamMap.get(id) || { id, name: 'TBD' } as Team;
     };
+
     const hydratedMatches = (state.matches || []).map(m => ({ ...m, teamA: getFullTeam(m.teamA), teamB: getFullTeam(m.teamB) }));
     const hydratedGroups = (state.groups || []).map(g => {
         const groupTeams = (g.teams || []).map(t => getFullTeam(t));
@@ -77,7 +84,20 @@ const hydrateTournamentData = (state: FullTournamentState): FullTournamentState 
         'Semi-finals': (state.knockoutStage['Semi-finals'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null })),
         'Final': (state.knockoutStage['Final'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null }))
     } : null;
-    return { ...state, groups: hydratedGroups, matches: hydratedMatches, knockoutStage: hydratedKnockout as any };
+
+    const hydratedHistory = (state.history || []).map(h => ({
+        ...h,
+        champion: getFullTeam(h.champion),
+        runnerUp: h.runnerUp ? getFullTeam(h.runnerUp) : undefined
+    }));
+
+    return { 
+        ...state, 
+        groups: hydratedGroups, 
+        matches: hydratedMatches, 
+        knockoutStage: hydratedKnockout as any,
+        history: hydratedHistory 
+    };
 };
 
 type Action =
@@ -105,7 +125,8 @@ type Action =
   | { type: 'DELETE_HISTORY_ENTRY', payload: string }
   | { type: 'ADD_KNOCKOUT_MATCH'; payload: KnockoutMatch }
   | { type: 'DELETE_KNOCKOUT_MATCH'; payload: { round: keyof KnockoutStageRounds, id: string } }
-  | { type: 'GENERATE_KNOCKOUT_BRACKET'; payload: KnockoutStageRounds };
+  | { type: 'GENERATE_KNOCKOUT_BRACKET'; payload: KnockoutStageRounds }
+  | { type: 'UPDATE_VISIBLE_MODES'; payload: TournamentMode[] };
 
 const tournamentReducer = (state: FullTournamentState, action: Action): FullTournamentState => {
   let newState: FullTournamentState;
@@ -151,6 +172,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'SET_STATUS': newState = { ...state, status: action.payload }; break;
     case 'ADD_HISTORY_ENTRY': newState = { ...state, history: [action.payload, ...state.history] }; break;
     case 'DELETE_HISTORY_ENTRY': newState = { ...state, history: state.history.filter(h => h.seasonId !== action.payload) }; break;
+    case 'UPDATE_VISIBLE_MODES': newState = { ...state, visibleModes: action.payload }; break;
     case 'RESET': newState = createInitialState(state.mode); break;
     default: return state;
   }
@@ -182,7 +204,9 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
        const hasGlobalData = (state.news && state.news.length > 0) || 
                             (state.products && state.products.length > 0) ||
                             (state.banners && state.banners.length > 0) ||
-                            (state.marqueeMessages && state.marqueeMessages.length > 0);
+                            (state.marqueeMessages && state.marqueeMessages.length > 0) ||
+                            (state.history && state.history.length > 0) ||
+                            (state.visibleModes && state.visibleModes.length > 0);
                             
        if (!hasGlobalData) return;
 
@@ -307,6 +331,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       addHistoryEntry: (entry: SeasonHistory) => dispatch({ type: 'ADD_HISTORY_ENTRY', payload: entry }),
       deleteHistoryEntry: (id: string) => dispatch({ type: 'DELETE_HISTORY_ENTRY', payload: id }),
       setTournamentState: (s: FullTournamentState) => dispatch({ type: 'SET_STATE', payload: s }),
+      updateVisibleModes: (modes: TournamentMode[]) => dispatch({ type: 'UPDATE_VISIBLE_MODES', payload: modes }),
       resetTournament: () => dispatch({ type: 'RESET', payload: createInitialState(state.mode) }),
       manualAddGroup: (n: string) => dispatch({ type: 'GENERATE_GROUPS', payload: { groups: [...state.groups, { id: `g${Date.now()}`, name: n, teams: [], standings: [] }], matches: state.matches, knockoutStage: state.knockoutStage } }),
       manualDeleteGroup: (id: string) => dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups.filter(g => g.id !== id), matches: state.matches, knockoutStage: state.knockoutStage } }),

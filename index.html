@@ -3,7 +3,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>eFootball WAKACL Tournament</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -38,6 +38,28 @@
         }
       }
     </script>
+    <style>
+      /* Mobile optimization fixes */
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+      .pt-safe { padding-top: env(safe-area-inset-top); }
+
+      /* Custom scrollbar for better look */
+      .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #2563eb; border-radius: 10px; }
+      
+      /* Better touch highlights */
+      * { -webkit-tap-highlight-color: transparent; }
+      
+      /* Ensure inputs don't zoom on iOS */
+      input, select, textarea { font-size: 16px !important; }
+      @media (min-width: 640px) {
+        input, select, textarea { font-size: inherit !important; }
+      }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
@@ -59,7 +81,7 @@
 }
 </script>
 </head>
-  <body class="bg-brand-primary text-brand-text antialiased selection:bg-brand-vibrant selection:text-white">
+  <body class="bg-brand-primary text-brand-text antialiased selection:bg-brand-vibrant selection:text-white overflow-x-hidden">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

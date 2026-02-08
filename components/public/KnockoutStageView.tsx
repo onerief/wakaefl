@@ -1,7 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { KnockoutStageRounds, KnockoutMatch, Team } from '../../types';
-import { Trophy, Crown, Info, Zap, Shield, Save, Minus, Plus, Loader, MapPin, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trophy, Crown, Info, Zap, Shield, Save, Minus, Plus, Loader, MapPin, Clock, ChevronLeft, ChevronRight, Star, CheckCircle2 } from 'lucide-react';
 import { TeamLogo } from '../shared/TeamLogo';
 import { useToast } from '../shared/Toast';
 
@@ -12,6 +12,16 @@ interface KnockoutStageViewProps {
   onUpdateScore?: (matchId: string, data: Partial<KnockoutMatch> & { round: keyof KnockoutStageRounds }) => void;
   userOwnedTeamIds?: string[];
 }
+
+// Utility to check if a knockout match is fully completed
+const isMatchFinished = (match: KnockoutMatch): boolean => {
+    const isFinal = match.round === 'Final';
+    const leg1Done = match.scoreA1 !== null && match.scoreB1 !== null;
+    const leg2Done = match.scoreA2 !== null && match.scoreB2 !== null;
+    
+    if (isFinal) return leg1Done && !!match.winnerId;
+    return leg1Done && leg2Done && !!match.winnerId;
+};
 
 interface KnockoutMatchTeamProps {
   team: Team | null;
@@ -279,22 +289,86 @@ const KnockoutMatchCard: React.FC<{
 
 export const KnockoutStageView: React.FC<KnockoutStageViewProps> = ({ knockoutStage, onSelectTeam, isAdminMode, onUpdateScore, userOwnedTeamIds = [] }) => {
   const roundOrder: Array<keyof KnockoutStageRounds> = ['Play-offs', 'Quarter-finals', 'Semi-finals', 'Final'];
-  
-  // Mobile active round state
   const [activeRoundIdx, setActiveRoundIdx] = useState(0);
+  const initialFocusSet = useRef(false);
 
   const availableRounds = useMemo(() => {
       return roundOrder.filter(round => knockoutStage[round] && knockoutStage[round]!.length > 0);
   }, [knockoutStage]);
 
-  if (availableRounds.length === 0) return null;
+  // SMART LOGIC: Auto-focus and Auto-switch
+  useEffect(() => {
+    if (availableRounds.length === 0) return;
+
+    // Find the first round that is NOT finished
+    let currentIncompleteIdx = availableRounds.findIndex(roundName => {
+        const matches = knockoutStage[roundName] || [];
+        return matches.length > 0 && !matches.every(m => isMatchFinished(m));
+    });
+
+    // If all available rounds are finished, focus on the last one (Final)
+    if (currentIncompleteIdx === -1) {
+        currentIncompleteIdx = availableRounds.length - 1;
+    }
+
+    // Only set the initial focus once on component mount or major data refresh
+    if (!initialFocusSet.current) {
+        setActiveRoundIdx(currentIncompleteIdx);
+        initialFocusSet.current = true;
+    } else {
+        // If we are currently watching a round and it BECOMES finished,
+        // automatically move to the next one
+        const matchesInActiveRound = knockoutStage[availableRounds[activeRoundIdx]] || [];
+        if (matchesInActiveRound.length > 0 && matchesInActiveRound.every(m => isMatchFinished(m))) {
+            if (activeRoundIdx < availableRounds.length - 1) {
+                // Short delay for better UX before shifting
+                const timer = setTimeout(() => {
+                    setActiveRoundIdx(prev => prev + 1);
+                }, 1000);
+                return () => clearTimeout(timer);
+            }
+        }
+    }
+  }, [knockoutStage, availableRounds]);
+
+  const finalMatch = knockoutStage.Final && knockoutStage.Final.length > 0 ? knockoutStage.Final[0] : null;
+  const winnerTeam = finalMatch && finalMatch.winnerId ? (finalMatch.winnerId === finalMatch.teamA?.id ? finalMatch.teamA : finalMatch.teamB) : null;
+
+  if (availableRounds.length === 0) return (
+      <div className="py-20 text-center bg-white/[0.02] rounded-3xl border border-dashed border-white/10">
+          <Trophy size={48} className="mx-auto text-brand-light/20 mb-4" />
+          <p className="text-brand-light italic uppercase tracking-widest text-xs font-black">Bagan belum tersedia untuk musim ini</p>
+      </div>
+  );
+
+  const activeRoundName = availableRounds[activeRoundIdx];
+  const activeRoundFinished = (knockoutStage[activeRoundName] || []).every(m => isMatchFinished(m));
 
   return (
     <div className="w-full relative pb-10">
       
-      {/* Round Selection - Mobile Only */}
-      <div className="lg:hidden flex flex-col gap-4 mb-8 px-2 animate-in slide-in-from-top duration-500">
-          <div className="flex items-center justify-between bg-brand-secondary/80 border border-white/10 rounded-2xl p-1.5 shadow-xl backdrop-blur-md">
+      {/* Champion Spotlight - Show if we have a winner */}
+      {winnerTeam && (
+          <div className="max-w-xl mx-auto mb-16 text-center animate-in fade-in zoom-in duration-1000">
+              <div className="relative inline-block group">
+                  <div className="absolute -inset-10 bg-brand-special/20 blur-3xl rounded-full animate-pulse-slow"></div>
+                  <div className="relative bg-gradient-to-b from-brand-special/20 to-transparent border border-brand-special/30 p-8 rounded-[3rem] shadow-2xl">
+                      <div className="flex flex-col items-center">
+                          <Crown size={48} className="text-brand-special fill-brand-special mb-4 animate-bounce" />
+                          <TeamLogo logoUrl={winnerTeam.logoUrl} teamName={winnerTeam.name} className="w-24 h-24 sm:w-32 sm:h-32 mb-4 ring-4 ring-brand-special/50 shadow-[0_0_30px_rgba(253,224,71,0.5)]" />
+                          <h3 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter mb-1">{winnerTeam.name}</h3>
+                          <div className="px-4 py-1 bg-brand-special rounded-full">
+                              <span className="text-[10px] sm:text-xs font-black text-brand-primary uppercase tracking-widest">WAKACL CHAMPION</span>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* Round Selection - Mobile & Desktop Header */}
+      <div className="flex flex-col gap-4 mb-8 px-2 animate-in slide-in-from-top duration-500">
+          <div className="flex items-center justify-between bg-brand-secondary/80 border border-white/10 rounded-2xl p-1.5 shadow-xl backdrop-blur-md max-w-2xl mx-auto w-full">
               <button 
                 onClick={() => setActiveRoundIdx(prev => Math.max(0, prev - 1))}
                 disabled={activeRoundIdx === 0}
@@ -304,9 +378,16 @@ export const KnockoutStageView: React.FC<KnockoutStageViewProps> = ({ knockoutSt
               </button>
               
               <div className="flex flex-col items-center">
-                  <span className="text-[8px] font-black text-brand-vibrant uppercase tracking-[0.4em] mb-0.5">Selection</span>
-                  <h3 className="text-base font-black text-white uppercase italic tracking-tight text-center truncate px-2">
-                      {availableRounds[activeRoundIdx]}
+                  <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[8px] font-black text-brand-vibrant uppercase tracking-[0.4em]">Fase Turnamen</span>
+                      {activeRoundFinished && (
+                          <div className="flex items-center gap-1 px-1.5 py-0.5 bg-green-500/20 text-green-400 rounded text-[6px] font-black uppercase tracking-widest border border-green-500/30">
+                              <CheckCircle2 size={8} /> Selesai
+                          </div>
+                      )}
+                  </div>
+                  <h3 className="text-base sm:text-xl font-black text-white uppercase italic tracking-tight text-center truncate px-2">
+                      {activeRoundName}
                   </h3>
               </div>
 
@@ -318,99 +399,59 @@ export const KnockoutStageView: React.FC<KnockoutStageViewProps> = ({ knockoutSt
                   <ChevronRight size={24} />
               </button>
           </div>
-
-          {/* Stepper Dots */}
-          <div className="flex justify-center gap-2">
-              {availableRounds.map((_, idx) => (
-                  <button 
-                    key={idx}
-                    onClick={() => setActiveRoundIdx(idx)}
-                    className={`h-1 rounded-full transition-all duration-500 ${idx === activeRoundIdx ? 'w-8 bg-brand-vibrant shadow-[0_0_10px_#2563eb]' : 'w-2 bg-white/10'}`}
-                  />
-              ))}
-          </div>
       </div>
 
-      {/* Desktop Tree / Mobile Single View */}
+      {/* Main View Container */}
       <div className="w-full overflow-hidden">
           <div className="flex flex-col lg:flex-row gap-6 sm:gap-12 lg:gap-32 lg:justify-center lg:min-w-full px-2 sm:px-10">
             
-            {/* Background Decor - Adjusted */}
+            {/* Background Decor */}
             <div className="absolute top-0 right-0 p-4 sm:p-10 flex flex-col items-end opacity-5 sm:opacity-10 pointer-events-none select-none overflow-hidden hidden lg:flex">
                 <h2 className="text-4xl sm:text-8xl font-black text-white text-right italic leading-none tracking-tighter">
-                    CHAMPIONS <br /> STAGE
+                    THE ROAD TO <br /> GLORY
                 </h2>
-                <div className="w-24 sm:w-48 h-1 sm:h-2 bg-brand-vibrant mt-3 sm:mt-6"></div>
+                <div className="w-24 sm:w-48 h-1 sm:h-2 bg-brand-special mt-3 sm:mt-6"></div>
             </div>
 
-            {availableRounds.map((roundName, idx) => {
-              const matches = knockoutStage[roundName] || [];
-              const isMobileHidden = activeRoundIdx !== idx;
+            {/* Display ONLY the active round (Smart View) */}
+            <div className="flex flex-col space-y-6 sm:space-y-12 transition-all duration-500 w-full max-w-4xl mx-auto">
+              <div className="flex flex-col gap-4 sm:gap-12 flex-grow justify-around relative min-h-[400px]">
+                {(knockoutStage[activeRoundName] || []).map(match => (
+                    <KnockoutMatchCard 
+                        key={match.id} 
+                        match={match} 
+                        onSelectTeam={onSelectTeam} 
+                        isAdminMode={isAdminMode}
+                        onUpdateScore={onUpdateScore}
+                        userOwnedTeamIds={userOwnedTeamIds}
+                    />
+                ))}
+              </div>
+            </div>
 
-              return (
-                <div 
-                    key={roundName} 
-                    className={`
-                        flex flex-col space-y-6 sm:space-y-12 transition-all duration-500
-                        ${isMobileHidden ? 'hidden lg:flex' : 'flex'}
-                        w-full lg:w-[320px]
-                    `}
-                >
-                  <div className="text-center hidden lg:block">
-                      <div className="inline-flex flex-col items-center">
-                          <span className="text-[8px] sm:text-[10px] font-black text-brand-vibrant uppercase tracking-[0.4em] mb-0.5 sm:mb-1">Round {idx + 1}</span>
-                          <h3 className="text-sm sm:text-xl font-black text-white uppercase italic tracking-tight border-b sm:border-b-2 border-brand-vibrant pb-1">
-                              {roundName}
-                          </h3>
-                      </div>
-                  </div>
+            {/* Final Trophy Section - Only show when watching the Final */}
+            {activeRoundName === 'Final' && (
+                <div className={`flex flex-col items-center justify-center pt-8 sm:pt-24 px-6 sm:px-12 w-full lg:w-auto animate-in zoom-in duration-700`}>
+                    <div className="relative group">
+                        <div className="absolute -inset-10 sm:-inset-16 bg-brand-vibrant/20 blur-[60px] sm:blur-[100px] rounded-full group-hover:bg-brand-vibrant/30 transition-all duration-1000"></div>
+                        <div className="absolute -inset-6 sm:-inset-10 bg-brand-special/10 blur-[40px] sm:blur-[60px] rounded-full animate-pulse-slow"></div>
+                        
+                        <div className="relative w-24 h-24 sm:w-40 sm:h-40 rounded-[1.5rem] sm:rounded-[2.5rem] bg-gradient-to-br from-brand-secondary via-black to-brand-primary border border-brand-special/40 flex items-center justify-center z-10 shadow-[0_0_50px_rgba(253,224,71,0.2)] hover:scale-110 transition-transform duration-700">
+                            <div className="flex flex-col items-center">
+                                <Trophy size={32} className="text-brand-special drop-shadow-[0_0_15px_rgba(253,224,71,0.5)] animate-float sm:w-[64px] sm:h-[64px]" />
+                            </div>
+                        </div>
 
-                  <div className="flex flex-col gap-4 sm:gap-12 flex-grow justify-around relative">
-                    {/* Visual Branch Connectors (Desktop Only) */}
-                    {idx < availableRounds.length - 1 && (
-                        <div className="hidden lg:block absolute -right-16 top-0 bottom-0 w-px bg-white/5"></div>
-                    )}
-
-                    {matches.map(match => (
-                        <KnockoutMatchCard 
-                            key={match.id} 
-                            match={match} 
-                            onSelectTeam={onSelectTeam} 
-                            isAdminMode={isAdminMode}
-                            onUpdateScore={onUpdateScore}
-                            userOwnedTeamIds={userOwnedTeamIds}
-                        />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Final Trophy Section - Mobile Only if Round is Final, or always on Desktop */}
-            <div className={`
-                flex flex-col items-center justify-center pt-8 sm:pt-24 px-6 sm:px-12 w-full lg:w-auto
-                ${availableRounds[activeRoundIdx] === 'Final' ? 'flex' : 'hidden lg:flex'}
-            `}>
-                <div className="relative group">
-                    <div className="absolute -inset-10 sm:-inset-16 bg-brand-vibrant/20 blur-[60px] sm:blur-[100px] rounded-full group-hover:bg-brand-vibrant/30 transition-all duration-1000"></div>
-                    <div className="absolute -inset-6 sm:-inset-10 bg-brand-special/10 blur-[40px] sm:blur-[60px] rounded-full animate-pulse-slow"></div>
-                    
-                    <div className="relative w-24 h-24 sm:w-40 sm:h-40 rounded-[1.5rem] sm:rounded-[2.5rem] bg-gradient-to-br from-brand-secondary via-black to-brand-primary border border-brand-special/40 flex items-center justify-center z-10 shadow-[0_0_50px_rgba(253,224,71,0.2)] hover:scale-110 transition-transform duration-700">
-                        <div className="flex flex-col items-center">
-                            <Trophy size={32} className="text-brand-special drop-shadow-[0_0_15px_rgba(253,224,71,0.5)] animate-float sm:w-[64px] sm:h-[64px]" />
+                        <div className="mt-6 sm:mt-8 text-center relative z-20">
+                            <span className="text-[10px] sm:text-[12px] font-black text-brand-special uppercase tracking-[0.4em] sm:tracking-[0.5em] block mb-1 sm:mb-2">Ultimate Glory</span>
+                            <div className="h-px w-full bg-gradient-to-r from-transparent via-brand-special/50 to-transparent"></div>
                         </div>
                     </div>
-
-                    <div className="mt-6 sm:mt-8 text-center relative z-20">
-                        <span className="text-[10px] sm:text-[12px] font-black text-brand-special uppercase tracking-[0.4em] sm:tracking-[0.5em] block mb-1 sm:mb-2">The Glory</span>
-                        <div className="h-px w-full bg-gradient-to-r from-transparent via-brand-special/50 to-transparent"></div>
-                    </div>
                 </div>
-            </div>
+            )}
           </div>
       </div>
       
-      {/* Branding Fixed Footer - Mobile Adjusted */}
       <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 opacity-20 pointer-events-none flex items-center gap-2 lg:gap-4 z-0">
           <Shield size={20} className="text-brand-vibrant lg:w-[40px] lg:h-[40px]" />
           <span className="text-xs lg:text-2xl font-black text-white italic tracking-tighter uppercase whitespace-nowrap">WakaEFLeague Championship</span>

@@ -99,7 +99,7 @@ export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin, setView 
           <div className="flex flex-col items-center md:items-end text-center md:text-right">
              <h4 className="font-bold text-brand-text mb-6 uppercase tracking-wider text-xs border-b border-brand-vibrant/50 pb-2">Hubungi Kami</h4>
              <div className="flex gap-4 mb-4">
-                <a href="https://www.instagram.com/waykanan_efootball?igsh=MXh6Y3dzdXdpMmtqbA==" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-white/5 rounded-xl hover:bg-brand-vibrant hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-brand-vibrant">
+                <a href="https://www.instagram.com/waykanan_efootball" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-white/5 rounded-xl hover:bg-brand-vibrant hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-brand-vibrant">
                     <Instagram size={20} />
                 </a>
                  <a href="https://wa.me/6289646800884" target="_blank" rel="noopener noreferrer" className="p-2.5 bg-white/5 rounded-xl hover:bg-green-500 hover:text-brand-primary transition-all hover:scale-110 group border border-white/5 hover:border-green-500">

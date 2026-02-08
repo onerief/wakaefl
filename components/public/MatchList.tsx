@@ -70,10 +70,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     };
 
     const QuickScoreControl = ({ val, setVal, label }: { val: number, setVal: React.Dispatch<React.SetStateAction<number>>, label: string }) => (
-        <div className="flex flex-col items-center mt-2">
+        <div className="flex flex-col items-center mt-1.5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center bg-black/60 rounded-lg border border-white/10 p-0.5">
                 <button onClick={(e) => { e.stopPropagation(); setVal(v => Math.max(0, v - 1)); }} className="p-1 text-brand-light hover:text-red-400 transition-all"><Minus size={10} /></button>
-                <span className="w-5 text-center font-black text-xs text-brand-special">{val}</span>
+                <span className="w-4 text-center font-black text-[10px] text-brand-special">{val}</span>
                 <button onClick={(e) => { e.stopPropagation(); setVal(v => v + 1); }} className="p-1 text-brand-light hover:text-green-400 transition-all"><Plus size={10} /></button>
             </div>
         </div>
@@ -82,124 +82,112 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     return (
         <>
             <Card className={`!p-0 group transition-all duration-300 relative border border-white/5 overflow-hidden ${isAdminMode ? 'ring-1 ring-brand-special/50' : isMyMatch ? 'ring-1 ring-brand-vibrant/30' : ''}`}>
-                <div className="flex items-center justify-between px-3 py-1.5 bg-black/40 text-[8px] sm:text-[9px] border-b border-white/5 backdrop-blur-md">
-                    <div className="flex items-center gap-2 overflow-hidden">
+                <div className="flex items-center justify-between px-3 py-1 bg-black/40 text-[7px] sm:text-[9px] border-b border-white/5 backdrop-blur-md">
+                    <div className="flex items-center gap-1.5 overflow-hidden">
                         <span className="font-black uppercase tracking-widest text-brand-light opacity-60 truncate">
                             M{match.matchday} • {match.leg === 1 ? 'L1' : 'L2'}
                         </span>
                         {isMyMatch && (
-                            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-brand-vibrant text-white font-black rounded-md uppercase animate-pulse scale-90 sm:scale-100">
+                            <span className="flex items-center gap-1 px-1 py-0.5 bg-brand-vibrant text-white font-black rounded-md uppercase animate-pulse scale-[0.8] sm:scale-100 origin-left">
                                 <Star size={8} className="fill-white" /> My Match
                             </span>
                         )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                        <span className={`px-1.5 py-0.5 font-black rounded uppercase border text-[7px] sm:text-[8px] ${match.status === 'finished' ? 'bg-white/5 text-brand-light/60 border-white/10' : match.status === 'live' ? 'bg-red-500/20 text-red-500 border-red-500/30' : 'bg-brand-vibrant/10 text-brand-vibrant border-brand-vibrant/30'}`}>
+                        <span className={`px-1 py-0.5 font-black rounded uppercase border text-[6px] sm:text-[8px] ${match.status === 'finished' ? 'bg-white/5 text-brand-light/60 border-white/10' : match.status === 'live' ? 'bg-red-500/20 text-red-500 border-red-500/30' : 'bg-brand-vibrant/10 text-brand-vibrant border-brand-vibrant/30'}`}>
                             {match.status}
                         </span>
                     </div>
                 </div>
 
-                <div className="flex justify-between px-4 sm:px-10 pt-3 sm:pt-4 pointer-events-none">
-                    <div className="flex items-center gap-1 text-brand-vibrant">
-                        <MapPin size={8} className="fill-brand-vibrant/20 sm:w-2.5 sm:h-2.5" />
-                        <span className="text-[7px] sm:text-[9px] font-black tracking-[0.2em] uppercase italic">Home</span>
-                    </div>
-                    <div className="text-brand-light/40">
-                        <span className="text-[7px] sm:text-[9px] font-black tracking-[0.2em] uppercase italic">Away</span>
-                    </div>
-                </div>
-
-                <div className="p-3 sm:p-5 pt-1 sm:pt-2 flex items-center justify-between gap-1 relative bg-gradient-to-br from-brand-secondary/20 to-transparent">
-                    <button onClick={() => onSelectTeam(match.teamA)} className="flex flex-col items-center gap-1.5 sm:gap-2 flex-1 min-w-0 z-10 transition-all active:scale-95 group/team">
+                <div className="p-2 sm:p-5 flex items-center justify-between gap-1 relative bg-gradient-to-br from-brand-secondary/20 to-transparent">
+                    <button onClick={() => onSelectTeam(match.teamA)} className="flex flex-col items-center gap-1 flex-1 min-w-0 z-10 transition-all active:scale-95 group/team">
                         <div className="relative">
-                            <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-10 h-10 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-brand-vibrant/20 group-hover/team:ring-brand-vibrant transition-all" />
-                            <div className="absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-brand-vibrant rounded-full flex items-center justify-center border-2 border-brand-primary shadow-lg">
-                                <span className="text-[7px] sm:text-[8px] font-black text-white">H</span>
+                            <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-9 h-9 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-brand-vibrant/20 group-hover/team:ring-brand-vibrant transition-all" />
+                            <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 sm:w-5 sm:h-5 bg-brand-vibrant rounded-full flex items-center justify-center border-2 border-brand-primary shadow-lg">
+                                <span className="text-[6px] sm:text-[8px] font-black text-white">H</span>
                             </div>
                         </div>
-                        <span className="text-[9px] sm:text-xs font-black text-white uppercase truncate w-full text-center px-0.5 italic">{match.teamA.name}</span>
+                        <span className="text-[8px] sm:text-xs font-black text-white uppercase truncate w-full text-center px-0.5 italic">{match.teamA.name}</span>
                         {isAdminMode && <QuickScoreControl val={editScoreA} setVal={setEditScoreA} label="A" />}
                     </button>
 
-                    <div className="flex flex-col items-center justify-center px-2 sm:px-4 shrink-0 z-20 min-w-[50px] sm:min-w-[60px]">
+                    <div className="flex flex-col items-center justify-center px-1 sm:px-4 shrink-0 z-20 min-w-[40px] sm:min-w-[60px]">
                         {isAdminMode ? (
-                            <button onClick={handleQuickUpdate} disabled={isSaving} className="w-10 h-10 sm:w-12 sm:h-12 bg-brand-special rounded-xl text-brand-primary active:scale-90 transition-all flex items-center justify-center shadow-xl">
-                                {isSaving ? <Loader className="animate-spin" size={16} /> : <Save size={16} />}
+                            <button onClick={handleQuickUpdate} disabled={isSaving} className="w-8 h-8 sm:w-12 sm:h-12 bg-brand-special rounded-lg sm:rounded-xl text-brand-primary active:scale-90 transition-all flex items-center justify-center shadow-xl">
+                                {isSaving ? <Loader className="animate-spin" size={14} /> : <Save size={14} />}
                             </button>
                         ) : isFinished ? (
                             <div className="flex flex-col items-center gap-0.5">
-                                <div className="flex items-center gap-1.5 sm:gap-2 text-xl sm:text-4xl font-black text-white bg-black/60 px-3 sm:px-6 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl border border-white/10 italic shadow-inner">
-                                    <span className={match.scoreA! > match.scoreB! ? 'text-brand-vibrant drop-shadow-[0_0_8px_rgba(37,99,235,0.5)]' : ''}>{match.scoreA}</span>
-                                    <span className="opacity-10 text-base sm:text-xl">-</span>
-                                    <span className={match.scoreB! > match.scoreA! ? 'text-brand-vibrant drop-shadow-[0_0_8px_rgba(37,99,235,0.5)]' : ''}>{match.scoreB}</span>
+                                <div className="flex items-center gap-1 sm:gap-2 text-base sm:text-4xl font-black text-white bg-black/60 px-2 sm:px-6 py-1 sm:py-2 rounded-lg sm:rounded-2xl border border-white/10 italic shadow-inner">
+                                    <span className={match.scoreA! > match.scoreB! ? 'text-brand-vibrant' : ''}>{match.scoreA}</span>
+                                    <span className="opacity-10 text-xs sm:text-xl">-</span>
+                                    <span className={match.scoreB! > match.scoreA! ? 'text-brand-vibrant' : ''}>{match.scoreB}</span>
                                 </div>
-                                <span className="text-[6px] sm:text-[7px] font-black text-brand-light/30 uppercase tracking-[0.2em] sm:tracking-[0.3em]">Full Time</span>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center">
-                                <div className="bg-brand-vibrant/10 border border-brand-vibrant/20 px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl">
-                                    <span className="text-xs sm:text-xl font-black text-brand-vibrant italic tracking-widest">VS</span>
+                                <div className="bg-brand-vibrant/10 border border-brand-vibrant/20 px-2 py-0.5 sm:py-1.5 rounded-md sm:rounded-xl">
+                                    <span className="text-[10px] sm:text-xl font-black text-brand-vibrant italic">VS</span>
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    <button onClick={() => onSelectTeam(match.teamB)} className="flex flex-col items-center gap-1.5 sm:gap-2 flex-1 min-w-0 z-10 transition-all active:scale-95 group/team">
+                    <button onClick={() => onSelectTeam(match.teamB)} className="flex flex-col items-center gap-1 flex-1 min-w-0 z-10 transition-all active:scale-95 group/team">
                         <div className="relative">
-                            <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-10 h-10 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-white/5 group-hover/team:ring-brand-light transition-all" />
-                            <div className="absolute -bottom-1 -left-1 w-4 h-4 sm:w-5 sm:h-5 bg-brand-accent rounded-full flex items-center justify-center border-2 border-brand-primary shadow-lg">
-                                <span className="text-[7px] sm:text-[8px] font-black text-brand-light">A</span>
+                            <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-9 h-9 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-white/5 group-hover/team:ring-brand-light transition-all" />
+                            <div className="absolute -bottom-1 -left-1 w-3.5 h-3.5 sm:w-5 sm:h-5 bg-brand-accent rounded-full flex items-center justify-center border-2 border-brand-primary shadow-lg">
+                                <span className="text-[6px] sm:text-[8px] font-black text-brand-light">A</span>
                             </div>
                         </div>
-                        <span className="text-[9px] sm:text-xs font-black text-white uppercase truncate w-full text-center px-0.5 italic">{match.teamB.name}</span>
+                        <span className="text-[8px] sm:text-xs font-black text-white uppercase truncate w-full text-center px-0.5 italic">{match.teamB.name}</span>
                         {isAdminMode && <QuickScoreControl val={editScoreB} setVal={setEditScoreB} label="B" />}
                     </button>
                 </div>
 
-                <div className="flex items-center justify-between px-3 py-1.5 sm:py-2 bg-black/50 border-t border-white/5">
-                    <div className="flex gap-3 sm:gap-4">
+                <div className="flex items-center justify-between px-3 py-1 sm:py-2 bg-black/50 border-t border-white/5">
+                    <div className="flex gap-2 sm:gap-4">
                         {match.proofUrl && (
-                            <button onClick={() => setShowProof(true)} className="flex items-center gap-1 text-[8px] sm:text-[9px] font-black text-brand-vibrant uppercase hover:text-white transition-all group/btn">
-                                <MonitorPlay size={12} className="group-hover/btn:scale-110 transition-transform sm:w-3.5 sm:h-3.5" /> <span className="hidden sm:inline">Bukti Laga</span><span className="sm:hidden">Bukti</span>
+                            <button onClick={() => setShowProof(true)} className="flex items-center gap-1 text-[7px] sm:text-[9px] font-black text-brand-vibrant uppercase hover:text-white transition-all">
+                                <MonitorPlay size={10} className="sm:w-3.5 sm:h-3.5" /> <span>Bukti</span>
                             </button>
                         )}
                         {hasComments && (
-                            <span className="text-[7px] sm:text-[8px] font-black text-brand-light/40 uppercase self-center">{match.comments?.length} CHATS</span>
+                            <span className="text-[6px] sm:text-[8px] font-black text-brand-light/40 uppercase self-center">{match.comments?.length} CHATS</span>
                         )}
                     </div>
                     
-                    <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1.5 text-[8px] sm:text-[9px] font-black uppercase transition-all py-1 sm:py-1.5 px-2.5 sm:px-3 rounded-lg border ${showComments ? 'bg-brand-vibrant text-white border-brand-vibrant shadow-lg' : 'bg-white/5 text-brand-light border-white/5 hover:border-brand-vibrant/30'}`}>
+                    <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1 text-[7px] sm:text-[9px] font-black uppercase transition-all py-1 px-2 rounded-md border ${showComments ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-white/5 text-brand-light border-white/5'}`}>
                         <MessageSquare size={10} className="sm:w-3 sm:h-3" />
-                        <span>Diskusi</span>
+                        <span>Chat</span>
                     </button>
                 </div>
 
                 {showComments && (
                     <div className="bg-black/80 border-t border-white/10 animate-in slide-in-from-top-2 duration-300">
-                        <div className="max-h-40 sm:max-h-48 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+                        <div className="max-h-32 sm:max-h-48 overflow-y-auto p-2 sm:p-3 space-y-2 custom-scrollbar">
                             {hasComments ? (
                                 match.comments?.map((comment) => (
-                                    <div key={comment.id} className="flex gap-2">
-                                        <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-lg flex items-center justify-center border text-[9px] sm:text-[10px] shrink-0 ${comment.isAdmin ? 'bg-brand-special/10 border-brand-special/30 text-brand-special' : 'bg-brand-vibrant/10 border-brand-vibrant/20 text-brand-vibrant'}`}><UserCircle size={12} className="sm:w-3.5 sm:h-3.5" /></div>
+                                    <div key={comment.id} className="flex gap-1.5">
                                         <div className="min-w-0 flex-1">
-                                            <div className="flex items-center gap-2 mb-0.5"><span className={`text-[7px] sm:text-[8px] font-black uppercase truncate ${comment.isAdmin ? 'text-brand-special' : 'text-brand-light'}`}>{comment.userName}</span></div>
-                                            <div className="bg-white/[0.03] p-1.5 sm:p-2 rounded-lg rounded-tl-none border border-white/5"><p className="text-[9px] sm:text-[10px] text-brand-text leading-tight">{comment.text}</p></div>
+                                            <span className={`text-[6px] sm:text-[8px] font-black uppercase truncate ${comment.isAdmin ? 'text-brand-special' : 'text-brand-light'}`}>{comment.userName}:</span>
+                                            <span className="text-[8px] sm:text-[10px] text-brand-text leading-tight ml-1">{comment.text}</span>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <div className="text-center py-4 text-[7px] sm:text-[8px] font-black text-brand-light/20 uppercase">Belum ada diskusi</div>
+                                <div className="text-center py-2 text-[7px] font-black text-brand-light/20 uppercase">Belum ada diskusi</div>
                             )}
                         </div>
-                        <div className="p-2 sm:p-3 bg-brand-secondary/40 border-t border-white/5">
+                        <div className="p-2 bg-brand-secondary/40 border-t border-white/5">
                             {chatPermissions.canChat ? (
                                 <form onSubmit={handleSubmitComment} className="flex gap-2">
-                                    <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Tulis pesan..." className="flex-grow bg-black/60 border border-white/10 rounded-xl px-3 py-1.5 sm:py-2 text-[9px] sm:text-[10px] text-white focus:border-brand-vibrant outline-none" />
-                                    <button type="submit" disabled={!newComment.trim()} className="p-1.5 sm:p-2 bg-brand-vibrant text-white rounded-xl hover:bg-blue-600 disabled:opacity-20 transition-all"><Send size={12} className="sm:w-3.5 sm:h-3.5" /></button>
+                                    <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Tulis..." className="flex-grow bg-black/60 border border-white/10 rounded-lg px-2 py-1 text-[8px] sm:text-[10px] text-white focus:border-brand-vibrant outline-none" />
+                                    <button type="submit" disabled={!newComment.trim()} className="p-1 bg-brand-vibrant text-white rounded-lg transition-all"><Send size={10} /></button>
                                 </form>
                             ) : (
-                                <div className="text-center py-0.5 text-[7px] sm:text-[8px] font-black text-brand-light/30 uppercase italic flex items-center justify-center gap-1.5"><Lock size={8} /> {chatPermissions.reason}</div>
+                                <div className="text-center text-[6px] text-brand-light/30 uppercase italic flex items-center justify-center gap-1"><Lock size={8} /> {chatPermissions.reason}</div>
                             )}
                         </div>
                     </div>

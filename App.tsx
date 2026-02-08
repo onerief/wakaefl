@@ -22,7 +22,7 @@ import { ToastProvider } from './components/shared/Toast';
 import { TeamProfileModal } from './components/public/TeamProfileModal';
 import { UserProfileModal } from './components/public/UserProfileModal';
 import { TeamRegistrationModal } from './components/public/TeamRegistrationModal';
-import { onAuthChange, signOutUser, getGlobalStats, getTournamentData, getUserTeams } from './services/firebaseService';
+import { onAuthChange, signOutUser, getGlobalStats, getUserTeams } from './services/firebaseService';
 import { useToast } from './components/shared/Toast';
 import { Spinner } from './components/shared/Spinner';
 import { DashboardSkeleton } from './components/shared/Skeleton';
@@ -91,13 +91,6 @@ function AppContent() {
     }
   };
 
-  const handleSelectMode = (mode: TournamentMode | 'hall_of_fame' | 'news' | 'shop') => {
-    if (mode === 'hall_of_fame') setView('hall_of_fame');
-    else if (mode === 'news') setView('news');
-    else if (mode === 'shop') setView('shop');
-    else { setActiveMode(mode as TournamentMode); setView(mode as View); }
-  };
-
   const handleSetView = (newView: View) => {
     if (newView === 'home') {
         setActiveMode('league');
@@ -108,6 +101,15 @@ function AppContent() {
     setView(newView);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+
+  const handleRegisterClick = () => {
+    if (currentUser) {
+        setShowTeamRegistration(true);
+    } else {
+        setShowUserAuth(true);
+        addToast('Harap login terlebih dahulu untuk mendaftarkan tim Anda.', 'info');
+    }
+  };
 
   const showBanners = view !== 'admin' && view !== 'hall_of_fame' && !['privacy', 'about', 'terms'].includes(view);
 
@@ -140,22 +142,24 @@ function AppContent() {
           </div>
       )}
 
-      {view !== 'admin' && <NavigationMenu currentView={view} setView={handleSetView} />}
+      {/* Floating Bottom Navigation (All views except Admin) */}
+      {view !== 'admin' && <NavigationMenu currentView={view} setView={handleSetView} visibleModes={tournament.visibleModes} />}
       
-      <main className="container mx-auto px-4 py-6 md:p-8 flex-grow relative z-20">
+      <main className={`container mx-auto px-4 py-6 md:p-8 flex-grow relative z-20 ${view !== 'admin' ? 'pb-32' : ''}`}>
         <Suspense fallback={<div className="flex justify-center py-20"><Spinner size={40} /></div>}>
           {tournament.isLoading ? <DashboardSkeleton /> : (
             <>
               {view === 'home' && (
                 <HomeDashboard 
-                    onSelectMode={handleSelectMode} 
+                    onSelectMode={(m) => handleSetView(m as View)} 
                     teamCount={globalStats.teamCount || tournament.teams.length} 
                     partnerCount={globalStats.partnerCount || tournament.partners.length} 
-                    onRegisterTeam={() => setShowTeamRegistration(true)} 
+                    onRegisterTeam={handleRegisterClick} 
                     isRegistrationOpen={tournament.isRegistrationOpen} 
                     userOwnedTeams={userOwnedTeams} 
                     allMatches={tournament.matches} 
                     news={tournament.news} 
+                    visibleModes={tournament.visibleModes}
                 />
               )}
               {view === 'news' && <NewsPortal news={tournament.news || []} categories={tournament.newsCategories} />}
@@ -168,6 +172,7 @@ function AppContent() {
                     matches={tournament.matches} 
                     knockoutStage={(view === 'wakacl' || view === 'two_leagues') ? tournament.knockoutStage : null} 
                     rules={tournament.rules} 
+                    history={tournament.history}
                     onSelectTeam={setViewingTeam} 
                     currentUser={currentUser} 
                     onAddMatchComment={tournament.addMatchComment} 
@@ -197,6 +202,7 @@ function AppContent() {
                     setRegistrationOpen={tournament.setRegistrationOpen}
                     setTournamentStatus={tournament.setTournamentStatus}
                     updateHeaderLogo={tournament.updateHeaderLogo}
+                    updateVisibleModes={tournament.updateVisibleModes}
                 />
               )}
             </>
@@ -207,7 +213,7 @@ function AppContent() {
       <GlobalChat currentUser={currentUser} isAdmin={isAdminAuthenticated} onLoginRequest={() => setShowUserAuth(true)} />
       {showAdminLogin && <Login onLoginSuccess={handleAdminLoginSuccess} onClose={() => setShowAdminLogin(false)} />}
       {showUserAuth && <UserAuthModal onClose={() => setShowUserAuth(false)} onSuccess={() => setShowUserAuth(false)} />}
-      {showUserProfile && currentUser && <UserProfileModal currentUser={currentUser} teams={tournament.teams} onClose={() => setShowUserProfile(false)} onLogout={handleLogout} />}
+      {showUserProfile && currentUser && <UserProfileModal currentUser={currentUser} teams={tournament.teams} onClose={() => setShowUserProfile(false)} onLogout={handleLogout} isAdmin={isAdminAuthenticated} onAdminAccess={() => handleSetView('admin')} />}
       {showTeamRegistration && currentUser && <TeamRegistrationModal currentUser={currentUser} onClose={() => setShowTeamRegistration(false)} userOwnedTeams={userOwnedTeams} />}
       {viewingTeam && <TeamProfileModal team={viewingTeam} matches={tournament.matches} onClose={() => setViewingTeam(null)} />}
       <Footer partners={tournament.partners} onAdminLogin={() => setShowAdminLogin(true)} setView={handleSetView} />
