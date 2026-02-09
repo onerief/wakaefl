@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { NewsItem, TournamentState } from '../../types';
 import { Card } from '../shared/Card';
 import { Clock, Search, Newspaper, Calendar, ArrowRight, Share2, Tag } from 'lucide-react';
@@ -7,14 +7,35 @@ import { Clock, Search, Newspaper, Calendar, ArrowRight, Share2, Tag } from 'luc
 interface NewsPortalProps {
     news: NewsItem[];
     categories?: string[];
+    deepLinkNewsId?: string | null;
+    onNavigateToArticle?: (id: string) => void;
+    onBackToPortal?: () => void;
 }
 
-export const NewsPortal: React.FC<NewsPortalProps> = ({ news = [], categories = ['Match', 'Transfer', 'Info', 'Interview'] }) => {
+export const NewsPortal: React.FC<NewsPortalProps> = ({ 
+    news = [], 
+    categories = ['Match', 'Transfer', 'Info', 'Interview'],
+    deepLinkNewsId,
+    onNavigateToArticle,
+    onBackToPortal
+}) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [readingItem, setReadingItem] = useState<NewsItem | null>(null);
 
     const availableCategories = useMemo(() => ['All', ...categories], [categories]);
+
+    // Handle deep linking on mount or data change
+    useEffect(() => {
+        if (deepLinkNewsId && news.length > 0) {
+            const article = news.find(n => n.id === deepLinkNewsId || createSlug(n.title) === deepLinkNewsId);
+            if (article) {
+                setReadingItem(article);
+            }
+        } else if (!deepLinkNewsId) {
+            setReadingItem(null);
+        }
+    }, [deepLinkNewsId, news]);
 
     const filteredNews = useMemo(() => {
         return news
@@ -30,11 +51,27 @@ export const NewsPortal: React.FC<NewsPortalProps> = ({ news = [], categories = 
     const featuredItem = filteredNews[0];
     const otherItems = filteredNews.slice(1);
 
+    // Slug generator for clean URLs
+    function createSlug(title: string) {
+        return title.toLowerCase()
+            .replace(/[^\w ]+/g, '')
+            .replace(/ +/g, '-');
+    }
+
+    const handleItemClick = (item: NewsItem) => {
+        const slug = createSlug(item.title);
+        if (onNavigateToArticle) {
+            onNavigateToArticle(slug);
+        } else {
+            setReadingItem(item);
+        }
+    };
+
     if (readingItem) {
         return (
             <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom-4 duration-500 pb-20">
                 <button 
-                    onClick={() => setReadingItem(null)}
+                    onClick={() => onBackToPortal ? onBackToPortal() : setReadingItem(null)}
                     className="flex items-center gap-2 text-brand-light hover:text-white mb-8 transition-colors group"
                 >
                     <ArrowRight size={16} className="rotate-180 group-hover:-translate-x-1 transition-transform" /> Kembali ke Portal
@@ -74,7 +111,6 @@ export const NewsPortal: React.FC<NewsPortalProps> = ({ news = [], categories = 
                         className="prose prose-invert max-w-none prose-p:text-brand-light prose-p:leading-relaxed prose-strong:text-white prose-headings:text-white prose-a:text-brand-vibrant prose-ul:list-disc prose-ul:pl-5 prose-ol:list-decimal prose-ol:pl-5 news-content"
                         dangerouslySetInnerHTML={{ __html: readingItem.content }}
                     />
-                    {/* Add specific styles for Lists because Tailwind sometimes resets them too hard */}
                     <style>{`
                         .news-content ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
                         .news-content ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
@@ -85,7 +121,20 @@ export const NewsPortal: React.FC<NewsPortalProps> = ({ news = [], categories = 
                 </div>
                 
                 <div className="mt-16 pt-8 border-t border-white/5 flex justify-center">
-                    <button className="flex items-center gap-2 px-8 py-4 bg-brand-primary border border-white/10 rounded-2xl text-brand-light hover:text-white transition-all">
+                    <button 
+                        onClick={() => {
+                            if (navigator.share) {
+                                navigator.share({
+                                    title: readingItem.title,
+                                    url: window.location.href
+                                });
+                            } else {
+                                navigator.clipboard.writeText(window.location.href);
+                                alert('Link berhasil disalin!');
+                            }
+                        }}
+                        className="flex items-center gap-2 px-8 py-4 bg-brand-primary border border-white/10 rounded-2xl text-brand-light hover:text-white transition-all"
+                    >
                         <Share2 size={18} /> Bagikan Artikel Ini
                     </button>
                 </div>
@@ -119,7 +168,7 @@ export const NewsPortal: React.FC<NewsPortalProps> = ({ news = [], categories = 
             </div>
 
             {/* Categories */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar-hide">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
                 {availableCategories.map(cat => (
                     <button
                         key={cat}
@@ -145,7 +194,7 @@ export const NewsPortal: React.FC<NewsPortalProps> = ({ news = [], categories = 
                     
                     {/* FEATURED NEWS */}
                     {featuredItem && (
-                        <div className="lg:col-span-8 group cursor-pointer" onClick={() => setReadingItem(featuredItem)}>
+                        <div className="lg:col-span-8 group cursor-pointer" onClick={() => handleItemClick(featuredItem)}>
                             <Card className="!p-0 border-white/5 bg-brand-secondary/40 h-full !rounded-[2.5rem] overflow-hidden group-hover:border-brand-vibrant/30 transition-all">
                                 <div className="relative aspect-[21/10] overflow-hidden">
                                     <img src={featuredItem.imageUrl} alt={featuredItem.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
@@ -159,7 +208,6 @@ export const NewsPortal: React.FC<NewsPortalProps> = ({ news = [], categories = 
                                         <h3 className="text-2xl md:text-4xl font-black text-white italic uppercase tracking-tighter leading-tight mb-2">
                                             {featuredItem.title}
                                         </h3>
-                                        {/* Strip tags for preview */}
                                         <p className="text-brand-light/80 text-xs md:text-sm line-clamp-2 max-w-2xl font-medium">
                                             {featuredItem.content.replace(/<[^>]+>/g, '')}
                                         </p>
@@ -177,7 +225,7 @@ export const NewsPortal: React.FC<NewsPortalProps> = ({ news = [], categories = 
                                 <div 
                                     key={item.id} 
                                     className="flex gap-4 group cursor-pointer"
-                                    onClick={() => setReadingItem(item)}
+                                    onClick={() => handleItemClick(item)}
                                 >
                                     <div className="w-24 h-24 shrink-0 rounded-xl overflow-hidden border border-white/5">
                                         <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />

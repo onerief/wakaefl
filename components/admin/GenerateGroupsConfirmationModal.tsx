@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, Shuffle } from 'lucide-react';
 
 interface GenerateGroupsConfirmationModalProps {
   onConfirm: () => void;
@@ -10,27 +11,36 @@ interface GenerateGroupsConfirmationModalProps {
 
 export const GenerateGroupsConfirmationModal: React.FC<GenerateGroupsConfirmationModalProps> = ({ onConfirm, onCancel }) => {
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm">
-      <Card className="w-full max-w-lg relative">
-        <button onClick={onCancel} className="absolute top-4 right-4 text-brand-light hover:text-brand-text transition-colors" aria-label="Close form">
-          <X size={24} />
-        </button>
-        <div className="p-4 text-center">
-            <AlertTriangle className="mx-auto text-yellow-500 mb-4" size={48} />
-            <h2 className="text-2xl font-bold text-brand-text mb-2">Confirm Group Stage Generation</h2>
-            <p className="text-brand-light mb-6">
-                Are you sure? This will delete all current group and match data and reset the knockout stage. This action cannot be undone.
-            </p>
-            <div className="flex justify-center gap-4">
-                <Button type="button" variant="secondary" onClick={onCancel}>
-                    Cancel
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[150] backdrop-blur-md p-4 animate-in fade-in zoom-in-95 duration-200">
+      <Card className="w-full max-w-xs relative !p-0 overflow-hidden shadow-2xl bg-brand-primary rounded-2xl border border-yellow-500/30">
+        <div className="bg-gradient-to-r from-yellow-900/40 to-black p-3 border-b border-white/5 flex justify-between items-center">
+            <h3 className="text-xs font-black text-white italic uppercase tracking-tighter flex items-center gap-2">
+                <Shuffle size={14} className="text-yellow-500" /> Generate Groups
+            </h3>
+            <button onClick={onCancel} className="text-brand-light hover:text-white transition-all bg-white/5 p-1 rounded-full"><X size={12} /></button>
+        </div>
+        
+        <div className="p-4">
+            <div className="bg-yellow-500/10 p-3 rounded-xl border border-yellow-500/20 mb-4 flex gap-3">
+                <AlertTriangle className="text-yellow-500 shrink-0 mt-0.5" size={16} />
+                <div className="space-y-1">
+                    <p className="text-[10px] font-black text-yellow-500 uppercase tracking-widest">Konfirmasi Pembuatan Ulang</p>
+                    <p className="text-[10px] text-brand-light leading-relaxed">
+                        Tindakan ini akan <strong>menghapus</strong> semua grup dan jadwal pertandingan yang ada saat ini, lalu membuat undian baru secara acak.
+                    </p>
+                </div>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={onCancel} className="!text-[10px] !py-1.5 rounded-lg h-8">
+                    Batal
                 </Button>
                 <Button 
                     type="button" 
                     onClick={onConfirm}
-                    className="bg-yellow-600 text-white hover:bg-yellow-700"
+                    className="bg-yellow-600 text-white hover:bg-yellow-700 !text-[10px] !py-1.5 rounded-lg shadow-lg shadow-yellow-900/20 font-black uppercase tracking-wider h-8"
                 >
-                    Yes, Generate Groups
+                    Ya, Acak Ulang
                 </Button>
             </div>
         </div>

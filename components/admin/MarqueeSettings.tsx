@@ -4,6 +4,7 @@ import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { Plus, Trash2, Zap, Save, Type, AlertCircle } from 'lucide-react';
 import { useToast } from '../shared/Toast';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface MarqueeSettingsProps {
     messages: string[];
@@ -12,6 +13,7 @@ interface MarqueeSettingsProps {
 
 export const MarqueeSettings: React.FC<MarqueeSettingsProps> = ({ messages, onUpdate }) => {
     const [newMessage, setNewMessage] = useState('');
+    const [messageToDeleteIndex, setMessageToDeleteIndex] = useState<number | null>(null);
     const { addToast } = useToast();
 
     const handleAdd = (e: React.FormEvent) => {
@@ -24,10 +26,13 @@ export const MarqueeSettings: React.FC<MarqueeSettingsProps> = ({ messages, onUp
         addToast('Teks berjalan ditambahkan!', 'success');
     };
 
-    const handleDelete = (index: number) => {
-        const updated = messages.filter((_, i) => i !== index);
-        onUpdate(updated);
-        addToast('Pesan dihapus.', 'info');
+    const confirmDelete = () => {
+        if (messageToDeleteIndex !== null) {
+            const updated = messages.filter((_, i) => i !== messageToDeleteIndex);
+            onUpdate(updated);
+            addToast('Pesan dihapus.', 'info');
+            setMessageToDeleteIndex(null);
+        }
     };
 
     return (
@@ -71,7 +76,7 @@ export const MarqueeSettings: React.FC<MarqueeSettingsProps> = ({ messages, onUp
                                     <p className="text-xs font-bold text-brand-text truncate leading-tight uppercase tracking-wide">{msg}</p>
                                 </div>
                                 <button
-                                    onClick={() => handleDelete(index)}
+                                    onClick={() => setMessageToDeleteIndex(index)}
                                     className="p-2 text-brand-light hover:text-red-400 transition-all shrink-0"
                                     title="Hapus Pesan"
                                 >
@@ -86,6 +91,15 @@ export const MarqueeSettings: React.FC<MarqueeSettingsProps> = ({ messages, onUp
                     </div>
                 </div>
             </div>
+
+            <ConfirmationModal 
+                isOpen={messageToDeleteIndex !== null}
+                onClose={() => setMessageToDeleteIndex(null)}
+                onConfirm={confirmDelete}
+                title="Hapus Running Text"
+                message="Pesan ini akan dihapus dari marquee di halaman depan."
+                confirmText="Hapus"
+            />
         </Card>
     );
 };

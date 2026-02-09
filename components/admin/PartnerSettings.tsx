@@ -5,6 +5,7 @@ import { Button } from '../shared/Button';
 import { Plus, Trash2, Users, ExternalLink } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import type { Partner } from '../../types';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface PartnerSettingsProps {
     partners: Partner[];
@@ -15,6 +16,7 @@ export const PartnerSettings: React.FC<PartnerSettingsProps> = ({ partners, onUp
     const [name, setName] = useState('');
     const [logoUrl, setLogoUrl] = useState('');
     const [websiteUrl, setWebsiteUrl] = useState('');
+    const [partnerToDelete, setPartnerToDelete] = useState<string | null>(null);
     const { addToast } = useToast();
 
     const handleAdd = (e: React.FormEvent) => {
@@ -24,7 +26,6 @@ export const PartnerSettings: React.FC<PartnerSettingsProps> = ({ partners, onUp
             return;
         }
         
-        // Basic URL validation
         try {
             new URL(logoUrl);
             if (websiteUrl) new URL(websiteUrl);
@@ -48,10 +49,13 @@ export const PartnerSettings: React.FC<PartnerSettingsProps> = ({ partners, onUp
         addToast('Partner added successfully!', 'success');
     };
 
-    const handleDelete = (id: string) => {
-        const updatedPartners = partners.filter(p => p.id !== id);
-        onUpdatePartners(updatedPartners);
-        addToast('Partner removed.', 'info');
+    const confirmDelete = () => {
+        if (partnerToDelete) {
+            const updatedPartners = partners.filter(p => p.id !== partnerToDelete);
+            onUpdatePartners(updatedPartners);
+            addToast('Partner removed.', 'info');
+            setPartnerToDelete(null);
+        }
     };
 
     return (
@@ -119,7 +123,7 @@ export const PartnerSettings: React.FC<PartnerSettingsProps> = ({ partners, onUp
                                 )}
                             </div>
                             <button
-                                onClick={() => handleDelete(partner.id)}
+                                onClick={() => setPartnerToDelete(partner.id)}
                                 className="text-brand-light hover:text-red-400 p-2 transition-colors"
                                 title="Remove Partner"
                             >
@@ -133,6 +137,15 @@ export const PartnerSettings: React.FC<PartnerSettingsProps> = ({ partners, onUp
                     </div>
                 )}
             </div>
+
+            <ConfirmationModal 
+                isOpen={!!partnerToDelete}
+                onClose={() => setPartnerToDelete(null)}
+                onConfirm={confirmDelete}
+                title="Hapus Partner"
+                message="Anda yakin ingin menghapus partner/sponsor ini?"
+                confirmText="Hapus"
+            />
         </Card>
     );
 };

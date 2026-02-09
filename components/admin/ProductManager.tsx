@@ -6,6 +6,7 @@ import { Button } from '../shared/Button';
 import { Plus, Trash2, ShoppingBag, Save, X, Edit, Loader, Image as ImageIcon, Tag } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { CategoryManager } from './CategoryManager';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface ProductManagerProps {
     products: Product[];
@@ -18,6 +19,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ products = [], o
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isCatManagerOpen, setIsCatManagerOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [productToDelete, setProductToDelete] = useState<string | null>(null);
     const { addToast } = useToast();
 
     const [name, setName] = useState('');
@@ -74,10 +76,11 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ products = [], o
         setIsFormOpen(true);
     };
 
-    const handleDelete = (id: string) => {
-        if (window.confirm('Hapus item ini dari Shop?')) {
-            onUpdateProducts(products.filter(p => p.id !== id));
+    const confirmDelete = () => {
+        if (productToDelete) {
+            onUpdateProducts(products.filter(p => p.id !== productToDelete));
             addToast('Item shop dihapus.', 'info');
+            setProductToDelete(null);
         }
     };
 
@@ -162,7 +165,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ products = [], o
                         </div>
                         <div className="p-2 bg-black/20 border-t border-white/5 flex gap-2">
                             <button onClick={() => handleEdit(p)} className="flex-1 py-2 bg-white/5 hover:bg-brand-vibrant transition-colors rounded-lg flex justify-center text-brand-light hover:text-white"><Edit size={14}/></button>
-                            <button onClick={() => handleDelete(p.id)} className="flex-1 py-2 bg-red-500/10 hover:bg-red-500 transition-colors rounded-lg flex justify-center text-red-400 hover:text-white"><Trash2 size={14}/></button>
+                            <button onClick={() => setProductToDelete(p.id)} className="flex-1 py-2 bg-red-500/10 hover:bg-red-500 transition-colors rounded-lg flex justify-center text-red-400 hover:text-white"><Trash2 size={14}/></button>
                         </div>
                     </div>
                 ))}
@@ -172,6 +175,15 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ products = [], o
                 isOpen={isCatManagerOpen} onClose={() => setIsCatManagerOpen(false)}
                 title="Kelola Kategori Shop" categories={categories} 
                 onUpdate={onUpdateCategories || (() => {})}
+            />
+
+            <ConfirmationModal
+                isOpen={!!productToDelete}
+                onClose={() => setProductToDelete(null)}
+                onConfirm={confirmDelete}
+                title="Hapus Produk"
+                message="Anda yakin ingin menghapus item ini dari Shop?"
+                confirmText="Hapus"
             />
         </div>
     );

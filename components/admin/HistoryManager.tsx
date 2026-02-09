@@ -6,6 +6,7 @@ import { Button } from '../shared/Button';
 import { Plus, Trash2, Crown, Trophy, Calendar, Globe, ListOrdered, Shield, X, Edit, Layout } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { TeamLogo } from '../shared/TeamLogo';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface HistoryManagerProps {
     history: SeasonHistory[];
@@ -19,6 +20,7 @@ export const HistoryManager: React.FC<HistoryManagerProps> = ({ history, teams, 
     const [championId, setChampionId] = useState('');
     const [runnerUpId, setRunnerUpId] = useState('');
     const [mode, setMode] = useState<TournamentMode>('league');
+    const [historyToDelete, setHistoryToDelete] = useState<string | null>(null);
     
     // Manual Input Overrides
     const [useManualEntry, setUseManualEntry] = useState(false);
@@ -77,11 +79,19 @@ export const HistoryManager: React.FC<HistoryManagerProps> = ({ history, teams, 
         addToast('Riwayat Juara berhasil ditambahkan!', 'success');
     };
 
-    const getModeIcon = (m?: TournamentMode) => {
-        switch(m) {
-            case 'league': return <ListOrdered size={12} className="text-blue-400" />;
-            case 'two_leagues': return <Globe size={12} className="text-purple-400" />;
-            case 'wakacl': return <Shield size={12} className="text-yellow-500" />;
+    const confirmDelete = () => {
+        if (historyToDelete) {
+            onDeleteEntry(historyToDelete);
+            addToast('Riwayat dihapus.', 'info');
+            setHistoryToDelete(null);
+        }
+    };
+
+    const ModeBadge = ({ mode }: { mode?: TournamentMode }) => {
+        switch (mode) {
+            case 'league': return <span className="flex items-center gap-1 text-[8px] font-black text-blue-400 uppercase tracking-widest bg-blue-400/10 px-1.5 py-0.5 rounded border border-blue-400/20">Liga</span>;
+            case 'two_leagues': return <span className="flex items-center gap-1 text-[8px] font-black text-purple-400 uppercase tracking-widest bg-purple-400/10 px-1.5 py-0.5 rounded border border-purple-400/20">2 Region</span>;
+            case 'wakacl': return <span className="flex items-center gap-1 text-[8px] font-black text-yellow-500 uppercase tracking-widest bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20">WAKACL</span>;
             default: return null;
         }
     };
@@ -221,7 +231,7 @@ export const HistoryManager: React.FC<HistoryManagerProps> = ({ history, teams, 
                                     </div>
                                 </div>
                                 <button 
-                                    onClick={() => { if(window.confirm('Hapus legenda ini?')) onDeleteEntry(entry.seasonId); }}
+                                    onClick={() => setHistoryToDelete(entry.seasonId)}
                                     className="p-3 text-brand-light hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
                                     title="Hapus riwayat"
                                 >
@@ -236,19 +246,15 @@ export const HistoryManager: React.FC<HistoryManagerProps> = ({ history, teams, 
                     )}
                 </div>
             </Card>
+
+            <ConfirmationModal 
+                isOpen={!!historyToDelete}
+                onClose={() => setHistoryToDelete(null)}
+                onConfirm={confirmDelete}
+                title="Hapus Legenda"
+                message="Menghapus data ini tidak akan mengembalikan data pertandingan, hanya menghapus catatan juara dari Hall of Fame."
+                confirmText="Hapus"
+            />
         </div>
     );
-};
-
-const ModeBadge = ({ mode }: { mode?: TournamentMode }) => {
-    switch (mode) {
-        case 'league':
-            return <span className="flex items-center gap-1 text-[8px] font-black text-blue-400 uppercase tracking-widest bg-blue-400/10 px-1.5 py-0.5 rounded border border-blue-400/20">Liga</span>;
-        case 'two_leagues':
-            return <span className="flex items-center gap-1 text-[8px] font-black text-purple-400 uppercase tracking-widest bg-purple-400/10 px-1.5 py-0.5 rounded border border-purple-400/20">2 Region</span>;
-        case 'wakacl':
-            return <span className="flex items-center gap-1 text-[8px] font-black text-yellow-500 uppercase tracking-widest bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20">WAKACL</span>;
-        default:
-            return null;
-    }
 };

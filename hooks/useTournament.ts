@@ -64,7 +64,6 @@ const hydrateTournamentData = (state: FullTournamentState): FullTournamentState 
     state.teams.forEach(t => { if (t && t.id) teamMap.set(t.id, t); });
     
     const getFullTeam = (val: any): Team => {
-        // If it's already a full object with name and logo, return it (Permanent record)
         if (val && typeof val === 'object' && val.name && val.name !== 'TBD') {
             return val;
         }
@@ -115,6 +114,7 @@ type Action =
   | { type: 'UPDATE_SHOP_CATEGORIES'; payload: string[] }
   | { type: 'UPDATE_MARQUEE'; payload: string[] }
   | { type: 'RESET'; payload: FullTournamentState }
+  | { type: 'ARCHIVE_SEASON'; payload: { historyEntry: SeasonHistory, keepTeams: boolean } }
   | { type: 'SET_STATUS'; payload: 'active' | 'completed' }
   | { type: 'UPDATE_RULES', payload: string }
   | { type: 'UPDATE_BANNERS', payload: string[] }
@@ -173,7 +173,38 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'ADD_HISTORY_ENTRY': newState = { ...state, history: [action.payload, ...state.history] }; break;
     case 'DELETE_HISTORY_ENTRY': newState = { ...state, history: state.history.filter(h => h.seasonId !== action.payload) }; break;
     case 'UPDATE_VISIBLE_MODES': newState = { ...state, visibleModes: action.payload }; break;
-    case 'RESET': newState = createInitialState(state.mode); break;
+    case 'RESET': {
+        // Safe Reset: Keeps Global Settings & History
+        newState = { 
+            ...createInitialState(state.mode),
+            history: state.history,
+            news: state.news,
+            products: state.products,
+            banners: state.banners,
+            partners: state.partners,
+            rules: state.rules,
+            headerLogoUrl: state.headerLogoUrl,
+            newsCategories: state.newsCategories,
+            shopCategories: state.shopCategories,
+            marqueeMessages: state.marqueeMessages,
+            visibleModes: state.visibleModes,
+            teams: [] // Hard reset clears teams
+        }; 
+        break;
+    }
+    case 'ARCHIVE_SEASON': {
+        const { historyEntry, keepTeams } = action.payload;
+        newState = {
+            ...state,
+            history: [historyEntry, ...state.history],
+            matches: [],
+            groups: [],
+            knockoutStage: null,
+            status: 'active',
+            teams: keepTeams ? state.teams : []
+        };
+        break;
+    }
     default: return state;
   }
   return hydrateTournamentData(newState);
@@ -333,6 +364,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       setTournamentState: (s: FullTournamentState) => dispatch({ type: 'SET_STATE', payload: s }),
       updateVisibleModes: (modes: TournamentMode[]) => dispatch({ type: 'UPDATE_VISIBLE_MODES', payload: modes }),
       resetTournament: () => dispatch({ type: 'RESET', payload: createInitialState(state.mode) }),
+      archiveSeason: (historyEntry: SeasonHistory, keepTeams: boolean) => dispatch({ type: 'ARCHIVE_SEASON', payload: { historyEntry, keepTeams } }),
       manualAddGroup: (n: string) => dispatch({ type: 'GENERATE_GROUPS', payload: { groups: [...state.groups, { id: `g${Date.now()}`, name: n, teams: [], standings: [] }], matches: state.matches, knockoutStage: state.knockoutStage } }),
       manualDeleteGroup: (id: string) => dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups.filter(g => g.id !== id), matches: state.matches, knockoutStage: state.knockoutStage } }),
       manualAddTeamToGroup: (tid: string, gid: string) => {

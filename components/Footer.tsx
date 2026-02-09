@@ -13,7 +13,8 @@ export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin, setView 
   const hasPartners = partners && partners.length > 0;
 
   return (
-    <footer className="bg-brand-secondary/30 border-t border-white/5 pt-12 pb-24 md:pb-8 mt-auto relative z-0 backdrop-blur-sm">
+    // Changed z-0 to z-30 to ensure it sits above the main content background but below Header/Nav
+    <footer className="bg-brand-secondary/30 border-t border-white/5 pt-12 pb-24 md:pb-8 mt-auto relative z-30 backdrop-blur-sm">
       <div className="container mx-auto px-4 md:px-8">
         
         {/* Official Partners Banner */}
@@ -121,8 +122,8 @@ export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin, setView 
                 <button onClick={() => setView?.('privacy')} className="hover:text-brand-light transition-colors">Privacy Policy</button>
                 <button onClick={() => setView?.('terms')} className="hover:text-brand-light transition-colors">Terms</button>
                 {onAdminLogin && (
-                    <button onClick={onAdminLogin} className="hover:text-brand-vibrant transition-colors" title="Admin Login">
-                        <Lock size={12} />
+                    <button onClick={onAdminLogin} className="hover:text-brand-vibrant transition-colors flex items-center gap-1.5" title="Admin Login">
+                        <Lock size={12} /> <span className="hidden sm:inline text-[9px] uppercase tracking-widest font-bold">Admin Panel</span>
                     </button>
                 )}
             </div>

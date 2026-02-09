@@ -4,7 +4,7 @@ import type { Team, Group, Match, KnockoutStageRounds, KnockoutMatch, Tournament
 import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Crown, ImageIcon, ShieldCheck, Share2, FileJson, LayoutGrid, Zap, Sparkles, X, Newspaper, ShoppingBag, Type, Globe, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Crown, ImageIcon, ShieldCheck, Share2, FileJson, LayoutGrid, Zap, Sparkles, X, Newspaper, ShoppingBag, Type, Globe, RefreshCw, Eye, EyeOff, ChevronDown, Check, Archive } from 'lucide-react';
 import { Card } from '../shared/Card';
 import { RulesEditor } from './RulesEditor';
 import { BannerSettings } from './BannerSettings';
@@ -17,6 +17,7 @@ import { DataManager } from './DataManager';
 import { MarqueeSettings } from './MarqueeSettings';
 import { KnockoutMatchEditor } from './KnockoutMatchEditor';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
+import { ArchiveSeasonModal } from './ArchiveSeasonModal';
 import { useToast } from '../shared/Toast';
 
 interface AdminPanelProps {
@@ -55,6 +56,7 @@ interface AdminPanelProps {
   deleteKnockoutMatch: (round: keyof KnockoutStageRounds, id: string) => void;
   initializeEmptyKnockoutStage: () => void;
   resetTournament: () => void;
+  archiveSeason?: (entry: SeasonHistory, keepTeams: boolean) => void;
   updateRules: (rules: string) => void;
   updateBanners: (banners: string[]) => void;
   updatePartners: (partners: Partner[]) => void;
@@ -93,8 +95,10 @@ const ADMIN_TABS: { id: AdminTab; label: string; icon: any; color: string }[] = 
 
 export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('teams');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedMatchdays, setSelectedMatchdays] = useState<Record<string, string>>({});
   const [showKoForm, setShowKoForm] = useState<{ round: keyof KnockoutStageRounds } | null>(null);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
   const { addToast } = useToast();
 
   const currentTabInfo = ADMIN_TABS.find(t => t.id === activeTab);
@@ -103,6 +107,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     const res = props.generateKnockoutBracket();
     if (res.success) addToast("Bracket otomatis berhasil dibuat!", "success");
     else addToast(res.message || "Gagal membuat bracket.", "error");
+  };
+
+  const handleArchiveSeason = (entry: SeasonHistory, keepTeams: boolean) => {
+      if (props.archiveSeason) {
+          props.archiveSeason(entry, keepTeams);
+          addToast('Musim berhasil diarsipkan & direset!', 'success');
+      } else {
+          // Fallback if archiveSeason is somehow missing
+          props.addHistoryEntry(entry);
+          props.resetTournament();
+          addToast('Musim diarsipkan (Mode Reset Terbatas).', 'info');
+      }
   };
 
   const ModeSwitcher = () => (
@@ -135,6 +151,71 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const renderContent = () => {
     switch(activeTab) {
       case 'teams': return <TeamManager {...props as any} onGenerationSuccess={() => setActiveTab('group-fixtures')} />;
+      case 'marquee': return (
+          <MarqueeSettings 
+              messages={props.marqueeMessages || []} 
+              onUpdate={props.updateMarqueeMessages} 
+          />
+      );
+      case 'banners': return (
+          <BannerSettings 
+              banners={props.banners || []}
+              onUpdateBanners={props.updateBanners}
+          />
+      );
+      case 'partners': return (
+          <PartnerSettings 
+              partners={props.partners || []} 
+              onUpdatePartners={props.updatePartners} 
+          />
+      );
+      case 'branding': return (
+          <BrandingSettings 
+              headerLogoUrl={props.headerLogoUrl || ''}
+              onUpdateHeaderLogo={props.updateHeaderLogo || (() => {})}
+          />
+      );
+      case 'news': return (
+          <NewsManager 
+              news={props.news || []}
+              onUpdateNews={props.onUpdateNews}
+              categories={props.newsCategories}
+              onUpdateCategories={props.updateNewsCategories}
+          />
+      );
+      case 'shop': return (
+          <ProductManager 
+              products={props.products || []}
+              onUpdateProducts={props.updateProducts}
+              categories={props.shopCategories}
+              onUpdateCategories={props.updateShopCategories}
+          />
+      );
+      case 'history': return (
+          <HistoryManager 
+              history={props.history}
+              teams={props.teams}
+              onAddEntry={props.addHistoryEntry}
+              onDeleteEntry={props.deleteHistoryEntry}
+          />
+      );
+      case 'rules': return (
+          <RulesEditor rules={props.rules} onSave={props.updateRules} />
+      );
+      case 'data': return (
+          <DataManager 
+              teams={props.teams}
+              matches={props.matches}
+              groups={props.groups}
+              rules={props.rules}
+              banners={props.banners}
+              partners={props.partners}
+              headerLogoUrl={props.headerLogoUrl || ''}
+              mode={props.mode}
+              knockoutStage={props.knockoutStage}
+              setTournamentState={props.setTournamentState}
+          />
+      );
       case 'group-fixtures': return (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-20">
             {props.groups.map(group => {
@@ -221,6 +302,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       );
       case 'settings': return (
         <div className="max-w-3xl mx-auto space-y-6 pb-20">
+            {/* NEW: ARCHIVE SEASON CONTROL */}
+            <Card className="border-yellow-500/30 bg-yellow-900/5 !p-6 sm:!p-8">
+                <h3 className="text-xl font-black text-white uppercase italic tracking-tight mb-4 flex items-center gap-3">
+                    <Crown className="text-yellow-500" size={24} /> Selesaikan Musim
+                </h3>
+                <p className="text-[11px] text-brand-light mb-6 opacity-70">
+                    Gunakan fitur ini jika turnamen {props.mode.toUpperCase()} sudah selesai. 
+                    Sistem akan menyimpan Juara ke Hall of Fame dan mereset jadwal untuk musim baru.
+                </p>
+                <button 
+                    onClick={() => setShowArchiveModal(true)}
+                    className="w-full py-4 bg-gradient-to-r from-yellow-600 to-yellow-500 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-yellow-500/20 hover:scale-[1.01] transition-all flex items-center justify-center gap-2"
+                >
+                    <Archive size={18} /> Arsipkan & Mulai Musim Baru
+                </button>
+            </Card>
+
             <Card className="border-brand-vibrant/20 !p-6 sm:!p-8">
                 <h3 className="text-xl font-black text-white uppercase italic tracking-tight mb-6 flex items-center gap-3">
                     <Settings className="text-brand-vibrant" size={24} /> System Control
@@ -280,23 +378,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
             </Card>
         </div>
       );
-      default: return <div className="pb-20">{React.createElement(getComponentForTab(activeTab), props)}</div>;
+      default: return null;
     }
-  }
-
-  const getComponentForTab = (tab: AdminTab): any => {
-      switch(tab) {
-          case 'news': return NewsManager;
-          case 'shop': return ProductManager;
-          case 'marquee': return MarqueeSettings;
-          case 'banners': return BannerSettings;
-          case 'partners': return PartnerSettings;
-          case 'branding': return BrandingSettings;
-          case 'history': return HistoryManager;
-          case 'rules': return RulesEditor;
-          case 'data': return DataManager;
-          default: return () => null;
-      }
   }
 
   return (
@@ -320,20 +403,57 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           </nav>
       </aside>
 
-      {/* MOBILE NAVIGATION - Top Fixed Header Area */}
-      <div className="lg:hidden w-full bg-brand-secondary/95 backdrop-blur-md border-b border-white/10 flex flex-col shrink-0 z-40">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-white/5 bg-black/20">
-              <span className="text-[8px] font-black text-brand-vibrant uppercase tracking-widest flex items-center gap-1.5"><ShieldCheck size={12}/> Admin Panel</span>
-              <ModeSwitcher />
+      {/* MOBILE NAVIGATION - Dropdown Menu */}
+      <div className="lg:hidden w-full bg-brand-secondary/95 backdrop-blur-md border-b border-white/10 flex flex-col shrink-0 z-40 relative">
+          <div className="flex items-center justify-between px-3 py-3 bg-black/20 gap-3">
+              {/* Dropdown Trigger */}
+              <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="flex-1 flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white transition-all active:scale-95 group"
+              >
+                  <div className="flex items-center gap-2.5">
+                      {currentTabInfo?.icon && <currentTabInfo.icon size={18} className={currentTabInfo.color} />}
+                      <span className="uppercase tracking-wider font-black text-[10px]">{currentTabInfo?.label}</span>
+                  </div>
+                  <ChevronDown size={16} className={`text-brand-light transition-transform duration-300 ${isMobileMenuOpen ? 'rotate-180' : 'group-hover:translate-y-0.5'}`} />
+              </button>
+              
+              {/* Mode Switcher */}
+              <div className="shrink-0">
+                  <ModeSwitcher />
+              </div>
           </div>
-          <div className="overflow-x-auto no-scrollbar py-2 px-3 flex gap-2 border-b border-white/5 shadow-lg">
-            {ADMIN_TABS.map((tab) => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase italic whitespace-nowrap transition-all ${activeTab === tab.id ? 'bg-brand-vibrant text-white shadow-lg' : 'bg-white/5 text-brand-light'}`}>
-                    <tab.icon size={14} className={activeTab === tab.id ? 'text-white' : tab.color} />
-                    {tab.label}
-                </button>
-            ))}
-          </div>
+
+          {/* Dropdown Content */}
+          {isMobileMenuOpen && (
+              <>
+                  <div className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+                  <div className="absolute top-full left-0 right-0 bg-brand-secondary border-b border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.5)] z-50 max-h-[70vh] overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+                      <div className="p-2 space-y-1">
+                          {ADMIN_TABS.map((tab) => (
+                              <button
+                                  key={tab.id}
+                                  onClick={() => {
+                                      setActiveTab(tab.id);
+                                      setIsMobileMenuOpen(false);
+                                  }}
+                                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-[10px] font-black uppercase italic transition-all ${
+                                      activeTab === tab.id 
+                                      ? 'bg-brand-vibrant text-white shadow-lg' 
+                                      : 'text-brand-light hover:bg-white/5 hover:text-white'
+                                  }`}
+                              >
+                                  <div className="flex items-center gap-3">
+                                      <tab.icon size={16} className={activeTab === tab.id ? 'text-white' : tab.color} />
+                                      {tab.label}
+                                  </div>
+                                  {activeTab === tab.id && <Check size={14} className="text-white" />}
+                              </button>
+                          ))}
+                      </div>
+                  </div>
+              </>
+          )}
       </div>
 
       {/* MAIN CONTENT AREA - Independent Scrolling */}
@@ -361,6 +481,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
              </div>
         </div>
       </main>
+
+      {/* Archive Modal */}
+      {showArchiveModal && (
+          <ArchiveSeasonModal 
+              mode={props.mode}
+              teams={props.teams}
+              knockoutStage={props.knockoutStage}
+              onClose={() => setShowArchiveModal(false)}
+              onArchive={handleArchiveSeason}
+          />
+      )}
     </div>
   );
 };

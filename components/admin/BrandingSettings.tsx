@@ -5,6 +5,7 @@ import { Button } from '../shared/Button';
 import { Upload, X, Loader, Image as ImageIcon, Check } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { uploadTeamLogo } from '../../services/firebaseService';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface BrandingSettingsProps {
     headerLogoUrl: string;
@@ -14,6 +15,7 @@ interface BrandingSettingsProps {
 export const BrandingSettings: React.FC<BrandingSettingsProps> = ({ headerLogoUrl, onUpdateHeaderLogo }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
     const { addToast } = useToast();
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,11 +39,10 @@ export const BrandingSettings: React.FC<BrandingSettingsProps> = ({ headerLogoUr
         }
     };
 
-    const handleRemove = () => {
-        if (window.confirm('Hapus logo custom dan kembali ke tampilan default?')) {
-            onUpdateHeaderLogo('');
-            addToast('Logo header dihapus.', 'info');
-        }
+    const confirmRemove = () => {
+        onUpdateHeaderLogo('');
+        addToast('Logo header dihapus.', 'info');
+        setShowRemoveConfirm(false);
     };
 
     return (
@@ -94,7 +95,7 @@ export const BrandingSettings: React.FC<BrandingSettingsProps> = ({ headerLogoUr
                         
                         {headerLogoUrl && (
                             <Button 
-                                onClick={handleRemove} 
+                                onClick={() => setShowRemoveConfirm(true)}
                                 variant="danger"
                                 className="!p-2.5"
                                 title="Hapus Logo Custom"
@@ -109,6 +110,15 @@ export const BrandingSettings: React.FC<BrandingSettingsProps> = ({ headerLogoUr
                     </p>
                 </div>
             </div>
+
+            <ConfirmationModal 
+                isOpen={showRemoveConfirm}
+                onClose={() => setShowRemoveConfirm(false)}
+                onConfirm={confirmRemove}
+                title="Hapus Branding"
+                message="Anda akan menghapus logo custom dan kembali ke tampilan default website. Lanjutkan?"
+                confirmText="Hapus Logo"
+            />
         </Card>
     );
 };

@@ -82,8 +82,11 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
 
           {isRegistrationOpen && (
               <button 
-                onClick={onRegisterTeam} 
-                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-5 sm:py-2 bg-brand-vibrant hover:bg-blue-600 text-white rounded-lg sm:rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 active:scale-95 whitespace-nowrap"
+                onClick={(e) => {
+                    e.preventDefault();
+                    if (onRegisterTeam) onRegisterTeam();
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 sm:px-5 sm:py-2.5 bg-brand-vibrant hover:bg-blue-600 text-white rounded-lg sm:rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 active:scale-95 whitespace-nowrap z-30"
               >
                   <PlusCircle size={12} className="sm:w-3.5 sm:h-3.5" />
                   <span>Daftarkan Tim</span>

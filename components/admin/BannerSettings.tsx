@@ -4,6 +4,7 @@ import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { Plus, Trash2, Image as ImageIcon, ExternalLink, Save, CloudCheck, Loader } from 'lucide-react';
 import { useToast } from '../shared/Toast';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface BannerSettingsProps {
     banners: string[];
@@ -12,6 +13,7 @@ interface BannerSettingsProps {
 
 export const BannerSettings: React.FC<BannerSettingsProps> = ({ banners, onUpdateBanners }) => {
     const [newBannerUrl, setNewBannerUrl] = useState('');
+    const [bannerToDeleteIndex, setBannerToDeleteIndex] = useState<number | null>(null);
     const { addToast } = useToast();
 
     const handleAdd = (e: React.FormEvent) => {
@@ -32,10 +34,13 @@ export const BannerSettings: React.FC<BannerSettingsProps> = ({ banners, onUpdat
         addToast('Banner ditambahkan! Sedang menyinkronkan...', 'info');
     };
 
-    const handleDelete = (index: number) => {
-        const updatedBanners = (banners || []).filter((_, i) => i !== index);
-        onUpdateBanners(updatedBanners);
-        addToast('Banner dihapus dari daftar.', 'info');
+    const confirmDelete = () => {
+        if (bannerToDeleteIndex !== null) {
+            const updatedBanners = (banners || []).filter((_, i) => i !== bannerToDeleteIndex);
+            onUpdateBanners(updatedBanners);
+            addToast('Banner dihapus dari daftar.', 'info');
+            setBannerToDeleteIndex(null);
+        }
     };
 
     return (
@@ -91,7 +96,7 @@ export const BannerSettings: React.FC<BannerSettingsProps> = ({ banners, onUpdat
                                             <ExternalLink size={12} />
                                         </a>
                                         <button
-                                            onClick={() => handleDelete(index)}
+                                            onClick={() => setBannerToDeleteIndex(index)}
                                             className="p-1.5 bg-red-500/20 hover:bg-red-500 rounded-lg text-red-400 hover:text-white transition-all shadow-lg"
                                             title="Hapus Banner"
                                         >
@@ -111,6 +116,15 @@ export const BannerSettings: React.FC<BannerSettingsProps> = ({ banners, onUpdat
                     </div>
                 )}
             </div>
+
+            <ConfirmationModal 
+                isOpen={bannerToDeleteIndex !== null}
+                onClose={() => setBannerToDeleteIndex(null)}
+                onConfirm={confirmDelete}
+                title="Hapus Banner"
+                message="Anda yakin ingin menghapus banner ini dari beranda?"
+                confirmText="Hapus"
+            />
         </Card>
     );
 };

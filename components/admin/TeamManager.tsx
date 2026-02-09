@@ -54,6 +54,9 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const [isSavingTeam, setIsSavingTeam] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [isProcessingAction, setIsProcessingAction] = useState<string | null>(null);
+  
+  // State for rejecting registration confirmation
+  const [registrationToReject, setRegistrationToReject] = useState<{id: string, name: string} | null>(null);
 
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,10 +100,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
 
           const targetMode = reg.preferredMode || mode;
           
-          // DIRECT FIREBASE ADDITION (Ensures no data loss from debounce)
           await addApprovedTeamToFirestore(targetMode as TournamentMode, newTeam);
-          
-          // REMOVE REGISTRATION
           await deleteRegistration(reg.id);
           
           addToast(`Tim "${reg.name}" BERHASIL disetujui untuk ${targetMode.toUpperCase()}!`, 'success');
@@ -111,17 +111,18 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       }
   };
 
-  const handleRejectRegistration = async (regId: string, regName: string) => {
-      if (!window.confirm(`Tolak pendaftaran tim "${regName}"? Data pendaftaran akan dihapus permanen.`)) return;
+  const handleConfirmReject = async () => {
+      if (!registrationToReject) return;
       
-      setIsProcessingAction(regId);
+      setIsProcessingAction(registrationToReject.id);
       try {
-          await deleteRegistration(regId);
+          await deleteRegistration(registrationToReject.id);
           addToast('Pendaftaran ditolak & dihapus.', 'info');
       } catch (e) {
           addToast('Gagal menghapus pendaftaran.', 'error');
       } finally {
           setIsProcessingAction(null);
+          setRegistrationToReject(null);
       }
   };
 
@@ -220,7 +221,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                                     ) : (
                                         <>
                                             <button onClick={() => handleApproveRegistration(reg)} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-[10px] font-black uppercase transition-all shadow-lg shadow-green-900/20 active:scale-95"><Check size={14} /> Approve</button>
-                                            <button onClick={() => handleRejectRegistration(reg.id, reg.name)} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-lg text-[10px] font-black uppercase transition-all active:scale-95"><X size={14} /> Tolak</button>
+                                            <button onClick={() => setRegistrationToReject({id: reg.id, name: reg.name})} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-lg text-[10px] font-black uppercase transition-all active:scale-95"><X size={14} /> Tolak</button>
                                         </>
                                     )}
                                 </div>
@@ -260,7 +261,25 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
 
       {showForm && <TeamForm team={editingTeam} onSave={(details) => { props.updateTeam(editingTeam?.id || `t${Date.now()}`, details.name, details.logoUrl, details.manager, details.socialMediaUrl, details.whatsappNumber, editingTeam?.isTopSeed, details.ownerEmail); setShowForm(false); }} onClose={() => setShowForm(false)} isSaving={isSavingTeam} />}
       {showResetConfirm && <ResetConfirmationModal onConfirm={() => { resetTournament(); setShowResetConfirm(false); }} onCancel={() => setShowResetConfirm(false)} />}
-      <ConfirmationModal isOpen={!!teamToDelete} onClose={() => setTeamToDelete(null)} onConfirm={() => { deleteTeam(teamToDelete!.id); setTeamToDelete(null); }} title="Hapus Tim" message={<p>Hapus tim <strong>{teamToDelete?.name}</strong>?</p>} />
+      
+      <ConfirmationModal 
+        isOpen={!!teamToDelete} 
+        onClose={() => setTeamToDelete(null)} 
+        onConfirm={() => { deleteTeam(teamToDelete!.id); setTeamToDelete(null); }} 
+        title="Hapus Tim" 
+        message={<p>Hapus tim <strong>{teamToDelete?.name}</strong>? Tim ini akan hilang dari daftar.</p>}
+        confirmText="Hapus"
+      />
+
+      <ConfirmationModal
+        isOpen={!!registrationToReject}
+        onClose={() => setRegistrationToReject(null)}
+        onConfirm={handleConfirmReject}
+        title="Tolak Pendaftaran"
+        message={<p>Tolak pendaftaran tim <strong>{registrationToReject?.name}</strong>? Data akan dihapus permanen.</p>}
+        confirmText="Tolak & Hapus"
+        variant="warning"
+      />
     </div>
   );
 };

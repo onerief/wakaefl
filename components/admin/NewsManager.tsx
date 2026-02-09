@@ -7,6 +7,7 @@ import { Plus, Trash2, Newspaper, Image as ImageIcon, Save, X, Edit, Loader, Tag
 import { useToast } from '../shared/Toast';
 import { CategoryManager } from './CategoryManager';
 import { RichTextEditor } from '../shared/RichTextEditor';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface NewsManagerProps {
     news: NewsItem[];
@@ -19,6 +20,7 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isCatManagerOpen, setIsCatManagerOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
     const { addToast } = useToast();
 
     // Form States
@@ -80,10 +82,11 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
         setIsFormOpen(true);
     };
 
-    const handleDelete = (id: string) => {
-        if (window.confirm('Hapus berita ini secara permanen?')) {
-            onUpdateNews(news.filter(n => n.id !== id));
+    const confirmDelete = () => {
+        if (itemToDelete) {
+            onUpdateNews(news.filter(n => n.id !== itemToDelete));
             addToast('Berita telah dihapus.', 'info');
+            setItemToDelete(null);
         }
     };
 
@@ -191,7 +194,7 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
                             <span className="text-[9px] font-bold text-brand-light opacity-40">{new Date(item.date).toLocaleDateString()}</span>
                             <div className="flex gap-2">
                                 <button onClick={() => handleEdit(item)} className="p-1.5 bg-white/5 hover:bg-brand-vibrant hover:text-white text-brand-light rounded-lg transition-all"><Edit size={14}/></button>
-                                <button onClick={() => handleDelete(item.id)} className="p-1.5 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 rounded-lg transition-all"><Trash2 size={14}/></button>
+                                <button onClick={() => setItemToDelete(item.id)} className="p-1.5 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 rounded-lg transition-all"><Trash2 size={14}/></button>
                             </div>
                         </div>
                     </div>
@@ -206,6 +209,15 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
                 isOpen={isCatManagerOpen} onClose={() => setIsCatManagerOpen(false)}
                 title="Kelola Kategori Berita" categories={categories} 
                 onUpdate={onUpdateCategories || (() => {})}
+            />
+
+            <ConfirmationModal
+                isOpen={!!itemToDelete}
+                onClose={() => setItemToDelete(null)}
+                onConfirm={confirmDelete}
+                title="Hapus Berita"
+                message="Anda yakin ingin menghapus artikel ini secara permanen? Tindakan ini tidak dapat dibatalkan."
+                confirmText="Hapus"
             />
         </div>
     );
