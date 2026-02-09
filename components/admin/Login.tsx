@@ -5,7 +5,7 @@ import { Button } from '../shared/Button';
 import { X, KeyRound, Mail, AlertTriangle } from 'lucide-react';
 import { signInUser } from '../../services/firebaseService';
 import { Spinner } from '../shared/Spinner';
-import { ADMIN_EMAILS } from '../../App';
+import { ADMIN_EMAILS } from '../../constants';
 
 interface LoginProps {
   onLoginSuccess: () => void;

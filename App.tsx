@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Header } from './components/Header';
 import { NavigationMenu } from './components/NavigationMenu';
@@ -30,8 +29,7 @@ import { Footer } from './components/Footer';
 import type { User } from 'firebase/auth';
 import { GlobalChat } from './components/public/GlobalChat';
 import { Button } from './components/shared/Button';
-
-export const ADMIN_EMAILS = ['admin@banjit.com', 'admin@baradatu.com', 'admin@waykanan.com', 'kanyepocof@gmail.com'];
+import { ADMIN_EMAILS } from './constants';
 
 const VIEW_PATHS: Record<View, string> = {
     home: '/',
@@ -254,7 +252,7 @@ function AppContent() {
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                         <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-3xl mb-4">
                             <h2 className="text-2xl font-black text-red-500 uppercase italic">Akses Ditolak</h2>
-                            <p className="text-brand-light text-sm mt-2">Hanya Admin terdaftar yang dapat mengakses halaman ini.</p>
+                            <p className="text-brand-light text-sm mt-2">Akun Anda ({currentUser?.email}) tidak memiliki izin Admin.</p>
                         </div>
                         <Button onClick={() => handleSetView('home')}>Kembali ke Home</Button>
                     </div>
