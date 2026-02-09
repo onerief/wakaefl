@@ -115,7 +115,6 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
         'Final': (state.knockoutStage['Final'] || []).map(m => ({ ...m, teamA: dehydrateTeam(m.teamA), teamB: dehydrateTeam(m.teamB), playerStats: m.playerStats || null }))
     } : null;
 
-    // FIX: Keep full objects in history to make them permanent/mode-independent
     const cleanHistory = (state.history || []).map(h => ({
         ...h,
         champion: sanitizeData(h.champion),
@@ -158,9 +157,14 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
 };
 
 export const getTournamentData = async (mode: TournamentMode): Promise<TournamentState | null> => {
-  const d = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
-  if (!d.exists()) return null;
-  return d.data() as TournamentState;
+  try {
+      const d = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
+      if (!d.exists()) return null;
+      return d.data() as TournamentState;
+  } catch (e) {
+      console.error("Failed to fetch tournament data:", e);
+      return null;
+  }
 };
 
 export const getGlobalStats = async () => {
@@ -171,7 +175,7 @@ export const getGlobalStats = async () => {
         const d = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
         if (d.exists()) {
             const teams = d.data().teams || [];
-            teams.forEach((t: any) => teamIds.add(t.id));
+            teams.forEach((t: any) => { if(t && t.id) teamIds.add(t.id); });
         }
     }));
     const settings = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC));
@@ -184,21 +188,28 @@ export const getGlobalStats = async () => {
 };
 
 export const getUserTeams = async (email: string) => {
-  const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
-  const owned: { mode: TournamentMode, team: Team }[] = [];
-  const normalizedEmail = email.toLowerCase();
-  for (const mode of modes) {
-    const d = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
-    if (d.exists()) {
-      const teams = (d.data().teams || []) as Team[];
-      teams.forEach(team => {
-        if (team.ownerEmail?.toLowerCase() === normalizedEmail) {
-          owned.push({ mode, team });
+  try {
+      const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
+      const owned: { mode: TournamentMode, team: Team }[] = [];
+      const normalizedEmail = (email || '').toLowerCase();
+      if (!normalizedEmail) return [];
+
+      for (const mode of modes) {
+        const d = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
+        if (d.exists()) {
+          const teams = (d.data().teams || []) as Team[];
+          teams.forEach(team => {
+            if (team && team.ownerEmail?.toLowerCase() === normalizedEmail) {
+              owned.push({ mode, team });
+            }
+          });
         }
-      });
-    }
+      }
+      return owned;
+  } catch (e) {
+      console.error("Failed to fetch user teams:", e);
+      return [];
   }
-  return owned;
 };
 
 export const subscribeToTournamentData = (mode: TournamentMode, callback: (data: TournamentState) => void) => {
@@ -239,9 +250,9 @@ export const subscribeToTournamentData = (mode: TournamentMode, callback: (data:
             const marqueeMessages = (safeGlobalData.marqueeMessages && safeGlobalData.marqueeMessages.length > 0)
                 ? safeGlobalData.marqueeMessages
                 : (safeLeagueData.marqueeMessages || [
-                    "SELAMAT DATANG DI WAKACL HUB - TURNAMEN EFOOTBALL TERGOKIL SE-WAY KANAN!",
+                    "SELAMAT DATANG DI WAKAEFL HUB - TURNAMEN EFOOTBALL TERGOKIL SE-WAY KANAN!",
                     "SIAPKAN STRATEGI TERBAIKMU DAN RAIH GELAR JUARA!",
-                    "WAKACL SEASON 1: THE GLORY AWAITS...",
+                    "WAKAEFL SEASON 1: THE GLORY AWAITS...",
                     "MAINKAN DENGAN SPORTIF, MENANG DENGAN ELEGAN!",
                     "UPDATE SKOR DAN KLASEMEN SECARA REAL-TIME DI SINI!"
                   ]);
@@ -290,7 +301,10 @@ export const subscribeToRegistrations = (callback: (regs: any[]) => void, errorC
   return onSnapshot(q, (snap) => {
     const regs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     callback(regs);
-  }, errorCallback);
+  }, (err) => {
+      console.warn("Snapshot index might not be ready yet:", err);
+      if (errorCallback) errorCallback(err);
+  });
 };
 export const deleteRegistration = (id: string) => deleteDoc(doc(firestore, REGISTRATIONS_COLLECTION, id));
 export const submitNewTeamRegistration = async (data: any, email: string) => {
@@ -343,7 +357,7 @@ export const subscribeToGlobalChat = (callback: (messages: ChatMessage[]) => voi
   return onSnapshot(q, (snap) => {
     const messages = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage));
     callback(messages);
-  });
+  }, (e) => console.error("Global Chat Sub Failed:", e));
 };
 export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: boolean) => {
   return addDoc(collection(firestore, CHAT_COLLECTION), {

@@ -192,7 +192,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                   icon={Globe} colorClass="bg-purple-600" bgClass="bg-gradient-to-br from-purple-900/40 to-black" 
               />
               <CompetitionCard 
-                  mode="wakacl" title="WAKACL Champ" 
+                  mode="wakacl" title="WakaEFL Champ" 
                   desc="Kasta tertinggi kompetisi. Format UCL yang penuh drama, kejutan, dan gengsi tak tertandingi."
                   icon={Shield} colorClass="bg-yellow-600" bgClass="bg-gradient-to-br from-yellow-900/40 to-black" 
               />
@@ -208,7 +208,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               <div className="bg-brand-primary p-8 sm:p-12 rounded-[2.4rem] flex flex-col md:flex-row items-center justify-between gap-8">
                   <div className="text-center md:text-left">
                       <h3 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter mb-3">Siap Bertanding?</h3>
-                      <p className="text-brand-light text-lg max-w-lg">Pendaftaran musim baru telah dibuka! Daftarkan tim kamu sekarang dan jadilah legenda baru di WAKACL Hub.</p>
+                      <p className="text-brand-light text-lg max-w-lg">Pendaftaran musim baru telah dibuka! Daftarkan tim kamu sekarang dan jadilah legenda baru di WakaEFL Hub.</p>
                   </div>
                   <button 
                       onClick={onRegisterTeam}

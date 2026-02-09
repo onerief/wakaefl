@@ -13,7 +13,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ type, onBack }) => {
         privacy: {
             title: 'Privacy Policy',
             icon: <ShieldCheck size={40} className="text-brand-vibrant" />,
-            body: `Kebijakan Privasi ini menjelaskan bagaimana WAKACL Hub mengumpulkan dan melindungi data Anda.
+            body: `Kebijakan Privasi ini menjelaskan bagaimana WakaEFL Hub mengumpulkan dan melindungi data Anda.
             
             1. Pengumpulan Informasi: Kami mengumpulkan nama dan email saat Anda mendaftar untuk keperluan profil manager tim.
             2. Penggunaan Data: Data digunakan untuk manajemen turnamen, tabel klasemen, dan fitur komunikasi komunitas.
@@ -25,16 +25,16 @@ export const StaticPages: React.FC<StaticPageProps> = ({ type, onBack }) => {
         about: {
             title: 'About Us',
             icon: <Info size={40} className="text-brand-special" />,
-            body: `WAKACL Hub adalah platform komunitas eFootball terbesar di Way Kanan. 
+            body: `WakaEFL Hub adalah platform komunitas eFootball terbesar di Way Kanan. 
             
             Misi kami adalah menyediakan wadah kompetisi yang profesional, transparan, dan seru bagi para pemain eFootball Mobile. Kami mengintegrasikan teknologi real-time untuk memantau klasemen, jadwal, dan berita terbaru seputar komunitas.
             
-            Didirikan oleh komunitas untuk komunitas, WAKACL Hub terus berkembang menjadi portal informasi utama eFootball di Lampung.`
+            Didirikan oleh komunitas untuk komunitas, WakaEFL Hub terus berkembang menjadi portal informasi utama eFootball di Lampung.`
         },
         terms: {
             title: 'Terms of Service',
             icon: <FileText size={40} className="text-brand-light" />,
-            body: `Ketentuan layanan penggunaan platform WAKACL Hub:
+            body: `Ketentuan layanan penggunaan platform WakaEFL Hub:
             
             1. Perilaku: Setiap pemain wajib menjunjung tinggi sportifitas.
             2. Akun: Pengguna bertanggung jawab atas keamanan akun masing-masing.
@@ -70,7 +70,7 @@ export const StaticPages: React.FC<StaticPageProps> = ({ type, onBack }) => {
                 </div>
 
                 <div className="mt-16 pt-8 border-t border-white/5 text-center">
-                    <p className="text-[10px] text-brand-light uppercase tracking-widest opacity-40">WAKACL HUB Official Document • 2024</p>
+                    <p className="text-[10px] text-brand-light uppercase tracking-widest opacity-40">WAKAEFL HUB Official Document • 2024</p>
                 </div>
             </Card>
         </div>

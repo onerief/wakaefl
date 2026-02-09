@@ -25,7 +25,13 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
   products: [],
   newsCategories: ['Match', 'Transfer', 'Info', 'Interview'],
   shopCategories: ['Coin', 'Account', 'Jasa', 'Merch'],
-  marqueeMessages: [],
+  marqueeMessages: [
+    "SELAMAT DATANG DI WAKAEFL HUB - TURNAMEN EFOOTBALL TERGOKIL SE-WAY KANAN!",
+    "SIAPKAN STRATEGI TERBAIKMU DAN RAIH GELAR JUARA!",
+    "WAKAEFL SEASON 1: THE GLORY AWAITS...",
+    "MAINKAN DENGAN SPORTIF, MENANG DENGAN ELEGAN!",
+    "UPDATE SKOR DAN KLASEMEN SECARA REAL-TIME DI SINI!"
+  ],
   visibleModes: ['league', 'wakacl', 'two_leagues']
 });
 
@@ -36,8 +42,9 @@ const calculateStandings = (teams: Team[], matches: Match[], groupId: string, gr
         standings[team.id] = { team: { ...team }, played: 0, wins: 0, draws: 0, losses: 0, goalDifference: 0, points: 0, form: [] };
       }
   });
-  const groupLetter = groupName.replace('Group ', '').trim();
+  const groupLetter = (groupName || '').replace('Group ', '').trim();
   matches.forEach(match => {
+    if (!match || !match.teamA || !match.teamB) return;
     const isMatchInGroup = match.group === groupId || match.group === groupLetter || match.group === groupName;
     if (!isMatchInGroup || match.status !== 'finished' || match.scoreA === null || match.scoreB === null) return;
     const idA = match.teamA?.id;
@@ -59,7 +66,7 @@ const calculateStandings = (teams: Team[], matches: Match[], groupId: string, gr
 };
 
 const hydrateTournamentData = (state: FullTournamentState): FullTournamentState => {
-    if (!state.teams || state.teams.length === 0) return state;
+    if (!state || !state.teams || state.teams.length === 0) return state;
     const teamMap = new Map<string, Team>();
     state.teams.forEach(t => { if (t && t.id) teamMap.set(t.id, t); });
     
@@ -68,6 +75,7 @@ const hydrateTournamentData = (state: FullTournamentState): FullTournamentState 
             return val;
         }
         const id = (val && typeof val === 'object') ? val.id : val;
+        if (!id) return { id: 'tbd', name: 'TBD' } as Team;
         return teamMap.get(id) || { id, name: 'TBD' } as Team;
     };
 
@@ -148,14 +156,14 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     }
     case 'ADD_KNOCKOUT_MATCH': {
         const ks = state.knockoutStage || { 'Play-offs': [], 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': [] };
-        ks[action.payload.round] = [...ks[action.payload.round], action.payload];
+        ks[action.payload.round] = [...(ks[action.payload.round] || []), action.payload];
         newState = { ...state, knockoutStage: { ...ks } };
         break;
     }
     case 'DELETE_KNOCKOUT_MATCH': {
         if (!state.knockoutStage) return state;
         const ks = { ...state.knockoutStage };
-        ks[action.payload.round] = ks[action.payload.round].filter(m => m.id !== action.payload.id);
+        ks[action.payload.round] = (ks[action.payload.round] || []).filter(m => m.id !== action.payload.id);
         newState = { ...state, knockoutStage: ks };
         break;
     }
@@ -314,6 +322,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       const stats: Record<string, { team: Team, goals: number }> = {};
       state.teams.forEach(t => { if (t && t.id) stats[t.id] = { team: t, goals: 0 }; });
       const processMatch = (m: Match | KnockoutMatch) => {
+          if (!m) return;
           if ('status' in m) {
               if (m.status !== 'finished') return;
               if (m.teamA?.id && stats[m.teamA.id]) stats[m.teamA.id].goals += (m.scoreA || 0);
@@ -326,8 +335,11 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           }
       };
       state.matches.forEach(processMatch);
-      // FIX: Cast Object.values results to KnockoutMatch[] to resolve 'unknown' type errors during property access.
-      if (state.knockoutStage) { (Object.values(state.knockoutStage).flat() as KnockoutMatch[]).forEach(m => processMatch(m)); }
+      if (state.knockoutStage) { 
+        (Object.values(state.knockoutStage).flat() as KnockoutMatch[]).forEach(m => {
+            if (m) processMatch(m);
+        }); 
+      }
       return Object.values(stats).sort((a, b) => b.goals - a.goals).filter(s => s.goals > 0);
   }, [state.matches, state.knockoutStage, state.teams]);
 
@@ -336,15 +348,17 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       const assisters: Record<string, { name: string, team: string, assists: number }> = {};
 
       const processIndividualStats = (pStats: MatchPlayerStats | undefined, teamA: Team, teamB: Team) => {
-          if (!pStats) return;
-          pStats.teamA.forEach(p => {
+          if (!pStats || !teamA || !teamB) return;
+          (pStats.teamA || []).forEach(p => {
+              if (!p.name) return;
               const key = `${p.name}-${teamA.name}`;
               if (!scorers[key]) scorers[key] = { name: p.name, team: teamA.name, goals: 0 };
               if (!assisters[key]) assisters[key] = { name: p.name, team: teamA.name, assists: 0 };
               scorers[key].goals += p.goals;
               assisters[key].assists += p.assists;
           });
-          pStats.teamB.forEach(p => {
+          (pStats.teamB || []).forEach(p => {
+              if (!p.name) return;
               const key = `${p.name}-${teamB.name}`;
               if (!scorers[key]) scorers[key] = { name: p.name, team: teamB.name, goals: 0 };
               if (!assisters[key]) assisters[key] = { name: p.name, team: teamB.name, assists: 0 };
@@ -354,10 +368,9 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       };
 
       state.matches.forEach(m => processIndividualStats(m.playerStats, m.teamA, m.teamB));
-      // FIX: Cast Object.values results to KnockoutMatch[] to resolve 'unknown' type errors during property access (teamA, teamB, playerStats).
       if (state.knockoutStage) {
           (Object.values(state.knockoutStage).flat() as KnockoutMatch[]).forEach(m => {
-              if (m.teamA && m.teamB) processIndividualStats(m.playerStats, m.teamA, m.teamB);
+              if (m && m.teamA && m.teamB) processIndividualStats(m.playerStats, m.teamA, m.teamB);
           });
       }
 

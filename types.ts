@@ -42,6 +42,7 @@ export interface Product {
   imageUrl: string;
   category: string;
   isAvailable: boolean;
+  buyUrl?: string; // Link ke marketplace (Shopee, Tokped, dll)
 }
 
 export interface Standing {

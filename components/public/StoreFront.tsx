@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import type { Product } from '../../types';
 import { Card } from '../shared/Card';
-import { ShoppingBag, Search, MessageCircle, Zap, ShieldCheck, Tag } from 'lucide-react';
+import { ShoppingBag, Search, MessageCircle, Zap, ShieldCheck, Tag, ExternalLink } from 'lucide-react';
 
 interface StoreFrontProps {
     products: Product[];
@@ -28,8 +28,14 @@ export const StoreFront: React.FC<StoreFrontProps> = ({ products = [], categorie
     };
 
     const handleBuy = (product: Product) => {
-        const message = `Halo Admin WAKACL, saya ingin memesan:\n\n*Produk:* ${product.name}\n*Harga:* ${formatPrice(product.price)}\n\nMohon informasi pembayarannya.`;
-        window.open(`https://wa.me/6289646800884?text=${encodeURIComponent(message)}`, '_blank');
+        if (product.buyUrl) {
+            // Langsung ke link marketplace jika tersedia
+            window.open(product.buyUrl, '_blank');
+        } else {
+            // Fallback ke WhatsApp
+            const message = `Halo Admin WAKACL, saya ingin memesan:\n\n*Produk:* ${product.name}\n*Harga:* ${formatPrice(product.price)}\n\nMohon informasi pembayarannya.`;
+            window.open(`https://wa.me/6289646800884?text=${encodeURIComponent(message)}`, '_blank');
+        }
     };
 
     return (
@@ -98,10 +104,10 @@ export const StoreFront: React.FC<StoreFrontProps> = ({ products = [], categorie
                                 <div className="text-xs sm:text-lg font-black text-white mb-3 italic tracking-tight">{formatPrice(product.price)}</div>
                                 <button 
                                     onClick={() => handleBuy(product)}
-                                    className="w-full flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 group/btn"
+                                    className={`w-full flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3.5 ${product.buyUrl ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-500 hover:bg-emerald-600'} text-white rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 group/btn`}
                                 >
-                                    <MessageCircle size={14} className="sm:w-4 sm:h-4 group-hover/btn:rotate-12 transition-transform" /> 
-                                    <span>Beli</span>
+                                    {product.buyUrl ? <ExternalLink size={14} className="sm:w-4 sm:h-4 group-hover/btn:scale-110 transition-transform" /> : <MessageCircle size={14} className="sm:w-4 sm:h-4 group-hover/btn:rotate-12 transition-transform" />} 
+                                    <span>{product.buyUrl ? 'Marketplace' : 'Beli via WA'}</span>
                                 </button>
                             </div>
                         </div>

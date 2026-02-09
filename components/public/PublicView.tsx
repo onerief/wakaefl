@@ -37,13 +37,13 @@ const InternalTabButton: React.FC<{
 }> = ({ isActive, onClick, label, icon: Icon }) => (
     <button
         onClick={onClick}
-        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[10px] sm:text-xs font-black uppercase transition-all whitespace-nowrap border shrink-0 ${
+        className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[10px] sm:text-xs font-black uppercase transition-all whitespace-nowrap border shrink-0 ${
             isActive 
-            ? 'bg-brand-vibrant/20 text-white border-brand-vibrant shadow-[0_0_15px_rgba(37,99,235,0.2)]' 
+            ? 'bg-brand-vibrant text-white border-brand-vibrant shadow-[0_0_20px_rgba(37,99,235,0.3)]' 
             : 'text-brand-light border-white/5 hover:text-white hover:bg-white/5'
         }`}
     >
-        <Icon size={14} className={isActive ? 'text-brand-vibrant' : 'text-brand-light/40'} />
+        <Icon size={14} className={isActive ? 'text-white' : 'text-brand-light/40'} />
         <span>{label}</span>
     </button>
 );
@@ -174,8 +174,9 @@ export const PublicView: React.FC<PublicViewProps> = ({
   return (
     <div className="space-y-6">
         {/* SUB NAVIGATION - Direct access to Klasemen/Jadwal/dll */}
-        <div className="sticky top-[56px] sm:top-[128px] z-[30] -mx-4 px-4 bg-brand-primary/80 backdrop-blur-md py-3 border-b border-white/5 overflow-x-auto no-scrollbar shadow-lg">
-            <div className="flex gap-2 min-w-max">
+        {/* Adjusted sticky top to match fixed header height */}
+        <div className="sticky top-[56px] sm:top-[128px] z-[30] -mx-4 px-4 bg-brand-primary/90 backdrop-blur-xl py-4 border-b border-white/10 overflow-x-auto no-scrollbar shadow-2xl">
+            <div className="flex gap-3 min-w-max">
                 <InternalTabButton isActive={activeTab === 'groups'} onClick={() => setActiveTab('groups')} label="Klasemen" icon={Users} />
                 <InternalTabButton isActive={activeTab === 'fixtures'} onClick={() => setActiveTab('fixtures')} label="Jadwal" icon={ListChecks} />
                 {supportsKnockout && (
@@ -183,14 +184,6 @@ export const PublicView: React.FC<PublicViewProps> = ({
                 )}
                 <InternalTabButton isActive={activeTab === 'stats'} onClick={() => setActiveTab('stats')} label="Statistik" icon={BarChart3} />
                 <InternalTabButton isActive={activeTab === 'rules'} onClick={() => setActiveTab('rules')} label="Aturan" icon={BookOpen} />
-            </div>
-            {/* Mobile Scroll Indicator */}
-            <div className="md:hidden flex justify-center mt-2 opacity-20">
-                <div className="flex gap-1">
-                    <div className={`w-1 h-1 rounded-full ${activeTab === 'groups' ? 'bg-white' : 'bg-white/20'}`}></div>
-                    <div className={`w-1 h-1 rounded-full ${activeTab === 'fixtures' ? 'bg-white' : 'bg-white/20'}`}></div>
-                    <div className={`w-1 h-1 rounded-full ${activeTab === 'knockout' ? 'bg-white' : 'bg-white/20'}`}></div>
-                </div>
             </div>
         </div>
 

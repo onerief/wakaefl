@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import type { Product } from '../../types';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { Plus, Trash2, ShoppingBag, Save, X, Edit, Loader, Image as ImageIcon, Tag } from 'lucide-react';
+import { Plus, Trash2, ShoppingBag, Save, X, Edit, Loader, Image as ImageIcon, Tag, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { CategoryManager } from './CategoryManager';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -27,6 +27,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ products = [], o
     const [description, setDescription] = useState('');
     const [imageUrl, setImageUrl] = useState('');
     const [category, setCategory] = useState(categories[0] || 'Coin');
+    const [buyUrl, setBuyUrl] = useState('');
     const [isSaving, setIsSaving] = useState(false);
 
     const resetForm = () => {
@@ -34,6 +35,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ products = [], o
         setPrice(0);
         setDescription('');
         setImageUrl('');
+        setBuyUrl('');
         setCategory(categories[0] || 'Coin');
         setEditingId(null);
         setIsFormOpen(false);
@@ -47,13 +49,13 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ products = [], o
         if (editingId) {
             const index = updatedProducts.findIndex(p => p.id === editingId);
             if (index !== -1) {
-                updatedProducts[index] = { ...updatedProducts[index], name, price, description, imageUrl, category };
+                updatedProducts[index] = { ...updatedProducts[index], name, price, description, imageUrl, category, buyUrl };
             }
             addToast('Produk Shop diperbarui!', 'success');
         } else {
             const newProduct: Product = {
                 id: `prod-${Date.now()}`,
-                name, price, description, category,
+                name, price, description, category, buyUrl,
                 imageUrl: imageUrl || 'https://images.unsplash.com/photo-1614680376593-902f74cc0d41?auto=format&fit=crop&q=80&w=400',
                 isAvailable: true
             };
@@ -73,6 +75,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ products = [], o
         setDescription(p.description);
         setImageUrl(p.imageUrl);
         setCategory(p.category);
+        setBuyUrl(p.buyUrl || '');
         setIsFormOpen(true);
     };
 
@@ -133,6 +136,14 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ products = [], o
                                     </div>
                                 </div>
                                 <div>
+                                    <label className="block text-[10px] font-black text-brand-light uppercase mb-1">Link Marketplace (Opsi)</label>
+                                    <div className="relative">
+                                        <LinkIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light/30" />
+                                        <input type="url" value={buyUrl} onChange={e => setBuyUrl(e.target.value)} className="w-full pl-9 p-3 bg-brand-primary border border-brand-accent rounded-xl text-white text-[10px] outline-none" placeholder="https://shopee.co.id/..." />
+                                    </div>
+                                    <p className="text-[9px] text-brand-light/40 mt-1">* Kosongkan jika ingin pembeli diarahkan ke WhatsApp.</p>
+                                </div>
+                                <div>
                                     <label className="block text-[10px] font-black text-brand-light uppercase mb-1">URL Gambar Produk</label>
                                     <input type="url" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="w-full p-3 bg-brand-primary border border-brand-accent rounded-xl text-white text-xs outline-none" placeholder="https://..." />
                                 </div>
@@ -158,6 +169,11 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ products = [], o
                         <div className="aspect-square relative">
                             <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
                             <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[8px] font-black text-emerald-400 border border-emerald-500/20">{p.category}</div>
+                            {p.buyUrl && (
+                                <div className="absolute top-2 right-2 p-1 bg-blue-500 rounded-full" title="Link Marketplace Aktif">
+                                    <LinkIcon size={10} className="text-white" />
+                                </div>
+                            )}
                         </div>
                         <div className="p-3">
                             <h4 className="font-bold text-white text-[10px] sm:text-xs truncate">{p.name}</h4>
