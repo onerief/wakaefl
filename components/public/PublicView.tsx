@@ -24,6 +24,7 @@ interface PublicViewProps {
   onUpdateKnockoutScore?: (matchId: string, data: Partial<KnockoutMatch> & { round: keyof KnockoutStageRounds }) => void;
   userOwnedTeamIds?: string[];
   clubStats?: any[];
+  playerStats?: { topScorers: any[], topAssists: any[] };
 }
 
 type PublicTab = 'groups' | 'fixtures' | 'knockout' | 'stats' | 'rules';
@@ -50,7 +51,7 @@ const InternalTabButton: React.FC<{
 export const PublicView: React.FC<PublicViewProps> = ({ 
     mode, groups, matches, knockoutStage, rules, history, onSelectTeam, 
     currentUser, onAddMatchComment, isAdmin, onUpdateMatchScore, onUpdateKnockoutScore,
-    userOwnedTeamIds = [], clubStats = []
+    userOwnedTeamIds = [], clubStats = [], playerStats = { topScorers: [], topAssists: [] }
 }) => {
   const [activeTab, setActiveTab] = useState<PublicTab>('groups');
   const [selectedMatchdays, setSelectedMatchdays] = useState<Record<string, string>>({});
@@ -164,7 +165,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
       case 'groups': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>Group Standings</span><div className="h-px flex-grow bg-gradient-to-r from-brand-vibrant/50 to-transparent"></div></h2>{groups.length > 0 ? (<GroupStage groups={groups} onSelectTeam={onSelectTeam} userOwnedTeamIds={userOwnedTeamIds} history={history} />) : (<div className="text-center bg-brand-secondary/30 border border-white/5 p-16 rounded-[2rem] opacity-30">Menyiapkan data...</div>)}</div>);
       case 'fixtures': return (<div className="space-y-6"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 px-1"><div className="flex items-center gap-4"><h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">Match Fixtures</h2><div className="px-2 py-0.5 bg-brand-vibrant/10 border border-brand-vibrant/30 rounded-full"><span className="text-[8px] font-black text-brand-vibrant uppercase tracking-widest animate-pulse">Live</span></div></div>{hasMyTeam && (<button onClick={() => setFocusMyTeam(!focusMyTeam)} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-xl border ${focusMyTeam ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-brand-secondary text-brand-light border-white/10 hover:border-brand-vibrant/40'}`}><Star size={14} className={focusMyTeam ? 'fill-white' : ''} /> {focusMyTeam ? 'Lihat Semua' : 'Fokus Tim Saya'}</button>)}</div>{groups.length > 0 ? renderFixtures() : <div className="text-center py-32 opacity-30 font-black italic">Jadwal Belum Dirilis</div>}</div>);
       case 'knockout': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>{mode === 'two_leagues' ? 'Semi Final & Final' : 'Knockout Stage'}</span><div className="h-px flex-grow bg-gradient-to-r from-brand-special/50 to-transparent"></div></h2><KnockoutStageView knockoutStage={knockoutStage || {}} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateKnockoutScore} userOwnedTeamIds={userOwnedTeamIds} /></div>);
-      case 'stats': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter px-1 flex items-center gap-4"><BarChart3 className="text-brand-special" size={24} /><span>Peringkat Klub</span></h2><StatsStandings clubStats={clubStats} /></div>);
+      case 'stats': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter px-1 flex items-center gap-4"><BarChart3 className="text-brand-special" size={24} /><span>Peringkat Statistik</span></h2><StatsStandings clubStats={clubStats} playerStats={playerStats} /></div>);
       case 'rules': return <RulesView rules={rules} />;
       default: return null;
     }
@@ -180,7 +181,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
                 {supportsKnockout && (
                     <InternalTabButton isActive={activeTab === 'knockout'} onClick={() => setActiveTab('knockout')} label={mode === 'two_leagues' ? 'Finals' : 'Bagan'} icon={Trophy} />
                 )}
-                <InternalTabButton isActive={activeTab === 'stats'} onClick={() => setActiveTab('stats')} label="Top Gol" icon={BarChart3} />
+                <InternalTabButton isActive={activeTab === 'stats'} onClick={() => setActiveTab('stats')} label="Statistik" icon={BarChart3} />
                 <InternalTabButton isActive={activeTab === 'rules'} onClick={() => setActiveTab('rules')} label="Aturan" icon={BookOpen} />
             </div>
             {/* Mobile Scroll Indicator */}

@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { PlusCircle, Calendar, ArrowRight, Newspaper, Clock, Zap, Star, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PlusCircle, Calendar, ArrowRight, Newspaper, Clock, Zap, Star, Trophy, ChevronLeft, ChevronRight, Globe, LayoutGrid, Shield, Users } from 'lucide-react';
 import { Card } from '../shared/Card';
 import { TournamentMode, Team, Match, NewsItem } from '../../types';
 import { TeamLogo } from '../shared/TeamLogo';
@@ -35,7 +35,6 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
       return [...news].sort((a, b) => b.date - a.date).slice(0, 5);
   }, [news]);
 
-  // Auto-slide logic
   useEffect(() => {
     if (latestNews.length <= 1 || isPaused) return;
     const interval = setInterval(() => {
@@ -57,64 +56,50 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     const match = upcoming[0];
     const userTeamMode = userOwnedTeams.find(ut => ut.team.id === match.teamA.id || ut.team.id === match.teamB.id)?.mode;
     
-    // Check if the match belongs to a visible mode
     if (userTeamMode && !visibleModes.includes(userTeamMode)) return null;
     
     return { match, mode: userTeamMode };
   }, [userOwnedTeams, allMatches, visibleModes]);
 
+  const CompetitionCard = ({ mode, title, desc, icon: Icon, colorClass, bgClass }: any) => {
+    if (!visibleModes.includes(mode)) return null;
+    return (
+        <button 
+            onClick={() => onSelectMode(mode)}
+            className={`group relative overflow-hidden rounded-[2rem] p-6 text-left transition-all duration-500 hover:-translate-y-2 border border-white/5 active:scale-95 flex flex-col h-full ${bgClass}`}
+        >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.05),transparent)] pointer-events-none"></div>
+            <div className="mb-4 flex items-center justify-between">
+                <div className={`p-3 rounded-2xl ${colorClass} shadow-xl`}>
+                    <Icon size={28} className="text-white" />
+                </div>
+                <div className="opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1">
+                    <ArrowRight size={20} className="text-white/40" />
+                </div>
+            </div>
+            <h4 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tighter mb-2 group-hover:text-brand-special transition-colors">{title}</h4>
+            <p className="text-xs text-white/50 font-medium leading-relaxed mb-6">{desc}</p>
+            <div className="mt-auto flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/80 py-1.5 px-4 bg-black/40 rounded-full border border-white/10 group-hover:bg-brand-vibrant group-hover:border-brand-vibrant transition-all">Masuk Arena</span>
+            </div>
+        </button>
+    );
+  };
+
   return (
-    <div className="space-y-6 md:space-y-12 py-2 md:py-4 animate-in fade-in duration-700 relative z-10">
+    <div className="space-y-10 md:space-y-20 py-2 md:py-4 animate-in fade-in duration-700 relative z-10 pb-20">
       
-      {/* STATS BAR - Compact on Mobile */}
-      <div className="flex flex-row items-center justify-between gap-4 p-3 sm:p-4 bg-brand-secondary/40 border border-white/5 rounded-2xl backdrop-blur-md">
-          <div className="flex items-center gap-4 sm:gap-6">
-              <div className="flex flex-col">
-                  <span className="text-base sm:text-xl font-black text-white leading-none">{teamCount}</span>
-                  <span className="text-[7px] sm:text-[8px] font-bold text-brand-light uppercase tracking-widest opacity-60">Teams</span>
-              </div>
-              <div className="w-px h-5 sm:h-6 bg-white/10"></div>
-              <div className="flex flex-col">
-                  <span className="text-base sm:text-xl font-black text-white leading-none">{partnerCount}</span>
-                  <span className="text-[7px] sm:text-[8px] font-bold text-brand-light uppercase tracking-widest opacity-60">Sponsors</span>
-              </div>
-          </div>
-
-          {isRegistrationOpen && (
-              <button 
-                onClick={(e) => {
-                    e.preventDefault();
-                    if (onRegisterTeam) onRegisterTeam();
-                }}
-                className="flex items-center gap-1.5 px-3 py-2 sm:px-5 sm:py-2.5 bg-brand-vibrant hover:bg-blue-600 text-white rounded-lg sm:rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-500/20 active:scale-95 whitespace-nowrap z-30"
-              >
-                  <PlusCircle size={12} className="sm:w-3.5 sm:h-3.5" />
-                  <span>Daftarkan Tim</span>
-              </button>
-          )}
-      </div>
-
-      {/* BERITA SLIDESHOW */}
+      {/* BERITA SLIDESHOW (Prominent UCL Style Hero) */}
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="flex items-center justify-between mb-4 sm:mb-6 px-1">
-            <h3 className="text-[10px] md:text-sm font-black text-white uppercase tracking-[0.2em] flex items-center gap-2">
-                <Newspaper size={16} className="text-brand-vibrant sm:w-[18px]" /> Headline News
-            </h3>
-            <button onClick={() => onSelectMode('news')} className="text-[8px] sm:text-[10px] font-black text-brand-vibrant uppercase flex items-center gap-1 hover:text-white transition-colors">
-                Lihat Semua <ArrowRight size={10} />
-            </button>
-        </div>
-        
         <div 
             className="relative w-full group"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
         >
             {latestNews.length > 0 ? (
-                <div className="relative overflow-hidden rounded-2xl sm:rounded-[2rem] border border-white/10 shadow-2xl bg-brand-secondary/40 aspect-[16/10] sm:aspect-[21/8]">
-                    {/* Slides Wrapper */}
+                <div className="relative overflow-hidden rounded-[2rem] sm:rounded-[3rem] border border-white/10 shadow-[0_30px_100px_rgba(0,0,0,1)] bg-brand-secondary/40 aspect-[16/10] sm:aspect-[21/9]">
                     <div 
-                        className="flex h-full transition-transform duration-700 ease-out"
+                        className="flex h-full transition-transform duration-1000 ease-in-out"
                         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
                     >
                         {latestNews.map((item) => (
@@ -126,108 +111,140 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                                 <img 
                                     src={item.imageUrl} 
                                     alt={item.title} 
-                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" 
+                                    className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110" 
                                 />
-                                {/* Overlay Gradient */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-brand-primary via-brand-primary/10 to-transparent"></div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-brand-primary via-brand-primary/20 to-transparent"></div>
                                 
-                                {/* Content Overlay */}
-                                <div className="absolute inset-0 p-4 sm:p-12 flex flex-col justify-end">
-                                    <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                                        <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-brand-vibrant text-white text-[7px] sm:text-[10px] font-black uppercase rounded-md sm:rounded-lg shadow-lg">
+                                <div className="absolute inset-0 p-6 sm:p-16 flex flex-col justify-end">
+                                    <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                                        <span className="px-4 py-1.5 bg-brand-vibrant text-white text-[8px] sm:text-11px font-black uppercase rounded-lg shadow-2xl border border-white/20">
                                             {item.category}
                                         </span>
-                                        <span className="text-white/60 text-[7px] sm:text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                                            <Clock size={10} className="sm:w-[12px]" /> {new Date(item.date).toLocaleDateString()}
+                                        <span className="text-white/80 text-[8px] sm:text-11px font-bold uppercase tracking-widest flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/5">
+                                            <Clock size={12} /> {new Date(item.date).toLocaleDateString()}
                                         </span>
                                     </div>
-                                    <h4 className="text-sm sm:text-5xl font-black text-white italic uppercase tracking-tighter leading-tight line-clamp-2 drop-shadow-2xl">
+                                    <h4 className="text-lg sm:text-6xl font-black text-white italic uppercase tracking-tighter leading-none line-clamp-2 drop-shadow-2xl mb-4">
                                         {item.title}
                                     </h4>
-                                    <p className="hidden md:block text-brand-light/80 text-sm line-clamp-2 max-w-2xl font-medium mt-3">
-                                        {item.content.replace(/<[^>]+>/g, '')}
-                                    </p>
+                                    <div className="hidden md:flex items-center gap-4 text-brand-light text-lg font-medium opacity-80 group-hover:opacity-100 transition-all">
+                                        <span>Baca Artikel Lengkap</span>
+                                        <ArrowRight size={24} className="animate-pulse" />
+                                    </div>
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    {/* Navigation Buttons */}
                     {latestNews.length > 1 && (
                         <>
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); prevSlide(); }}
-                                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/40 text-white backdrop-blur-md border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-brand-vibrant"
-                            >
-                                <ChevronLeft size={20} sm:size={24} />
+                            <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="absolute left-4 sm:left-10 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-brand-vibrant hover:scale-110">
+                                <ChevronLeft size={24} sm:size={32} />
                             </button>
-                            <button 
-                                onClick={(e) => { e.stopPropagation(); nextSlide(); }}
-                                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/40 text-white backdrop-blur-md border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-brand-vibrant"
-                            >
-                                <ChevronRight size={20} sm:size={24} />
+                            <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="absolute right-4 sm:right-10 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-brand-vibrant hover:scale-110">
+                                <ChevronRight size={24} sm:size={32} />
                             </button>
                         </>
                     )}
-
-                    {/* Pagination Indicators */}
-                    {latestNews.length > 1 && (
-                        <div className="absolute bottom-4 sm:bottom-12 right-4 sm:right-12 z-20 flex gap-1.5 sm:gap-2">
-                            {latestNews.map((_, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={(e) => { e.stopPropagation(); setCurrentIndex(idx); }}
-                                    className={`h-1 sm:h-1.5 rounded-full transition-all duration-500 ${
-                                        idx === currentIndex 
-                                            ? 'bg-brand-vibrant w-5 sm:w-8 shadow-[0_0_10px_rgba(37,99,235,0.8)]' 
-                                            : 'bg-white/20 w-1.5 sm:w-2 hover:bg-white/40'
-                                    }`}
-                                />
-                            ))}
-                        </div>
-                    )}
                 </div>
             ) : (
-                <div className="py-24 bg-white/[0.02] rounded-[2rem] border border-dashed border-white/5 text-center text-brand-light italic text-xs">
-                    Belum ada berita yang diterbitkan.
+                <div className="py-32 bg-white/[0.02] rounded-[3rem] border border-dashed border-white/10 text-center text-brand-light italic text-sm">
+                    Menantikan berita turnamen terbaru...
                 </div>
             )}
         </div>
       </div>
 
+      {/* QUICK STATS BAR */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
+          {[
+              { label: 'Total Peserta', val: teamCount, icon: Users, color: 'text-blue-400' },
+              { label: 'Official Sponsors', val: partnerCount, icon: Star, color: 'text-yellow-400' },
+              { label: 'Mode Kompetisi', val: visibleModes.length, icon: Trophy, color: 'text-purple-400' },
+              { label: 'Status Server', val: 'Online', icon: Zap, color: 'text-green-400' }
+          ].map((stat, i) => (
+              <div key={i} className="bg-brand-secondary/40 border border-white/5 p-5 rounded-[1.5rem] flex items-center gap-4 hover:border-white/10 transition-all">
+                  <div className={`p-3 rounded-xl bg-white/5 ${stat.color}`}><stat.icon size={20} /></div>
+                  <div>
+                      <p className="text-2xl font-black text-white italic leading-none">{stat.val}</p>
+                      <p className="text-[10px] font-bold text-brand-light uppercase tracking-widest opacity-50 mt-1">{stat.label}</p>
+                  </div>
+              </div>
+          ))}
+      </div>
+
+      {/* COMPETITION EXPLORER - THE MAIN MENU */}
+      <div className="space-y-6">
+          <div className="flex items-center justify-between px-2">
+              <h3 className="text-lg sm:text-3xl font-black text-white italic uppercase tracking-tighter flex items-center gap-3">
+                  <Trophy size={28} className="text-brand-special" /> Jelajahi Kompetisi
+              </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+              <CompetitionCard 
+                  mode="league" title="Liga Reguler" 
+                  desc="Kompetisi format liga satu musim penuh. Buktikan konsistensimu sebagai manager terbaik."
+                  icon={LayoutGrid} colorClass="bg-blue-600" bgClass="bg-gradient-to-br from-blue-900/40 to-black" 
+              />
+              <CompetitionCard 
+                  mode="two_leagues" title="2 Wilayah" 
+                  desc="Sistem wilayah dengan play-off seru. Pertarungan antar region menuju gelar juara nasional."
+                  icon={Globe} colorClass="bg-purple-600" bgClass="bg-gradient-to-br from-purple-900/40 to-black" 
+              />
+              <CompetitionCard 
+                  mode="wakacl" title="WAKACL Champ" 
+                  desc="Kasta tertinggi kompetisi. Format UCL yang penuh drama, kejutan, dan gengsi tak tertandingi."
+                  icon={Shield} colorClass="bg-yellow-600" bgClass="bg-gradient-to-br from-yellow-900/40 to-black" 
+              />
+          </div>
+      </div>
+
+      {/* USER REGISTRATION CTA */}
+      {isRegistrationOpen && (
+          <div className="relative group p-1 rounded-[2.5rem] bg-gradient-to-r from-brand-vibrant via-brand-special to-brand-vibrant bg-[length:200%_auto] animate-[gradient_8s_linear_infinite]">
+              <style>{`
+                @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+              `}</style>
+              <div className="bg-brand-primary p-8 sm:p-12 rounded-[2.4rem] flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="text-center md:text-left">
+                      <h3 className="text-3xl sm:text-5xl font-black text-white italic uppercase tracking-tighter mb-3">Siap Bertanding?</h3>
+                      <p className="text-brand-light text-lg max-w-lg">Pendaftaran musim baru telah dibuka! Daftarkan tim kamu sekarang dan jadilah legenda baru di WAKACL Hub.</p>
+                  </div>
+                  <button 
+                      onClick={onRegisterTeam}
+                      className="group/btn flex items-center gap-3 px-10 py-5 bg-brand-vibrant hover:bg-white text-white hover:text-brand-primary rounded-[1.5rem] text-lg font-black uppercase tracking-[0.2em] transition-all shadow-2xl active:scale-95"
+                  >
+                      <PlusCircle size={24} />
+                      <span>Daftar Sekarang</span>
+                      <ArrowRight size={24} className="group-hover/btn:translate-x-2 transition-transform" />
+                  </button>
+              </div>
+          </div>
+      )}
+
       {/* INTELLIGENT SPOTLIGHT: Next Match */}
       {nextMatchInfo && (
           <div className="animate-in slide-in-from-left duration-700">
-              <h3 className="text-[8px] sm:text-[10px] font-black text-brand-light uppercase tracking-[0.2em] mb-3 sm:mb-4 flex items-center gap-2 px-1">
-                  <Calendar size={12} className="text-brand-vibrant" /> Jadwal Terdekat Anda
+              <h3 className="text-[10px] font-black text-brand-light uppercase tracking-[0.3em] mb-4 flex items-center gap-2 px-1">
+                  <Calendar size={14} className="text-brand-vibrant" /> Jadwal Terdekat Tim Anda
               </h3>
-              <Card onClick={() => onSelectMode(nextMatchInfo.mode!)} className="!p-0 overflow-hidden !bg-gradient-to-r from-brand-vibrant/10 to-transparent border-brand-vibrant/20 group cursor-pointer">
+              <Card onClick={() => onSelectMode(nextMatchInfo.mode!)} className="!p-0 overflow-hidden !bg-black/60 border-brand-vibrant/30 group cursor-pointer hover:border-brand-vibrant transition-all">
                   <div className="flex flex-col md:flex-row md:items-center">
-                      <div className="bg-brand-vibrant p-2 sm:p-6 flex flex-row md:flex-col items-center justify-between md:justify-center text-white shrink-0">
-                          <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest opacity-70">Matchday</span>
-                          <span className="text-lg sm:text-2xl font-black italic">{nextMatchInfo.match.matchday || 1}</span>
+                      <div className="bg-brand-vibrant p-4 sm:p-10 flex flex-row md:flex-col items-center justify-between md:justify-center text-white shrink-0 shadow-2xl">
+                          <span className="text-[8px] font-black uppercase tracking-[0.3em] opacity-80">Matchday</span>
+                          <span className="text-3xl sm:text-5xl font-black italic">{nextMatchInfo.match.matchday || 1}</span>
                       </div>
-                      <div className="p-3 md:p-4 flex-grow flex items-center justify-center gap-4 md:gap-12">
-                          <div className="flex flex-col items-center gap-1.5 text-center flex-1">
-                              <TeamLogo logoUrl={nextMatchInfo.match.teamA.logoUrl} teamName={nextMatchInfo.match.teamA.name} className="w-8 h-8 sm:w-14 sm:h-14" />
-                              <span className="text-[8px] sm:text-xs font-black text-white uppercase truncate w-full">{nextMatchInfo.match.teamA.name}</span>
+                      <div className="p-6 md:p-12 flex-grow flex items-center justify-center gap-8 md:gap-24">
+                          <div className="flex flex-col items-center gap-3 text-center flex-1">
+                              <TeamLogo logoUrl={nextMatchInfo.match.teamA.logoUrl} teamName={nextMatchInfo.match.teamA.name} className="w-16 h-16 sm:w-28 sm:h-28 shadow-2xl ring-4 ring-white/5" />
+                              <span className="text-xs sm:text-xl font-black text-white uppercase italic tracking-tight">{nextMatchInfo.match.teamA.name}</span>
                           </div>
                           <div className="flex flex-col items-center">
-                              <span className="text-[7px] sm:text-[8px] font-black text-brand-vibrant uppercase italic mb-0.5">VS</span>
-                              <div className="w-4 sm:w-6 h-px bg-white/10"></div>
+                              <div className="text-xl sm:text-3xl font-black text-brand-vibrant italic px-4 py-2 bg-brand-vibrant/10 rounded-2xl border border-brand-vibrant/30">VS</div>
                           </div>
-                          <div className="flex flex-col items-center gap-1.5 text-center flex-1">
-                              <TeamLogo logoUrl={nextMatchInfo.match.teamB.logoUrl} teamName={nextMatchInfo.match.teamB.name} className="w-8 h-8 sm:w-14 sm:h-14" />
-                              <span className="text-[8px] sm:text-xs font-black text-white uppercase truncate w-full">{nextMatchInfo.match.teamB.name}</span>
-                          </div>
-                      </div>
-                      <div className="px-3 py-2 md:py-0 border-t md:border-t-0 md:border-l border-white/5 flex items-center justify-between md:justify-center gap-4">
-                          <div className="flex flex-col md:items-center">
-                                <span className="text-[6px] sm:text-[7px] font-bold text-brand-light uppercase tracking-widest">Kompetisi</span>
-                                <span className="text-[8px] sm:text-[10px] font-black text-white uppercase">{nextMatchInfo.mode === 'league' ? 'Liga Reguler' : nextMatchInfo.mode === 'wakacl' ? 'WAKACL' : '2 Wilayah'}</span>
-                          </div>
-                          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-white/5 flex items-center justify-center text-brand-vibrant group-hover:bg-brand-vibrant group-hover:text-white transition-all">
-                              <ArrowRight size={12} className="sm:w-[16px]" />
+                          <div className="flex flex-col items-center gap-3 text-center flex-1">
+                              <TeamLogo logoUrl={nextMatchInfo.match.teamB.logoUrl} teamName={nextMatchInfo.match.teamB.name} className="w-16 h-16 sm:w-28 sm:h-28 shadow-2xl ring-4 ring-white/5" />
+                              <span className="text-xs sm:text-xl font-black text-white uppercase italic tracking-tight">{nextMatchInfo.match.teamB.name}</span>
                           </div>
                       </div>
                   </div>

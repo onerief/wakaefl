@@ -126,7 +126,8 @@ type Action =
   | { type: 'ADD_KNOCKOUT_MATCH'; payload: KnockoutMatch }
   | { type: 'DELETE_KNOCKOUT_MATCH'; payload: { round: keyof KnockoutStageRounds, id: string } }
   | { type: 'GENERATE_KNOCKOUT_BRACKET'; payload: KnockoutStageRounds }
-  | { type: 'UPDATE_VISIBLE_MODES'; payload: TournamentMode[] };
+  | { type: 'UPDATE_VISIBLE_MODES'; payload: TournamentMode[] }
+  | { type: 'ADD_MATCH_COMMENT'; payload: { matchId: string, comment: MatchComment } };
 
 const tournamentReducer = (state: FullTournamentState, action: Action): FullTournamentState => {
   let newState: FullTournamentState;
@@ -173,8 +174,8 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'ADD_HISTORY_ENTRY': newState = { ...state, history: [action.payload, ...state.history] }; break;
     case 'DELETE_HISTORY_ENTRY': newState = { ...state, history: state.history.filter(h => h.seasonId !== action.payload) }; break;
     case 'UPDATE_VISIBLE_MODES': newState = { ...state, visibleModes: action.payload }; break;
+    case 'ADD_MATCH_COMMENT': newState = { ...state, matches: state.matches.map(m => m.id === action.payload.matchId ? { ...m, comments: [...(m.comments || []), action.payload.comment] } : m) }; break;
     case 'RESET': {
-        // Safe Reset: Keeps Global Settings & History
         newState = { 
             ...createInitialState(state.mode),
             history: state.history,
@@ -188,7 +189,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
             shopCategories: state.shopCategories,
             marqueeMessages: state.marqueeMessages,
             visibleModes: state.visibleModes,
-            teams: [] // Hard reset clears teams
+            teams: [] 
         }; 
         break;
     }
@@ -325,13 +326,50 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           }
       };
       state.matches.forEach(processMatch);
-      if (state.knockoutStage) { Object.values(state.knockoutStage).flat().forEach(m => processMatch(m as any)); }
+      // FIX: Cast Object.values results to KnockoutMatch[] to resolve 'unknown' type errors during property access.
+      if (state.knockoutStage) { (Object.values(state.knockoutStage).flat() as KnockoutMatch[]).forEach(m => processMatch(m)); }
       return Object.values(stats).sort((a, b) => b.goals - a.goals).filter(s => s.goals > 0);
   }, [state.matches, state.knockoutStage, state.teams]);
 
+  const playerStats = useMemo(() => {
+      const scorers: Record<string, { name: string, team: string, goals: number }> = {};
+      const assisters: Record<string, { name: string, team: string, assists: number }> = {};
+
+      const processIndividualStats = (pStats: MatchPlayerStats | undefined, teamA: Team, teamB: Team) => {
+          if (!pStats) return;
+          pStats.teamA.forEach(p => {
+              const key = `${p.name}-${teamA.name}`;
+              if (!scorers[key]) scorers[key] = { name: p.name, team: teamA.name, goals: 0 };
+              if (!assisters[key]) assisters[key] = { name: p.name, team: teamA.name, assists: 0 };
+              scorers[key].goals += p.goals;
+              assisters[key].assists += p.assists;
+          });
+          pStats.teamB.forEach(p => {
+              const key = `${p.name}-${teamB.name}`;
+              if (!scorers[key]) scorers[key] = { name: p.name, team: teamB.name, goals: 0 };
+              if (!assisters[key]) assisters[key] = { name: p.name, team: teamB.name, assists: 0 };
+              scorers[key].goals += p.goals;
+              assisters[key].assists += p.assists;
+          });
+      };
+
+      state.matches.forEach(m => processIndividualStats(m.playerStats, m.teamA, m.teamB));
+      // FIX: Cast Object.values results to KnockoutMatch[] to resolve 'unknown' type errors during property access (teamA, teamB, playerStats).
+      if (state.knockoutStage) {
+          (Object.values(state.knockoutStage).flat() as KnockoutMatch[]).forEach(m => {
+              if (m.teamA && m.teamB) processIndividualStats(m.playerStats, m.teamA, m.teamB);
+          });
+      }
+
+      return {
+          topScorers: Object.values(scorers).filter(s => s.goals > 0).sort((a, b) => b.goals - a.goals).slice(0, 20),
+          topAssists: Object.values(assisters).filter(a => a.assists > 0).sort((a, b) => b.assists - a.assists).slice(0, 20)
+      };
+  }, [state.matches, state.knockoutStage]);
+
   return { 
       ...state, 
-      isLoading, isSyncing, clubStats,
+      isLoading, isSyncing, clubStats, playerStats,
       updateNews: (news: NewsItem[]) => dispatch({ type: 'UPDATE_NEWS', payload: news }),
       updateProducts: (products: Product[]) => dispatch({ type: 'UPDATE_PRODUCTS', payload: products }),
       updateNewsCategories: (cats: string[]) => dispatch({ type: 'UPDATE_NEWS_CATEGORIES', payload: cats }),
