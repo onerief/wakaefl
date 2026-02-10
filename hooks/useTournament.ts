@@ -115,6 +115,7 @@ type Action =
   | { type: 'DELETE_TEAM'; payload: string }
   | { type: 'GENERATE_GROUPS'; payload: { groups: Group[], matches: Match[], knockoutStage: KnockoutStageRounds | null } }
   | { type: 'UPDATE_MATCH_SCORE'; payload: { matchId: string; scoreA: number; scoreB: number; proofUrl?: string; playerStats?: MatchPlayerStats } }
+  | { type: 'UPDATE_MATCH'; payload: { matchId: string; updates: Partial<Match> } }
   | { type: 'UPDATE_KNOCKOUT_MATCH'; payload: KnockoutMatch }
   | { type: 'UPDATE_NEWS'; payload: NewsItem[] }
   | { type: 'UPDATE_PRODUCTS'; payload: Product[] }
@@ -147,6 +148,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'DELETE_TEAM': newState = { ...state, teams: state.teams.filter(t => t.id !== action.payload) }; break;
     case 'GENERATE_GROUPS': newState = { ...state, ...action.payload }; break;
     case 'UPDATE_MATCH_SCORE': newState = { ...state, matches: state.matches.map(m => m.id === action.payload.matchId ? { ...m, ...action.payload, status: 'finished' as const } : m) }; break;
+    case 'UPDATE_MATCH': newState = { ...state, matches: state.matches.map(m => m.id === action.payload.matchId ? { ...m, ...action.payload.updates } : m) }; break;
     case 'UPDATE_KNOCKOUT_MATCH': {
         if (!state.knockoutStage) return state;
         const ks = { ...state.knockoutStage };
@@ -395,6 +397,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       deleteTeam: (id: string) => dispatch({ type: 'DELETE_TEAM', payload: id }),
       updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string, playerStats?: MatchPlayerStats) => 
         dispatch({ type: 'UPDATE_MATCH_SCORE', payload: { matchId, scoreA, scoreB, proofUrl, playerStats } }),
+      updateMatch: (matchId: string, updates: Partial<Match>) => dispatch({ type: 'UPDATE_MATCH', payload: { matchId, updates } }),
       updateKnockoutMatch: (id: string, m: KnockoutMatch) => dispatch({ type: 'UPDATE_KNOCKOUT_MATCH', payload: m }),
       addKnockoutMatch: (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string, matchNumber: number) => {
           const teamA = state.teams.find(t => t.id === teamAId) || null;

@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import type { Team } from '../../types';
 import { Button } from '../shared/Button';
-import { Save, UserCircle, Instagram, MessageCircle, ArrowLeft, Loader, Upload, X, ImageIcon, Layout } from 'lucide-react';
+import { Save, UserCircle, Instagram, MessageCircle, ArrowLeft, Loader, Upload, X, ImageIcon, Layout, Shield } from 'lucide-react';
 import { TeamLogo } from '../shared/TeamLogo';
 import { uploadTeamLogo } from '../../services/firebaseService';
 import { useToast } from '../shared/Toast';
@@ -14,6 +14,7 @@ interface UserTeamEditorProps {
 }
 
 export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, onCancel }) => {
+  const [name, setName] = useState(team.name || '');
   const [manager, setManager] = useState(team.manager || '');
   const [whatsappNumber, setWhatsappNumber] = useState(team.whatsappNumber || '');
   const [socialMediaUrl, setSocialMediaUrl] = useState(team.socialMediaUrl || '');
@@ -56,13 +57,20 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!name.trim()) {
+        addToast('Nama tim tidak boleh kosong.', 'error');
+        return;
+    }
+
     setIsSaving(true);
     try {
       await onSave({
-        manager,
-        whatsappNumber,
-        socialMediaUrl,
-        logoUrl,
+        name: name.trim(),
+        manager: manager.trim(),
+        whatsappNumber: whatsappNumber.trim(),
+        socialMediaUrl: socialMediaUrl.trim(),
+        logoUrl: logoUrl.trim(),
         squadPhotoUrl
       });
     } finally {
@@ -87,7 +95,7 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
                 Logo Tim
             </label>
             <div className="relative group">
-                <TeamLogo logoUrl={logoUrl} teamName={team.name} className="w-16 h-16 sm:w-24 sm:h-24 shadow-2xl" />
+                <TeamLogo logoUrl={logoUrl} teamName={name || "New Team"} className="w-16 h-16 sm:w-24 sm:h-24 shadow-2xl" />
                 {isUploading && (
                     <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
                         <Loader className="animate-spin text-white" size={20} sm:size={24} />
@@ -168,6 +176,24 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
 
         {/* Fields */}
         <div className="space-y-3 sm:space-y-4">
+            
+            {/* Nama Tim */}
+            <div>
+                <label className="block text-[10px] sm:text-xs font-bold text-brand-light uppercase tracking-wider mb-1.5 sm:mb-2">
+                    Nama Tim
+                </label>
+                <div className="relative">
+                    <Shield size={16} sm:size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-vibrant" />
+                    <input 
+                        type="text" 
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Nama Tim eFootball"
+                        className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 bg-brand-primary border border-brand-accent rounded-xl text-[11px] sm:text-sm text-brand-text focus:ring-2 focus:ring-brand-vibrant outline-none transition-all font-bold"
+                    />
+                </div>
+            </div>
+
             <div>
                 <label className="block text-[10px] sm:text-xs font-bold text-brand-light uppercase tracking-wider mb-1.5 sm:mb-2">
                     Nama Manager

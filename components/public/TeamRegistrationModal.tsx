@@ -79,6 +79,11 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
             return;
         }
 
+        if (!whatsappNumber.trim()) {
+            addToast('Nomor WhatsApp wajib diisi untuk kordinasi.', 'error');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
             await submitNewTeamRegistration({
@@ -232,7 +237,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                     <div>
-                                        <label className="block text-[10px] sm:text-xs font-bold text-brand-light uppercase mb-1">No. WhatsApp</label>
+                                        <label className="block text-[10px] sm:text-xs font-bold text-brand-light uppercase mb-1">No. WhatsApp *</label>
                                         <div className="relative">
                                             <MessageCircle size={14} sm:size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500" />
                                             <input
@@ -241,6 +246,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                                 onChange={(e) => setWhatsappNumber(e.target.value)}
                                                 placeholder="08..."
                                                 className="w-full pl-9 sm:pl-10 p-2.5 sm:p-3 bg-brand-secondary border border-brand-accent rounded-xl text-white text-[11px] sm:text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                                                required
                                             />
                                         </div>
                                     </div>

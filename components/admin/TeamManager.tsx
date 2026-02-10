@@ -10,7 +10,7 @@ import { useToast } from '../shared/Toast';
 import { ConfirmationModal } from './ConfirmationModal';
 import { ManualGroupManager } from './ManualGroupManager';
 import { TeamLogo } from '../shared/TeamLogo';
-import { subscribeToRegistrations, deleteRegistration, addApprovedTeamToFirestore, saveTournamentData } from '../../services/firebaseService';
+import { subscribeToRegistrations, deleteRegistration, addApprovedTeamToFirestore, saveTournamentData, sendNotification } from '../../services/firebaseService';
 
 interface TeamManagerProps {
   teams: Team[];
@@ -55,6 +55,10 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const [isRestoring, setIsRestoring] = useState(false);
   const [isProcessingAction, setIsProcessingAction] = useState<string | null>(null);
   
+  // States for approval with message
+  const [registrationToApprove, setRegistrationToApprove] = useState<any | null>(null);
+  const [approvalMessage, setApprovalMessage] = useState('');
+
   // State for rejecting registration confirmation
   const [registrationToReject, setRegistrationToReject] = useState<{id: string, name: string} | null>(null);
 
@@ -85,7 +89,15 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       t.manager?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleApproveRegistration = async (reg: any) => {
+  const initiateApproval = (reg: any) => {
+      setRegistrationToApprove(reg);
+      setApprovalMessage(`Selamat! Tim ${reg.name} telah disetujui oleh admin. Silakan cek jadwal pertandingan Anda.`);
+  };
+
+  const handleConfirmApproval = async () => {
+      if (!registrationToApprove) return;
+      const reg = registrationToApprove;
+      
       setIsProcessingAction(reg.id);
       try {
           const newTeam: Team = {
@@ -103,11 +115,18 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
           await addApprovedTeamToFirestore(targetMode as TournamentMode, newTeam);
           await deleteRegistration(reg.id);
           
-          addToast(`Tim "${reg.name}" BERHASIL disetujui untuk ${targetMode.toUpperCase()}!`, 'success');
+          if (reg.ownerEmail) {
+              await sendNotification(reg.ownerEmail, 'Pendaftaran Disetujui', approvalMessage, 'success');
+          }
+          
+          addToast(`Tim "${reg.name}" BERHASIL disetujui!`, 'success');
       } catch (error) {
           addToast('Gagal memproses persetujuan.', 'error');
+          console.error(error);
       } finally {
           setIsProcessingAction(null);
+          setRegistrationToApprove(null);
+          setApprovalMessage('');
       }
   };
 
@@ -220,7 +239,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                                         <div className="px-10 py-2.5"><Loader className="animate-spin text-brand-vibrant" size={20} /></div>
                                     ) : (
                                         <>
-                                            <button onClick={() => handleApproveRegistration(reg)} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-[10px] font-black uppercase transition-all shadow-lg shadow-green-900/20 active:scale-95"><Check size={14} /> Approve</button>
+                                            <button onClick={() => initiateApproval(reg)} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-[10px] font-black uppercase transition-all shadow-lg shadow-green-900/20 active:scale-95"><Check size={14} /> Approve</button>
                                             <button onClick={() => setRegistrationToReject({id: reg.id, name: reg.name})} className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white rounded-lg text-[10px] font-black uppercase transition-all active:scale-95"><X size={14} /> Tolak</button>
                                         </>
                                     )}
@@ -280,6 +299,41 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
         confirmText="Tolak & Hapus"
         variant="warning"
       />
+
+      {registrationToApprove && (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[200] backdrop-blur-md p-4 animate-in fade-in duration-200">
+              <Card className="w-full max-w-sm relative !p-0 overflow-hidden shadow-2xl bg-brand-primary rounded-2xl border border-brand-vibrant/30">
+                  <div className="bg-brand-secondary/80 p-4 border-b border-white/5 flex justify-between items-center">
+                      <h3 className="text-sm font-black text-white italic uppercase tracking-tighter flex items-center gap-2">
+                          <Check size={16} className="text-green-500" /> Konfirmasi Approval
+                      </h3>
+                      <button onClick={() => setRegistrationToApprove(null)} className="text-brand-light hover:text-white transition-all bg-white/5 p-1 rounded-full"><X size={16} /></button>
+                  </div>
+                  <div className="p-4 space-y-4">
+                      <p className="text-xs text-brand-light">
+                          Anda akan menyetujui tim <strong>{registrationToApprove.name}</strong>. Tim akan ditambahkan ke <strong>{registrationToApprove.preferredMode?.toUpperCase() || mode.toUpperCase()}</strong>.
+                      </p>
+                      
+                      <div className="space-y-1.5">
+                          <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest">Pesan untuk Member</label>
+                          <textarea 
+                              value={approvalMessage}
+                              onChange={(e) => setApprovalMessage(e.target.value)}
+                              className="w-full h-24 p-3 bg-black/40 border border-brand-accent rounded-xl text-white text-xs outline-none focus:border-brand-vibrant"
+                              placeholder="Tulis pesan..."
+                          />
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2">
+                          <Button type="button" variant="secondary" onClick={() => setRegistrationToApprove(null)} className="!text-[10px]">Batal</Button>
+                          <Button type="button" onClick={handleConfirmApproval} className="bg-green-600 text-white hover:bg-green-700 !text-[10px] font-black uppercase">
+                              Setujui & Kirim Pesan
+                          </Button>
+                      </div>
+                  </div>
+              </Card>
+          </div>
+      )}
     </div>
   );
 };

@@ -85,6 +85,16 @@ export interface ChatMessage {
   isAdmin?: boolean;
 }
 
+export interface Notification {
+  id: string;
+  email: string;
+  title: string;
+  message: string;
+  timestamp: number;
+  read: boolean;
+  type: 'info' | 'success' | 'warning';
+}
+
 export interface Match {
   id: string;
   teamA: Team;

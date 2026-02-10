@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Header } from './components/Header';
 import { NavigationMenu } from './components/NavigationMenu';
@@ -247,6 +248,7 @@ function AppContent() {
                         setTournamentStatus={tournament.setTournamentStatus}
                         updateHeaderLogo={tournament.updateHeaderLogo}
                         updateVisibleModes={tournament.updateVisibleModes}
+                        updateMatch={tournament.updateMatch}
                     />
                 ) : (
                     <div className="flex flex-col items-center justify-center py-20 text-center">

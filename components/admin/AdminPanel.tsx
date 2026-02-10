@@ -19,6 +19,7 @@ import { KnockoutMatchEditor } from './KnockoutMatchEditor';
 import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { ArchiveSeasonModal } from './ArchiveSeasonModal';
 import { useToast } from '../shared/Toast';
+import { MatchDetailsModal } from './MatchDetailsModal';
 
 interface AdminPanelProps {
   teams: Team[];
@@ -42,6 +43,7 @@ interface AdminPanelProps {
   visibleModes?: TournamentMode[];
   setMode: (mode: TournamentMode) => void;
   updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => void;
+  updateMatch: (matchId: string, updates: Partial<Match>) => void;
   addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => void;
   updateTeam: (teamId: string, name: string, logoUrl: string, manager?: string | undefined, socialMediaUrl?: string | undefined, whatsappNumber?: string | undefined, isTopSeed?: boolean | undefined, ownerEmail?: string | undefined) => void;
   deleteTeam: (teamId: string) => void;
@@ -99,6 +101,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   const [selectedMatchdays, setSelectedMatchdays] = useState<Record<string, string>>({});
   const [showKoForm, setShowKoForm] = useState<{ round: keyof KnockoutStageRounds } | null>(null);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const { addToast } = useToast();
 
   const currentTabInfo = ADMIN_TABS.find(t => t.id === activeTab);
@@ -114,7 +117,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           props.archiveSeason(entry, keepTeams);
           addToast('Musim berhasil diarsipkan & direset!', 'success');
       } else {
-          // Fallback if archiveSeason is somehow missing
           props.addHistoryEntry(entry);
           props.resetTournament();
           addToast('Musim diarsipkan (Mode Reset Terbatas).', 'info');
@@ -240,7 +242,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                         </div>
                         <div className="space-y-3">
                              {schedule[activeKey]?.map(match => (
-                                <MatchEditor key={match.id} match={match} onUpdateScore={props.updateMatchScore} onGenerateSummary={async () => ''} onEditSchedule={() => {}} />
+                                <MatchEditor key={match.id} match={match} onUpdateScore={props.updateMatchScore} onGenerateSummary={async () => ''} onEditSchedule={(m) => setEditingMatch(m)} />
                             ))}
                         </div>
                     </div>
@@ -384,8 +386,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
 
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-140px)] -mx-3 md:-mx-8 -my-4 md:-my-8 bg-brand-primary overflow-hidden relative"> 
-      
-      {/* SIDEBAR NAVIGATION - Desktop (Fixed Height) */}
+      {/* ... (Sidebar and Mobile Navigation remain unchanged) ... */}
       <aside className="hidden lg:flex flex-col w-64 bg-brand-secondary/40 border-r border-white/5 backdrop-blur-md z-30 overflow-hidden shrink-0">
           <div className="p-6 border-b border-white/5 flex flex-col gap-4">
               <h2 className="text-xl font-black text-white italic uppercase tracking-tighter flex items-center gap-2">
@@ -403,10 +404,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           </nav>
       </aside>
 
-      {/* MOBILE NAVIGATION - Dropdown Menu */}
       <div className="lg:hidden w-full bg-brand-secondary/95 backdrop-blur-md border-b border-white/10 flex flex-col shrink-0 z-40 relative">
           <div className="flex items-center justify-between px-3 py-3 bg-black/20 gap-3">
-              {/* Dropdown Trigger */}
               <button 
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="flex-1 flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white transition-all active:scale-95 group"
@@ -417,14 +416,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                   </div>
                   <ChevronDown size={16} className={`text-brand-light transition-transform duration-300 ${isMobileMenuOpen ? 'rotate-180' : 'group-hover:translate-y-0.5'}`} />
               </button>
-              
-              {/* Mode Switcher */}
               <div className="shrink-0">
                   <ModeSwitcher />
               </div>
           </div>
 
-          {/* Dropdown Content */}
           {isMobileMenuOpen && (
               <>
                   <div className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
@@ -456,10 +452,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           )}
       </div>
 
-      {/* MAIN CONTENT AREA - Independent Scrolling */}
       <main className="flex-1 flex flex-col min-w-0 relative bg-black/10 overflow-hidden">
-        
-        {/* HEADER AREA (Desktop) */}
         <header className="hidden lg:flex bg-brand-primary/60 border-b border-white/5 px-8 py-4 justify-between items-center shrink-0 backdrop-blur-xl relative z-40 shadow-xl">
              <h1 className="text-2xl font-black text-white italic uppercase tracking-tighter flex items-center gap-3">
                 {currentTabInfo?.icon && <currentTabInfo.icon size={24} className={currentTabInfo.color} />} {currentTabInfo?.label}
@@ -474,7 +467,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
              </div>
         </header>
 
-        {/* SCROLLABLE VIEWPORT */}
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-8 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] bg-fixed opacity-95">
              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 max-w-7xl mx-auto">
                 {renderContent()}
@@ -482,7 +474,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
         </div>
       </main>
 
-      {/* Archive Modal */}
       {showArchiveModal && (
           <ArchiveSeasonModal 
               mode={props.mode}
@@ -490,6 +481,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               knockoutStage={props.knockoutStage}
               onClose={() => setShowArchiveModal(false)}
               onArchive={handleArchiveSeason}
+          />
+      )}
+
+      {editingMatch && (
+          <MatchDetailsModal 
+              match={editingMatch} 
+              teams={props.teams} 
+              onClose={() => setEditingMatch(null)}
+              onSave={(id, updates) => {
+                  props.updateMatch(id, updates);
+                  setEditingMatch(null);
+              }}
           />
       )}
     </div>

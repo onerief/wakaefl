@@ -17,7 +17,8 @@ import {
   getFirestore,
   getDocs,
   updateDoc,
-  arrayUnion
+  arrayUnion,
+  where
 } from "firebase/firestore";
 import { 
   getAuth, 
@@ -36,7 +37,7 @@ import {
   uploadBytes, 
   getDownloadURL 
 } from "firebase/storage";
-import type { TournamentState, TournamentMode, Team, Partner, ChatMessage, Group, Match, KnockoutMatch, NewsItem, Product } from '../types';
+import type { TournamentState, TournamentMode, Team, Partner, ChatMessage, Group, Match, KnockoutMatch, NewsItem, Product, Notification } from '../types';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCXZAvanJ8Ra-3oCRXvsaKBopGce4CPuXQ",
@@ -57,6 +58,7 @@ const TOURNAMENT_COLLECTION = 'tournament';
 const SETTINGS_DOC = 'global_settings';
 const CHAT_COLLECTION = 'global_chat';
 const REGISTRATIONS_COLLECTION = 'registrations';
+const NOTIFICATIONS_COLLECTION = 'notifications';
 
 export const sanitizeData = (data: any): any => {
     if (!data) return null;
@@ -368,4 +370,40 @@ export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: b
     timestamp: Date.now(),
     isAdmin
   });
+};
+
+// --- NOTIFICATIONS ---
+export const sendNotification = async (email: string, title: string, message: string, type: 'info' | 'success' | 'warning' = 'info') => {
+    try {
+        await addDoc(collection(firestore, NOTIFICATIONS_COLLECTION), {
+            email,
+            title,
+            message,
+            timestamp: Date.now(),
+            read: false,
+            type
+        });
+    } catch (e) {
+        console.error("Error sending notification:", e);
+    }
+};
+
+export const subscribeToNotifications = (email: string, callback: (notifs: Notification[]) => void) => {
+    if (!email) return () => {};
+    
+    const q = query(
+        collection(firestore, NOTIFICATIONS_COLLECTION), 
+        where("email", "==", email),
+        orderBy("timestamp", "desc"),
+        limit(20)
+    );
+
+    return onSnapshot(q, (snap) => {
+        const notifs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
+        callback(notifs);
+    });
+};
+
+export const deleteNotification = async (id: string) => {
+    await deleteDoc(doc(firestore, NOTIFICATIONS_COLLECTION, id));
 };

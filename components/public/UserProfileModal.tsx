@@ -2,12 +2,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { X, UserCircle, LogOut, Shield, CheckCircle, Clock, Trophy, ListOrdered, Globe, Edit, ChevronRight, Check, User, LayoutDashboard } from 'lucide-react';
+import { X, UserCircle, LogOut, Shield, CheckCircle, Clock, Trophy, ListOrdered, Globe, Edit, ChevronRight, Check, User, LayoutDashboard, Bell, Trash2, Info, AlertTriangle } from 'lucide-react';
 import type { User as FirebaseUser } from 'firebase/auth';
-import type { Team, TournamentMode } from '../../types';
+import type { Team, TournamentMode, Notification } from '../../types';
 import { TeamLogo } from '../shared/TeamLogo';
 import { useToast } from '../shared/Toast';
-import { getTournamentData, submitTeamClaimRequest, getUserTeams, updateUserTeamData, updateUserProfile } from '../../services/firebaseService';
+import { getTournamentData, submitTeamClaimRequest, getUserTeams, updateUserTeamData, updateUserProfile, subscribeToNotifications, deleteNotification } from '../../services/firebaseService';
 import { Spinner } from '../shared/Spinner';
 import { UserTeamEditor } from './UserTeamEditor';
 
@@ -24,6 +24,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
   const { addToast } = useToast();
   
   const [viewState, setViewState] = useState<'dashboard' | 'edit-team'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'overview' | 'notifications'>('overview');
   const [userOwnedTeams, setUserOwnedTeams] = useState<{ mode: TournamentMode, team: Team }[]>([]);
   const [teamToEdit, setTeamToEdit] = useState<{ mode: TournamentMode, team: Team } | null>(null);
   const [isLoadingOwned, setIsLoadingOwned] = useState(true);
@@ -37,6 +38,9 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
   const [selectedClaimTeamId, setSelectedClaimTeamId] = useState('');
   const [isLoadingClaimable, setIsLoadingClaimable] = useState(false);
 
+  // Notifications
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
   const fetchUserTeams = async () => {
       setIsLoadingOwned(true);
       if (currentUser.email) {
@@ -48,6 +52,15 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
 
   useEffect(() => {
       fetchUserTeams();
+  }, [currentUser.email]);
+
+  useEffect(() => {
+      if (currentUser.email) {
+          const unsub = subscribeToNotifications(currentUser.email, (notifs) => {
+              setNotifications(notifs);
+          });
+          return () => unsub();
+      }
   }, [currentUser.email]);
 
   useEffect(() => {
@@ -72,6 +85,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
   const pendingTeamInClaimMode = useMemo(() => claimableTeams.find(t => t.requestedOwnerEmail === currentUser.email), [claimableTeams, currentUser.email]);
   const alreadyOwnedInClaimMode = useMemo(() => userOwnedTeams.some(ut => ut.mode === claimMode), [userOwnedTeams, claimMode]);
   const availableTeams = useMemo(() => claimableTeams.filter(t => !t.ownerEmail && t.id !== pendingTeamInClaimMode?.id), [claimableTeams, pendingTeamInClaimMode]);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleUpdateName = async () => {
       if (!newName.trim() || newName === currentUser.displayName) {
@@ -120,6 +135,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
           setSelectedClaimTeamId('');
       } catch (error: any) {
           addToast(error.message || 'Gagal mengirim permintaan.', 'error');
+      }
+  };
+
+  const handleDeleteNotification = async (id: string) => {
+      try {
+          await deleteNotification(id);
+      } catch (e) {
+          console.error(e);
       }
   };
 
@@ -172,9 +195,28 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
             )}
         </div>
 
+        {/* Tab Navigation */}
+        {viewState === 'dashboard' && (
+            <div className="flex bg-black/20 p-1 mx-4 mt-4 rounded-xl border border-white/5 shrink-0">
+                <button 
+                    onClick={() => setActiveTab('overview')} 
+                    className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all ${activeTab === 'overview' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
+                >
+                    Overview
+                </button>
+                <button 
+                    onClick={() => setActiveTab('notifications')} 
+                    className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase transition-all relative ${activeTab === 'notifications' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
+                >
+                    Notifikasi
+                    {unreadCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>}
+                </button>
+            </div>
+        )}
+
         <div className="p-4 sm:p-6 overflow-y-auto custom-scrollbar flex-grow">
-            {viewState === 'dashboard' && (
-                <div className="space-y-5">
+            {viewState === 'dashboard' && activeTab === 'overview' && (
+                <div className="space-y-5 animate-in slide-in-from-left duration-300">
                     {/* ADMIN SHORTCUT */}
                     {isAdmin && (
                         <div className="p-3 bg-brand-vibrant/10 border border-brand-vibrant/20 rounded-xl animate-in zoom-in-95 duration-500">
@@ -238,6 +280,39 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
                     </div>
                 </div>
             )}
+
+            {viewState === 'dashboard' && activeTab === 'notifications' && (
+                <div className="space-y-4 animate-in slide-in-from-right duration-300">
+                    {notifications.length === 0 ? (
+                        <div className="text-center py-10 opacity-30 flex flex-col items-center">
+                            <Bell size={32} className="mb-2" />
+                            <p className="text-[10px] uppercase font-bold tracking-widest">Tidak ada notifikasi</p>
+                        </div>
+                    ) : (
+                        notifications.map((notif) => (
+                            <div key={notif.id} className={`p-3 rounded-xl border relative group ${notif.type === 'success' ? 'bg-green-500/10 border-green-500/20' : notif.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-blue-500/10 border-blue-500/20'}`}>
+                                <div className="flex items-start gap-3">
+                                    <div className={`mt-0.5 ${notif.type === 'success' ? 'text-green-400' : notif.type === 'warning' ? 'text-yellow-400' : 'text-blue-400'}`}>
+                                        {notif.type === 'success' ? <CheckCircle size={16} /> : notif.type === 'warning' ? <AlertTriangle size={16} /> : <Info size={16} />}
+                                    </div>
+                                    <div className="flex-grow min-w-0">
+                                        <h4 className="text-xs font-bold text-white mb-1">{notif.title}</h4>
+                                        <p className="text-[10px] text-brand-light leading-relaxed whitespace-pre-line">{notif.message}</p>
+                                        <span className="text-[8px] text-brand-light/40 mt-2 block">{new Date(notif.timestamp).toLocaleString()}</span>
+                                    </div>
+                                    <button 
+                                        onClick={() => handleDeleteNotification(notif.id)} 
+                                        className="p-1.5 text-brand-light hover:text-red-400 transition-colors opacity-50 group-hover:opacity-100"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+
             {viewState === 'edit-team' && teamToEdit && (
                 <UserTeamEditor team={teamToEdit.team} onSave={handleSaveTeamUpdates} onCancel={() => { setViewState('dashboard'); setTeamToEdit(null); }} />
             )}
