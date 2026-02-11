@@ -18,19 +18,19 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ currentView, set
       <button
         type="button"
         onClick={() => setView(view)}
-        className={`flex flex-col items-center justify-center gap-1 transition-all duration-300 min-w-[60px] sm:min-w-0 flex-1 h-full py-1 cursor-pointer touch-manipulation active:scale-90 shrink-0 ${
+        className={`flex flex-col items-center justify-center gap-0.5 sm:gap-1 transition-all duration-300 min-w-[60px] sm:min-w-0 flex-1 h-full py-1 cursor-pointer touch-manipulation active:scale-90 shrink-0 ${
           isActive ? 'opacity-100' : 'opacity-40 hover:opacity-70'
         }`}
         aria-current={isActive ? 'page' : undefined}
       >
-        <div className={`relative p-2 rounded-xl transition-all duration-500 ${
+        <div className={`relative p-1.5 sm:p-2 rounded-xl transition-all duration-500 ${
           isActive 
           ? (colorClass || 'bg-brand-vibrant text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-110') 
           : 'text-brand-light'
         }`}>
-          <Icon size={18} className="sm:w-[24px] sm:h-[24px]" />
+          <Icon size={20} className="sm:w-[24px] sm:h-[24px]" />
           {isActive && (
-              <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full animate-pulse shadow-[0_0_10px_#fff]"></div>
+              <div className="absolute -top-1 -right-1 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse shadow-[0_0_10px_#fff]"></div>
           )}
         </div>
         <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-tight text-center leading-none truncate w-full px-0.5 mt-0.5 ${isActive ? 'text-white' : 'text-brand-light'}`}>
@@ -46,18 +46,18 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ currentView, set
         <button
           type="button"
           onClick={onToggleChat}
-          className={`flex flex-col items-center justify-center gap-1 transition-all duration-300 min-w-[60px] sm:min-w-0 flex-1 h-full py-1 cursor-pointer touch-manipulation active:scale-90 shrink-0 ${
+          className={`flex flex-col items-center justify-center gap-0.5 sm:gap-1 transition-all duration-300 min-w-[60px] sm:min-w-0 flex-1 h-full py-1 cursor-pointer touch-manipulation active:scale-90 shrink-0 ${
             isActive ? 'opacity-100' : 'opacity-40 hover:opacity-70'
           }`}
         >
-          <div className={`relative p-2 rounded-xl transition-all duration-500 ${
+          <div className={`relative p-1.5 sm:p-2 rounded-xl transition-all duration-500 ${
             isActive 
             ? 'bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.4)] scale-110' 
             : 'text-brand-light'
           }`}>
-            <MessageCircle size={18} className="sm:w-[24px] sm:h-[24px]" />
+            <MessageCircle size={20} className="sm:w-[24px] sm:h-[24px]" />
             {isActive && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full animate-pulse shadow-[0_0_10px_#fff]"></div>
+                <div className="absolute -top-1 -right-1 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse shadow-[0_0_10px_#fff]"></div>
             )}
           </div>
           <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-tight text-center leading-none truncate w-full px-0.5 mt-0.5 ${isActive ? 'text-white' : 'text-brand-light'}`}>
@@ -71,8 +71,8 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ currentView, set
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-safe pointer-events-none">
-      <div className="w-full max-w-5xl px-0 sm:px-3 pb-0 sm:pb-6">
-        <nav className="bg-brand-primary/95 backdrop-blur-2xl border-t sm:border border-white/10 sm:rounded-[2rem] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,1)] flex items-center justify-start sm:justify-between pointer-events-auto ring-1 ring-white/5 h-16 sm:h-20 w-full relative overflow-x-auto no-scrollbar select-none">
+      <div className="w-full max-w-5xl px-0 sm:px-3 pb-3 sm:pb-6">
+        <nav className="bg-brand-primary/95 backdrop-blur-2xl border-t sm:border border-white/10 sm:rounded-[2rem] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,1)] flex items-center justify-start sm:justify-between pointer-events-auto ring-1 ring-white/5 h-[4.5rem] sm:h-20 w-full relative overflow-x-auto no-scrollbar select-none">
             {/* Background Glow Effect for the whole bar */}
             <div className="absolute inset-0 bg-gradient-to-r from-brand-vibrant/5 via-transparent to-brand-special/5 pointer-events-none sticky left-0 right-0"></div>
             
