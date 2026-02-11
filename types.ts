@@ -80,6 +80,7 @@ export interface ChatMessage {
   text: string;
   userId: string;
   userName: string;
+  userTeamName?: string; // Added field for Team Name
   userPhoto?: string;
   timestamp: number;
   isAdmin?: boolean;

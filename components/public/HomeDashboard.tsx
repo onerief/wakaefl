@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { PlusCircle, Calendar, ArrowRight, Newspaper, Clock, Zap, Star, Trophy, ChevronLeft, ChevronRight, Globe, LayoutGrid, Shield, Users } from 'lucide-react';
+import { PlusCircle, Calendar, ArrowRight, Newspaper, Clock, Zap, Star, Trophy, ChevronLeft, ChevronRight, Globe, LayoutGrid, Shield, Users, ShoppingBag } from 'lucide-react';
 import { Card } from '../shared/Card';
 import { TournamentMode, Team, Match, NewsItem } from '../../types';
 import { TeamLogo } from '../shared/TeamLogo';
@@ -62,7 +62,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   }, [userOwnedTeams, allMatches, visibleModes]);
 
   const CompetitionCard = ({ mode, title, desc, icon: Icon, colorClass, bgClass }: any) => {
-    if (!visibleModes.includes(mode)) return null;
+    if (mode !== 'shop' && !visibleModes.includes(mode)) return null;
     return (
         <button 
             onClick={() => onSelectMode(mode)}
@@ -80,7 +80,9 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             <h4 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tighter mb-2 group-hover:text-brand-special transition-colors">{title}</h4>
             <p className="text-xs text-white/50 font-medium leading-relaxed mb-6">{desc}</p>
             <div className="mt-auto flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/80 py-1.5 px-4 bg-black/40 rounded-full border border-white/10 group-hover:bg-brand-vibrant group-hover:border-brand-vibrant transition-all">Masuk Arena</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-white/80 py-1.5 px-4 bg-black/40 rounded-full border border-white/10 group-hover:bg-brand-vibrant group-hover:border-brand-vibrant transition-all">
+                    {mode === 'shop' ? 'Belanja' : 'Masuk Arena'}
+                </span>
             </div>
         </button>
     );
@@ -177,23 +179,23 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
       <div className="space-y-6">
           <div className="flex items-center justify-between px-2">
               <h3 className="text-lg sm:text-3xl font-black text-white italic uppercase tracking-tighter flex items-center gap-3">
-                  <Trophy size={28} className="text-brand-special" /> Jelajahi Kompetisi
+                  <Trophy size={28} className="text-brand-special" /> Jelajahi
               </h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
               <CompetitionCard 
                   mode="league" title="Liga Reguler" 
-                  desc="Kompetisi format liga satu musim penuh. Buktikan konsistensimu sebagai manager terbaik."
+                  desc="Kompetisi format liga satu musim penuh."
                   icon={LayoutGrid} colorClass="bg-blue-600" bgClass="bg-gradient-to-br from-blue-900/40 to-black" 
               />
               <CompetitionCard 
                   mode="two_leagues" title="2 Wilayah" 
-                  desc="Sistem wilayah dengan play-off seru. Pertarungan antar region menuju gelar juara nasional."
+                  desc="Pertarungan antar region menuju gelar juara."
                   icon={Globe} colorClass="bg-purple-600" bgClass="bg-gradient-to-br from-purple-900/40 to-black" 
               />
               <CompetitionCard 
                   mode="wakacl" title="WakaEFL Champ" 
-                  desc="Kasta tertinggi kompetisi. Format UCL yang penuh drama, kejutan, dan gengsi tak tertandingi."
+                  desc="Kasta tertinggi. Format UCL penuh gengsi."
                   icon={Shield} colorClass="bg-yellow-600" bgClass="bg-gradient-to-br from-yellow-900/40 to-black" 
               />
           </div>

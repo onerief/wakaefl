@@ -54,7 +54,7 @@ export const MatchDetailsModal: React.FC<MatchDetailsModalProps> = ({ match, tea
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[150] backdrop-blur-md p-4 animate-in fade-in zoom-in-95 duration-200">
-      <Card className="w-full max-w-lg relative !p-0 overflow-hidden shadow-2xl bg-brand-primary rounded-2xl border border-brand-vibrant/30">
+      <Card className="w-full max-w-md sm:max-w-xl relative !p-0 overflow-hidden shadow-2xl bg-brand-primary rounded-2xl border border-brand-vibrant/30">
         <div className="bg-brand-secondary/80 p-4 border-b border-white/5 flex justify-between items-center">
             <h3 className="text-sm sm:text-base font-black text-white italic uppercase tracking-tighter flex items-center gap-2">
                 <Activity size={16} className="text-brand-vibrant" /> Edit Match Details

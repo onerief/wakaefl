@@ -57,7 +57,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({ categories = [
 
     return (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[150] backdrop-blur-md p-4">
-            <Card className="w-full max-w-md relative !p-0 shadow-2xl border-brand-vibrant/30">
+            <Card className="w-full max-w-md sm:max-w-xl relative !p-0 shadow-2xl border-brand-vibrant/30">
                 <div className="p-5 border-b border-white/5 flex justify-between items-center">
                     <h3 className="text-lg font-black text-white italic uppercase tracking-widest flex items-center gap-2">
                         <Tag size={18} className="text-brand-vibrant" /> {title}

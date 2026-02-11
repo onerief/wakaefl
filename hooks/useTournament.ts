@@ -346,41 +346,12 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   }, [state.matches, state.knockoutStage, state.teams]);
 
   const playerStats = useMemo(() => {
-      const scorers: Record<string, { name: string, team: string, goals: number }> = {};
-      const assisters: Record<string, { name: string, team: string, assists: number }> = {};
-
-      const processIndividualStats = (pStats: MatchPlayerStats | undefined, teamA: Team, teamB: Team) => {
-          if (!pStats || !teamA || !teamB) return;
-          (pStats.teamA || []).forEach(p => {
-              if (!p.name) return;
-              const key = `${p.name}-${teamA.name}`;
-              if (!scorers[key]) scorers[key] = { name: p.name, team: teamA.name, goals: 0 };
-              if (!assisters[key]) assisters[key] = { name: p.name, team: teamA.name, assists: 0 };
-              scorers[key].goals += p.goals;
-              assisters[key].assists += p.assists;
-          });
-          (pStats.teamB || []).forEach(p => {
-              if (!p.name) return;
-              const key = `${p.name}-${teamB.name}`;
-              if (!scorers[key]) scorers[key] = { name: p.name, team: teamB.name, goals: 0 };
-              if (!assisters[key]) assisters[key] = { name: p.name, team: teamB.name, assists: 0 };
-              scorers[key].goals += p.goals;
-              assisters[key].assists += p.assists;
-          });
-      };
-
-      state.matches.forEach(m => processIndividualStats(m.playerStats, m.teamA, m.teamB));
-      if (state.knockoutStage) {
-          (Object.values(state.knockoutStage).flat() as KnockoutMatch[]).forEach(m => {
-              if (m && m.teamA && m.teamB) processIndividualStats(m.playerStats, m.teamA, m.teamB);
-          });
-      }
-
+      // Removed Player Stats Calculation logic entirely
       return {
-          topScorers: Object.values(scorers).filter(s => s.goals > 0).sort((a, b) => b.goals - a.goals).slice(0, 20),
-          topAssists: Object.values(assisters).filter(a => a.assists > 0).sort((a, b) => b.assists - a.assists).slice(0, 20)
+          topScorers: [],
+          topAssists: [] 
       };
-  }, [state.matches, state.knockoutStage]);
+  }, []); // No dependencies needed
 
   return { 
       ...state, 

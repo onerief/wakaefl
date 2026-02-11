@@ -31,7 +31,6 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
       
       let msg = 'Gagal masuk dengan Google.';
       
-      // Handle specific Firebase Auth errors for better user feedback
       if (error.code === 'auth/popup-closed-by-user') {
         msg = 'Login dibatalkan (popup ditutup).';
       } else if (error.code === 'auth/popup-blocked') {
@@ -83,13 +82,12 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <Card className="w-full max-w-xs sm:max-w-md relative !p-0 overflow-hidden shadow-2xl !bg-brand-primary border-brand-vibrant/20">
+      <Card className="w-full max-w-md sm:max-w-lg relative !p-0 overflow-hidden shadow-2xl !bg-brand-primary border-brand-vibrant/20">
         <button onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-white transition-colors z-10" aria-label="Close modal">
           <X size={20} sm:size={24} />
         </button>
         
         <div className="flex">
-            {/* Left/Top Decor (Hidden on very small screens if needed, strictly cosmetic) */}
             <div className="hidden sm:block w-2 bg-gradient-to-b from-brand-vibrant to-brand-special"></div>
             
             <div className="flex-1">
@@ -98,20 +96,20 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
                     <h2 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tighter mb-0.5 sm:mb-1">
                         Member Area
                     </h2>
-                    <p className="text-[10px] text-brand-light opacity-60">Komunitas eFootball Way Kanan</p>
+                    <p className="text-[10px] sm:text-xs text-brand-light opacity-60">Komunitas eFootball Way Kanan</p>
                 </div>
 
                 {/* Tabs */}
                 <div className="flex px-4 sm:px-6 border-b border-white/5">
                     <button 
                         onClick={() => setIsLogin(true)}
-                        className={`flex-1 py-2 sm:py-3 text-[10px] sm:text-sm font-bold uppercase tracking-wider transition-colors border-b-2 ${isLogin ? 'text-brand-vibrant border-brand-vibrant' : 'text-brand-light/50 border-transparent hover:text-brand-light'}`}
+                        className={`flex-1 py-2 sm:py-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${isLogin ? 'text-brand-vibrant border-brand-vibrant' : 'text-brand-light/50 border-transparent hover:text-brand-light'}`}
                     >
                         Masuk
                     </button>
                     <button 
                         onClick={() => setIsLogin(false)}
-                        className={`flex-1 py-2 sm:py-3 text-[10px] sm:text-sm font-bold uppercase tracking-wider transition-colors border-b-2 ${!isLogin ? 'text-brand-vibrant border-brand-vibrant' : 'text-brand-light/50 border-transparent hover:text-brand-light'}`}
+                        className={`flex-1 py-2 sm:py-3 text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors border-b-2 ${!isLogin ? 'text-brand-vibrant border-brand-vibrant' : 'text-brand-light/50 border-transparent hover:text-brand-light'}`}
                     >
                         Daftar
                     </button>
@@ -122,7 +120,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
                     <button 
                         onClick={handleGoogleLogin}
                         disabled={isLoading}
-                        className="w-full bg-white text-black hover:bg-gray-100 font-bold py-2 sm:py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 sm:gap-3 transition-all active:scale-95 group text-[11px] sm:text-sm"
+                        className="w-full bg-white text-black hover:bg-gray-100 font-bold py-2 sm:py-3 px-4 rounded-xl flex items-center justify-center gap-2 sm:gap-3 transition-all active:scale-95 group text-xs sm:text-sm"
                     >
                         {isLoading ? <Spinner size={16} sm:size={20} /> : (
                             <>
@@ -139,7 +137,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
 
                     <div className="relative flex items-center py-1 sm:py-2">
                         <div className="flex-grow border-t border-white/10"></div>
-                        <span className="flex-shrink-0 mx-3 sm:mx-4 text-[8px] sm:text-[10px] text-brand-light uppercase tracking-widest">Atau via Email</span>
+                        <span className="flex-shrink-0 mx-3 sm:mx-4 text-[9px] sm:text-[10px] text-brand-light uppercase tracking-widest">Atau via Email</span>
                         <div className="flex-grow border-t border-white/10"></div>
                     </div>
 
@@ -152,7 +150,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
                                     placeholder="Nama Lengkap"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="w-full bg-black/20 border border-brand-accent text-white text-[11px] sm:text-sm rounded-xl py-2.5 sm:py-3 pl-9 sm:pl-10 focus:ring-2 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/40 transition-all"
+                                    className="w-full bg-black/20 border border-brand-accent text-white text-xs sm:text-sm rounded-xl py-2.5 sm:py-3 pl-9 sm:pl-10 focus:ring-2 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/40 transition-all"
                                     required={!isLogin}
                                 />
                             </div>
@@ -164,7 +162,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
                                 placeholder="Alamat Email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-black/20 border border-brand-accent text-white text-[11px] sm:text-sm rounded-xl py-2.5 sm:py-3 pl-9 sm:pl-10 focus:ring-2 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/40 transition-all"
+                                className="w-full bg-black/20 border border-brand-accent text-white text-xs sm:text-sm rounded-xl py-2.5 sm:py-3 pl-9 sm:pl-10 focus:ring-2 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/40 transition-all"
                                 required
                             />
                         </div>
@@ -175,12 +173,12 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
                                 placeholder="Password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-black/20 border border-brand-accent text-white text-[11px] sm:text-sm rounded-xl py-2.5 sm:py-3 pl-9 sm:pl-10 focus:ring-2 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/40 transition-all"
+                                className="w-full bg-black/20 border border-brand-accent text-white text-xs sm:text-sm rounded-xl py-2.5 sm:py-3 pl-9 sm:pl-10 focus:ring-2 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/40 transition-all"
                                 required
                             />
                         </div>
 
-                        <Button type="submit" className="w-full !rounded-xl !py-2.5 sm:!py-3 !text-[11px] sm:!text-sm !font-bold" disabled={isLoading}>
+                        <Button type="submit" className="w-full !rounded-xl !py-2.5 sm:!py-3 !text-xs sm:!text-sm !font-bold" disabled={isLoading}>
                             {isLoading ? <Spinner size={16} sm:size={18} /> : (
                                 <span className="flex items-center gap-2">
                                     {isLogin ? 'Masuk Sekarang' : 'Buat Akun'} 

@@ -4,13 +4,14 @@ import type { Team, Group, Match, KnockoutStageRounds, TournamentState, Tourname
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
 import { TeamForm } from './TeamForm';
-import { Plus, Edit, Trash2, RefreshCw, Download, Star, Upload, Users, ShieldAlert, Check, Search, Bell, Settings as SettingsIcon, LayoutGrid, ShieldCheck, UserMinus, FileJson, CloudUpload, X, Instagram, MessageCircle, Trophy, ExternalLink, AlertTriangle, UserCheck, Loader } from 'lucide-react';
+import { Plus, Edit, Trash2, RefreshCw, Download, Star, Upload, Users, ShieldAlert, Check, Search, Bell, Settings as SettingsIcon, LayoutGrid, ShieldCheck, UserMinus, FileJson, CloudUpload, X, Instagram, MessageCircle, Trophy, ExternalLink, AlertTriangle, UserCheck, Loader, Database } from 'lucide-react';
 import { ResetConfirmationModal } from './ResetConfirmationModal';
 import { useToast } from '../shared/Toast';
 import { ConfirmationModal } from './ConfirmationModal';
 import { ManualGroupManager } from './ManualGroupManager';
 import { TeamLogo } from '../shared/TeamLogo';
-import { subscribeToRegistrations, deleteRegistration, addApprovedTeamToFirestore, saveTournamentData, sendNotification } from '../../services/firebaseService';
+import { subscribeToRegistrations, deleteRegistration, addApprovedTeamToFirestore, saveTournamentData, sendNotification, getAllGlobalTeams } from '../../services/firebaseService';
+import { ImportTeamModal } from './ImportTeamModal';
 
 interface TeamManagerProps {
   teams: Team[];
@@ -55,6 +56,11 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const [isRestoring, setIsRestoring] = useState(false);
   const [isProcessingAction, setIsProcessingAction] = useState<string | null>(null);
   
+  // Import Features
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [globalTeams, setGlobalTeams] = useState<Team[]>([]);
+  const [isLoadingGlobal, setIsLoadingGlobal] = useState(false);
+
   // States for approval with message
   const [registrationToApprove, setRegistrationToApprove] = useState<any | null>(null);
   const [approvalMessage, setApprovalMessage] = useState('');
@@ -88,6 +94,39 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       t.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
       t.manager?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleOpenImport = async () => {
+      setIsLoadingGlobal(true);
+      try {
+          const allTeams = await getAllGlobalTeams();
+          // Filter out teams already in THIS mode to prevent confusion (though addTeam handles new IDs)
+          const currentTeamNames = new Set(teams.map(t => t.name.toLowerCase()));
+          const availableTeams = allTeams.filter(t => !currentTeamNames.has(t.name.toLowerCase()));
+          
+          setGlobalTeams(availableTeams);
+          setShowImportModal(true);
+      } catch (e) {
+          addToast('Gagal memuat database tim.', 'error');
+      } finally {
+          setIsLoadingGlobal(false);
+      }
+  };
+
+  const handleImportSelect = (team: Team) => {
+      // Create new ID for the team in this specific mode context
+      const newId = `t${Date.now()}`;
+      addTeam(
+          newId, 
+          team.name, 
+          team.logoUrl || '', 
+          team.manager, 
+          team.socialMediaUrl, 
+          team.whatsappNumber, 
+          team.ownerEmail
+      );
+      addToast(`Tim ${team.name} berhasil diimpor!`, 'success');
+      setShowImportModal(false);
+  };
 
   const initiateApproval = (reg: any) => {
       setRegistrationToApprove(reg);
@@ -175,9 +214,18 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
               <Card className="!p-4 sm:!p-6 overflow-visible">
                 <div className="flex flex-col gap-4 mb-6">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                         <h3 className="text-lg sm:text-xl font-black italic uppercase text-brand-text">Semua Tim <span className="text-brand-vibrant">({teams.length})</span></h3>
-                        <Button onClick={() => { setEditingTeam(null); setShowForm(true); }} className="!py-2 !px-4 !text-[10px] font-black uppercase tracking-widest"><Plus size={14} /> Tambah Tim</Button>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <Button 
+                                onClick={handleOpenImport} 
+                                disabled={isLoadingGlobal}
+                                className="flex-1 sm:flex-none !py-2 !px-4 !text-[10px] font-black uppercase tracking-widest bg-brand-special text-brand-primary hover:bg-yellow-300 border-none shadow-lg shadow-yellow-500/20"
+                            >
+                                {isLoadingGlobal ? <Loader className="animate-spin" size={14} /> : <Database size={14} />} Ambil dari Database
+                            </Button>
+                            <Button onClick={() => { setEditingTeam(null); setShowForm(true); }} className="flex-1 sm:flex-none !py-2 !px-4 !text-[10px] font-black uppercase tracking-widest"><Plus size={14} /> Manual Baru</Button>
+                        </div>
                     </div>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" size={16} />
@@ -281,6 +329,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       {showForm && <TeamForm team={editingTeam} onSave={(details) => { props.updateTeam(editingTeam?.id || `t${Date.now()}`, details.name, details.logoUrl, details.manager, details.socialMediaUrl, details.whatsappNumber, editingTeam?.isTopSeed, details.ownerEmail); setShowForm(false); }} onClose={() => setShowForm(false)} isSaving={isSavingTeam} />}
       {showResetConfirm && <ResetConfirmationModal onConfirm={() => { resetTournament(); setShowResetConfirm(false); }} onCancel={() => setShowResetConfirm(false)} />}
       
+      {showImportModal && <ImportTeamModal teams={globalTeams} onSelect={handleImportSelect} onClose={() => setShowImportModal(false)} />}
+
       <ConfirmationModal 
         isOpen={!!teamToDelete} 
         onClose={() => setTeamToDelete(null)} 

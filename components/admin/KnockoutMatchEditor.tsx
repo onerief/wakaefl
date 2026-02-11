@@ -20,9 +20,6 @@ export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match,
   const [sA2, setSA2] = useState<number | null>(match.scoreA2);
   const [sB2, setSB2] = useState<number | null>(match.scoreB2);
   const [manualWinnerId, setManualWinnerId] = useState<string | null>(match.winnerId);
-  const [showStats, setShowStats] = useState(false);
-  const [statsA, setStatsA] = useState<PlayerStat[]>(match.playerStats?.teamA || []);
-  const [statsB, setStatsB] = useState<PlayerStat[]>(match.playerStats?.teamB || []);
   
   const { addToast } = useToast();
   
@@ -42,33 +39,9 @@ export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match,
         scoreA2: sA2, 
         scoreB2: sB2,
         winnerId: manualWinnerId,
-        playerStats: { teamA: statsA, teamB: statsB }
+        playerStats: undefined
     });
-    addToast('Skor & Statistik berhasil disimpan.', 'success');
-    setShowStats(false);
-  };
-
-  const addStatRow = (team: 'A' | 'B') => {
-      const newStat: PlayerStat = { name: '', goals: 0, assists: 0 };
-      if (team === 'A') setStatsA([...statsA, newStat]);
-      else setStatsB([...statsB, newStat]);
-  };
-
-  const updateStatRow = (team: 'A' | 'B', index: number, field: keyof PlayerStat, value: any) => {
-      if (team === 'A') {
-          const newStats = [...statsA];
-          newStats[index] = { ...newStats[index], [field]: value };
-          setStatsA(newStats);
-      } else {
-          const newStats = [...statsB];
-          newStats[index] = { ...newStats[index], [field]: value };
-          setStatsB(newStats);
-      }
-  };
-
-  const removeStatRow = (team: 'A' | 'B', index: number) => {
-      if (team === 'A') setStatsA(statsA.filter((_, i) => i !== index));
-      else setStatsB(statsB.filter((_, i) => i !== index));
+    addToast('Skor berhasil disimpan.', 'success');
   };
 
   const adjust = (leg: 1 | 2, team: 'A' | 'B', delta: number) => {
@@ -99,7 +72,6 @@ export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match,
             {match.round} - M{match.matchNumber}
           </span>
           <div className="flex gap-1">
-             <button onClick={() => setShowStats(!showStats)} className={`p-1.5 rounded-lg border transition-all ${showStats ? 'bg-brand-special text-brand-primary border-brand-special' : 'bg-white/5 text-brand-light border-transparent'}`} title="Statistik Pemain"><BarChart3 size={12} /></button>
              <button onClick={() => onEdit(match)} className="p-1.5 text-brand-light hover:text-white bg-white/5 rounded-lg"><Pencil size={12} /></button>
              <button onClick={onDelete} className="p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 rounded-lg"><Trash2 size={12} /></button>
          </div>
@@ -117,40 +89,6 @@ export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match,
                 <span className="text-[10px] font-bold text-white truncate w-full uppercase">{teamBName}</span>
             </div>
         </div>
-
-        {/* Player Stats Pop-down */}
-        {showStats && (
-            <div className="bg-black/60 border border-brand-special/20 rounded-xl p-3 space-y-3 animate-in slide-in-from-top-2">
-                <div className="flex items-center justify-between border-b border-white/5 pb-1">
-                    <span className="text-[8px] font-black text-brand-special uppercase tracking-widest">Individual Stats</span>
-                    <button onClick={() => setShowStats(false)} className="text-brand-light"><X size={10}/></button>
-                </div>
-                <div className="space-y-4">
-                    <div className="space-y-1">
-                        <div className="flex justify-between items-center"><span className="text-[7px] font-black text-brand-vibrant uppercase truncate">{teamAName}</span><button onClick={() => addStatRow('A')} className="text-[7px] text-brand-vibrant font-black uppercase">+ Add</button></div>
-                        {statsA.map((s, i) => (
-                            <div key={i} className="flex gap-1 items-center">
-                                <input placeholder="Nama" value={s.name} onChange={e => updateStatRow('A', i, 'name', e.target.value)} className="flex-grow bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-[9px] outline-none" />
-                                <input type="number" placeholder="G" value={s.goals} onChange={e => updateStatRow('A', i, 'goals', parseInt(e.target.value) || 0)} className="w-6 bg-white/5 border border-white/10 rounded text-center py-0.5 text-[9px] text-brand-special" />
-                                <input type="number" placeholder="A" value={s.assists} onChange={e => updateStatRow('A', i, 'assists', parseInt(e.target.value) || 0)} className="w-6 bg-white/5 border border-white/10 rounded text-center py-0.5 text-[9px] text-brand-light" />
-                                <button onClick={() => removeStatRow('A', i)} className="text-red-400 p-0.5"><X size={10}/></button>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="space-y-1">
-                        <div className="flex justify-between items-center"><span className="text-[7px] font-black text-brand-light uppercase truncate">{teamBName}</span><button onClick={() => addStatRow('B')} className="text-[7px] text-brand-light font-black uppercase">+ Add</button></div>
-                        {statsB.map((s, i) => (
-                            <div key={i} className="flex gap-1 items-center">
-                                <input placeholder="Nama" value={s.name} onChange={e => updateStatRow('B', i, 'name', e.target.value)} className="flex-grow bg-white/5 border border-white/10 rounded px-1.5 py-0.5 text-[9px] outline-none" />
-                                <input type="number" placeholder="G" value={s.goals} onChange={e => updateStatRow('B', i, 'goals', parseInt(e.target.value) || 0)} className="w-6 bg-white/5 border border-white/10 rounded text-center py-0.5 text-[9px] text-brand-special" />
-                                <input type="number" placeholder="A" value={s.assists} onChange={e => updateStatRow('B', i, 'assists', parseInt(e.target.value) || 0)} className="w-6 bg-white/5 border border-white/10 rounded text-center py-0.5 text-[9px] text-brand-light" />
-                                <button onClick={() => removeStatRow('B', i)} className="text-red-400 p-0.5"><X size={10}/></button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        )}
 
         <div className="grid grid-cols-1 gap-3 bg-black/20 p-3 rounded-xl">
             <div className="flex items-center justify-between gap-4">
@@ -188,7 +126,7 @@ export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match,
         </div>
 
         <Button onClick={handleSave} disabled={!isEditable} className="w-full !py-3 bg-brand-vibrant hover:bg-blue-600 border-none shadow-lg shadow-blue-900/20">
-            <Save size={16}/> <span>Simpan Hasil {showStats ? '& Stats' : ''}</span>
+            <Save size={16}/> <span>Simpan Hasil</span>
         </Button>
       </div>
     </Card>

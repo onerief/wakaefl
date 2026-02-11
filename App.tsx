@@ -59,6 +59,7 @@ function AppContent() {
   const [showTeamRegistration, setShowTeamRegistration] = useState(false);
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
   const [globalStats, setGlobalStats] = useState({ teamCount: 0, partnerCount: 0 });
+  const [isChatOpen, setIsChatOpen] = useState(false);
   
   const tournament = useTournament(activeMode, isAdminAuthenticated);
   const { addToast } = useToast();
@@ -178,7 +179,15 @@ function AppContent() {
           </div>
       )}
 
-      {view !== 'admin' && <NavigationMenu currentView={view} setView={handleSetView} visibleModes={tournament.visibleModes} />}
+      {view !== 'admin' && (
+          <NavigationMenu 
+              currentView={view} 
+              setView={handleSetView} 
+              visibleModes={tournament.visibleModes}
+              onToggleChat={() => setIsChatOpen(!isChatOpen)}
+              isChatOpen={isChatOpen}
+          />
+      )}
       
       <main className={`container mx-auto px-4 py-6 md:p-8 flex-grow relative z-20 ${view !== 'admin' ? 'pb-32' : ''}`}>
         <Suspense fallback={<div className="flex justify-center py-20"><Spinner size={40} /></div>}>
@@ -265,7 +274,14 @@ function AppContent() {
         </Suspense>
       </main>
       
-      <GlobalChat currentUser={currentUser} isAdmin={isAdminAuthenticated} onLoginRequest={() => setShowUserAuth(true)} />
+      <GlobalChat 
+          currentUser={currentUser} 
+          isAdmin={isAdminAuthenticated} 
+          onLoginRequest={() => setShowUserAuth(true)}
+          isOpen={isChatOpen}
+          onToggle={() => setIsChatOpen(!isChatOpen)}
+      />
+      
       {showAdminLogin && <Login onLoginSuccess={() => { handleSetView('admin'); setShowAdminLogin(false); }} onClose={() => setShowAdminLogin(false)} />}
       {showUserAuth && <UserAuthModal onClose={() => setShowUserAuth(false)} onSuccess={() => setShowUserAuth(false)} />}
       {showUserProfile && currentUser && (

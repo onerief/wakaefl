@@ -50,6 +50,7 @@ const firebaseConfig = {
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// initializeFirestore with settings prefers explicit imports over getFirestore() usually if we want cache
 const firestore = initializeFirestore(app, { localCache: persistentLocalCache() });
 const auth = getAuth(app);
 const storage = getStorage(app); 
@@ -187,6 +188,31 @@ export const getGlobalStats = async () => {
     console.error("Error fetching global stats:", error);
     return { teamCount: 0, partnerCount: 0 };
   }
+};
+
+// --- NEW: Fetch All Teams across all modes ---
+export const getAllGlobalTeams = async (): Promise<Team[]> => {
+    try {
+        const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
+        const uniqueTeams = new Map<string, Team>();
+
+        await Promise.all(modes.map(async (mode) => {
+            const d = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
+            if (d.exists()) {
+                const teams = (d.data().teams || []) as Team[];
+                teams.forEach(t => {
+                    if (t && t.id && t.name && t.name !== 'TBD' && t.name !== 'BYE') {
+                        uniqueTeams.set(t.name.toLowerCase(), t); 
+                    }
+                });
+            }
+        }));
+        
+        return Array.from(uniqueTeams.values());
+    } catch (e) {
+        console.error("Failed to fetch global teams:", e);
+        return [];
+    }
 };
 
 export const getUserTeams = async (email: string) => {
@@ -361,11 +387,13 @@ export const subscribeToGlobalChat = (callback: (messages: ChatMessage[]) => voi
     callback(messages);
   }, (e) => console.error("Global Chat Sub Failed:", e));
 };
-export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: boolean) => {
+
+export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: boolean, teamName?: string) => {
   return addDoc(collection(firestore, CHAT_COLLECTION), {
     text,
     userId: user.uid,
     userName: user.displayName || 'Anonymous',
+    userTeamName: teamName || null,
     userPhoto: user.photoURL,
     timestamp: Date.now(),
     isAdmin

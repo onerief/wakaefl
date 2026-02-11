@@ -55,7 +55,7 @@ export const KnockoutMatchScheduleEditor: React.FC<KnockoutMatchScheduleEditorPr
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm p-4">
-      <Card className="w-full max-w-2xl relative">
+      <Card className="w-full max-w-md sm:max-w-2xl relative">
         <button onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-brand-text transition-colors" aria-label="Close form">
           <X size={24} />
         </button>

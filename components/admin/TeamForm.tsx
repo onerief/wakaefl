@@ -88,7 +88,7 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
   return (
     <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/70 backdrop-blur-sm">
       <div className="flex min-h-full items-center justify-center p-4">
-        <Card className="w-full max-w-lg relative !p-0 overflow-hidden !rounded-[2rem] shadow-2xl">
+        <Card className="w-full max-w-md sm:max-w-2xl relative !p-0 overflow-hidden !rounded-[2rem] shadow-2xl">
             <div className="bg-brand-secondary/50 p-6 border-b border-white/5 flex justify-between items-center sticky top-0 z-10 backdrop-blur-md">
                 <h2 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tighter">
                     {team ? 'Edit Profil Tim' : 'Tambah Tim Baru'}

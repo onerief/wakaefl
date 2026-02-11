@@ -109,12 +109,12 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
     return (
         <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/80 backdrop-blur-md">
             <div className="flex min-h-full items-center justify-center p-4">
-                <Card className="w-full max-w-sm sm:max-w-lg relative !p-0 overflow-hidden shadow-2xl !bg-brand-primary border-brand-vibrant/20 flex flex-col">
+                <Card className="w-full max-w-md sm:max-w-xl relative !p-0 overflow-hidden shadow-2xl !bg-brand-primary border-brand-vibrant/20 flex flex-col">
                     {/* Header */}
-                    <div className="bg-brand-secondary/50 p-4 sm:p-5 border-b border-white/5 flex justify-between items-center">
+                    <div className="bg-brand-secondary/50 p-4 sm:p-6 border-b border-white/5 flex justify-between items-center">
                         <div>
                             <h2 className="text-lg sm:text-xl font-black text-white italic uppercase tracking-tighter">Form Pendaftaran</h2>
-                            <p className="text-[10px] text-brand-light">Daftarkan tim untuk kompetisi baru.</p>
+                            <p className="text-[10px] sm:text-xs text-brand-light">Daftarkan tim untuk kompetisi baru.</p>
                         </div>
                         <button onClick={onClose} className="text-brand-light hover:text-white transition-colors">
                             <X size={20} sm:size={24} />

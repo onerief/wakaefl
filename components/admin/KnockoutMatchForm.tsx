@@ -74,7 +74,7 @@ export const KnockoutMatchForm: React.FC<KnockoutMatchFormProps> = ({ round: ini
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <Card className="w-full max-w-2xl relative !p-0 overflow-hidden shadow-2xl !bg-brand-primary border-brand-vibrant/20 flex flex-col max-h-[90vh]">
+      <Card className="w-full max-w-md sm:max-w-3xl relative !p-0 overflow-hidden shadow-2xl !bg-brand-primary border-brand-vibrant/20 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="bg-brand-secondary/50 p-6 border-b border-white/5 flex justify-between items-center sticky top-0 z-10">
             <div className="flex items-center gap-3">
