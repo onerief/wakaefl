@@ -90,7 +90,7 @@ export const GlobalChat: React.FC<GlobalChatProps> = ({ currentUser, isAdmin, on
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-[80px] right-0 left-0 sm:left-auto sm:right-4 z-40 sm:w-[400px] px-4 sm:px-0 animate-in slide-in-from-bottom-10 fade-in duration-300 pointer-events-none">
+    <div className="fixed bottom-[100px] right-0 left-0 sm:left-auto sm:right-4 z-[60] sm:w-[400px] px-4 sm:px-0 animate-in slide-in-from-bottom-10 fade-in duration-300 pointer-events-none">
         <div className="pointer-events-auto bg-brand-primary/95 backdrop-blur-xl border border-brand-vibrant/30 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col h-[60vh] max-h-[600px]">
             {/* Header */}
             <div className="flex items-center justify-between p-4 bg-brand-secondary/80 border-b border-white/5">

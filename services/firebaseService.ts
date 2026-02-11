@@ -381,9 +381,10 @@ export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: strin
 
 // --- CHAT ---
 export const subscribeToGlobalChat = (callback: (messages: ChatMessage[]) => void) => {
-  const q = query(collection(firestore, CHAT_COLLECTION), orderBy('timestamp', 'asc'), limit(50));
+  // Use 'desc' to get the latest messages, then reverse them for display
+  const q = query(collection(firestore, CHAT_COLLECTION), orderBy('timestamp', 'desc'), limit(50));
   return onSnapshot(q, (snap) => {
-    const messages = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage));
+    const messages = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage)).reverse();
     callback(messages);
   }, (e) => console.error("Global Chat Sub Failed:", e));
 };
@@ -394,9 +395,9 @@ export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: b
     userId: user.uid,
     userName: user.displayName || 'Anonymous',
     userTeamName: teamName || null,
-    userPhoto: user.photoURL,
+    userPhoto: user.photoURL || null,
     timestamp: Date.now(),
-    isAdmin
+    isAdmin: !!isAdmin
   });
 };
 
