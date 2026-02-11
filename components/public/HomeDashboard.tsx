@@ -62,7 +62,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   }, [userOwnedTeams, allMatches, visibleModes]);
 
   const CompetitionCard = ({ mode, title, desc, icon: Icon, colorClass, bgClass }: any) => {
-    if (mode !== 'shop' && !visibleModes.includes(mode)) return null;
+    if (!visibleModes.includes(mode)) return null;
     return (
         <button 
             onClick={() => onSelectMode(mode)}
@@ -81,7 +81,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             <p className="text-xs text-white/50 font-medium leading-relaxed mb-6">{desc}</p>
             <div className="mt-auto flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-widest text-white/80 py-1.5 px-4 bg-black/40 rounded-full border border-white/10 group-hover:bg-brand-vibrant group-hover:border-brand-vibrant transition-all">
-                    {mode === 'shop' ? 'Belanja' : 'Masuk Arena'}
+                    Masuk Arena
                 </span>
             </div>
         </button>
