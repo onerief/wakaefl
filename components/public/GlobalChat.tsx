@@ -55,6 +55,37 @@ export const GlobalChat: React.FC<GlobalChatProps> = ({ currentUser, isAdmin, on
         }
     };
 
+    // Fungsi untuk mengubah teks URL menjadi link aktif
+    const renderMessageWithLinks = (text: string, isMe: boolean, isAdminMsg: boolean) => {
+        // Regex untuk mendeteksi URL (http/https)
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        
+        // Split pesan berdasarkan URL
+        const parts = text.split(urlRegex);
+        
+        return parts.map((part, index) => {
+            // Jika bagian ini cocok dengan regex URL, render sebagai <a> tag
+            if (part.match(urlRegex)) {
+                return (
+                    <a 
+                        key={index} 
+                        href={part} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className={`font-bold underline break-all hover:opacity-80 transition-opacity ${
+                            isMe ? 'text-white' : isAdminMsg ? 'text-yellow-600' : 'text-blue-400'
+                        }`}
+                        onClick={(e) => e.stopPropagation()} // Mencegah event bubbling jika ada
+                    >
+                        {part}
+                    </a>
+                );
+            }
+            // Jika teks biasa, kembalikan string
+            return part;
+        });
+    };
+
     return (
         <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-[60] flex flex-col items-end pointer-events-none max-w-[calc(100vw-32px)]">
             {/* Chat Window */}
@@ -123,7 +154,7 @@ export const GlobalChat: React.FC<GlobalChatProps> = ({ currentUser, isAdmin, on
                                                     : 'bg-white/10 text-brand-text rounded-tl-none'
                                             }
                                         `}>
-                                            {msg.text}
+                                            {renderMessageWithLinks(msg.text, !!isMe, !!msg.isAdmin)}
                                         </div>
                                     </div>
                                 </div>
@@ -141,7 +172,7 @@ export const GlobalChat: React.FC<GlobalChatProps> = ({ currentUser, isAdmin, on
                                 type="text"
                                 value={newMessage}
                                 onChange={(e) => setNewMessage(e.target.value)}
-                                placeholder="Ketik pesan..."
+                                placeholder="Ketik pesan (link dimulai http://)..."
                                 className="flex-grow bg-black/30 border border-white/10 rounded-full pl-4 pr-10 py-2.5 text-xs text-white focus:outline-none focus:border-brand-vibrant focus:ring-1 focus:ring-brand-vibrant transition-all"
                              />
                              <button 
