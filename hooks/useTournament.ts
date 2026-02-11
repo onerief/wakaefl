@@ -225,42 +225,60 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   const [state, dispatch] = useReducer(tournamentReducer, createInitialState(activeMode));
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
   const isUpdatingFromServer = useRef(false);
+  const hasPendingChanges = useRef(false);
   const stateRef = useRef(state);
 
-  useEffect(() => { stateRef.current = state; }, [state]);
+  // Keep stateRef up to date for autosave
+  useEffect(() => { 
+      stateRef.current = state;
+      // If the update didn't come from the server subscription, mark as pending
+      if (!isUpdatingFromServer.current && !isLoading) {
+          hasPendingChanges.current = true;
+      }
+  }, [state, isLoading]);
 
+  // Initial Data Subscription
   useEffect(() => {
     setIsLoading(true);
     const unsubscribe = subscribeToTournamentData(activeMode, (serverData) => {
         isUpdatingFromServer.current = true;
         dispatch({ type: 'SET_STATE', payload: serverData });
-        setTimeout(() => { isUpdatingFromServer.current = false; setIsLoading(false); }, 100);
+        // Reset pending changes since we just synced with server
+        hasPendingChanges.current = false;
+        
+        // Small timeout to allow state to settle before enabling "local edit" tracking
+        setTimeout(() => { 
+            isUpdatingFromServer.current = false; 
+            setIsLoading(false); 
+        }, 100);
     });
     return () => unsubscribe();
   }, [activeMode]);
 
+  // AUTO-SAVE Interval (Every 2 Minutes)
   useEffect(() => {
-    if (isAdmin && !isLoading && !isUpdatingFromServer.current) {
-       const hasGlobalData = (state.news && state.news.length > 0) || 
-                            (state.products && state.products.length > 0) ||
-                            (state.banners && state.banners.length > 0) ||
-                            (state.marqueeMessages && state.marqueeMessages.length > 0) ||
-                            (state.history && state.history.length > 0) ||
-                            (state.visibleModes && state.visibleModes.length > 0);
-                            
-       if (!hasGlobalData) return;
+    if (!isAdmin) return;
 
-       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-       saveTimeoutRef.current = setTimeout(async () => { 
-           setIsSyncing(true); 
-           try { await saveTournamentData(activeMode, stateRef.current); } catch (e) { console.error(e); } 
-           finally { setIsSyncing(false); }
-       }, 2000); 
-       return () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current); };
-    }
-  }, [state, isLoading, activeMode, isAdmin]);
+    const autoSaveInterval = setInterval(async () => {
+        if (hasPendingChanges.current && !isLoading) {
+            setIsSyncing(true);
+            try {
+                console.log(`[AutoSave] Saving changes for mode: ${activeMode}...`);
+                await saveTournamentData(activeMode, stateRef.current);
+                hasPendingChanges.current = false;
+                console.log(`[AutoSave] Save successful.`);
+            } catch (e) {
+                console.error("[AutoSave] Error saving data:", e);
+            } finally {
+                setIsSyncing(false);
+            }
+        }
+    }, 120000); // 2 minutes = 120,000 ms
+
+    return () => clearInterval(autoSaveInterval);
+  }, [activeMode, isAdmin, isLoading]);
 
   const generateKnockoutBracket = useCallback(() => {
     const topTeamsByGroup: { winner: Team | null, runnerUp: Team | null }[] = state.groups.map(group => {
@@ -346,12 +364,11 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   }, [state.matches, state.knockoutStage, state.teams]);
 
   const playerStats = useMemo(() => {
-      // Removed Player Stats Calculation logic entirely
       return {
           topScorers: [],
           topAssists: [] 
       };
-  }, []); // No dependencies needed
+  }, []);
 
   return { 
       ...state, 

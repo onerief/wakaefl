@@ -191,8 +191,9 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
-        a.download = `wakacl-backup-${timestamp}.json`;
+        const timestamp = new Date().toISOString().split('T')[0];
+        const modeStr = mode === 'league' ? 'LEAGUE' : mode === 'wakacl' ? 'CHAMPIONSHIP' : '2REGION';
+        a.download = `wakaefl-${modeStr}-backup-${timestamp}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

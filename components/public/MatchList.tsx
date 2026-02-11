@@ -150,7 +150,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     <div className="flex gap-2 sm:gap-4">
                         {match.proofUrl && (
                             <button onClick={() => setShowProof(true)} className="flex items-center gap-1 text-[7px] sm:text-[9px] font-black text-brand-vibrant uppercase hover:text-white transition-all">
-                                <MonitorPlay size={10} className="sm:w-3.5 sm:h-3.5" /> <span>Bukti</span>
+                                <MonitorPlay size={10} className="sm:w-3.5 sm:h-3.5" /> <span>Video/SS Pertandingan</span>
                             </button>
                         )}
                         {hasComments && (

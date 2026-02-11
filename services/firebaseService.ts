@@ -18,7 +18,8 @@ import {
   getDocs,
   updateDoc,
   arrayUnion,
-  where
+  where,
+  writeBatch
 } from "firebase/firestore";
 import { 
   getAuth, 
@@ -61,9 +62,45 @@ const CHAT_COLLECTION = 'global_chat';
 const REGISTRATIONS_COLLECTION = 'registrations';
 const NOTIFICATIONS_COLLECTION = 'notifications';
 
+// --- CIRCULAR JSON FIX ---
+// Uses WeakSet to track visited objects during deep copy/sanitization
 export const sanitizeData = (data: any): any => {
-    if (!data) return null;
-    try { return JSON.parse(JSON.stringify(data)); } catch (e) { return data; }
+    if (data === null || data === undefined) return null;
+    
+    // Primitives
+    if (typeof data !== 'object') return data;
+    
+    // Handle Date objects
+    if (data instanceof Date) return data.toISOString();
+
+    // Use a custom replacer or deep copy function that handles circular refs
+    const seen = new WeakSet();
+    
+    const deepCopy = (obj: any): any => {
+        if (obj === null || typeof obj !== 'object') return obj;
+        
+        if (seen.has(obj)) {
+            // Circular reference found, discard or return a marker
+            return null; 
+        }
+        seen.add(obj);
+
+        if (Array.isArray(obj)) {
+            return obj.map(deepCopy);
+        }
+
+        const newObj: any = {};
+        for (const key in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                // Filter out obviously non-data keys (like DOM elements or React internal props)
+                if (key.startsWith('__') || key === 'nativeEvent') continue;
+                newObj[key] = deepCopy(obj[key]);
+            }
+        }
+        return newObj;
+    };
+
+    return deepCopy(data);
 };
 
 // --- AUTH FUNCTIONS ---
@@ -124,6 +161,7 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
         runnerUp: h.runnerUp ? sanitizeData(h.runnerUp) : undefined
     }));
 
+    // Apply sanitization to ensure no circular structures are saved
     const cleanState = {
         teams: sanitizeData(state.teams),
         groups: cleanGroups,
@@ -170,6 +208,49 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
   }
 };
 
+// --- GLOBAL BACKUP FUNCTIONS ---
+export const getFullSystemBackup = async () => {
+    try {
+        const [league, wakacl, two_leagues, settings] = await Promise.all([
+            getDoc(doc(firestore, TOURNAMENT_COLLECTION, 'league')),
+            getDoc(doc(firestore, TOURNAMENT_COLLECTION, 'wakacl')),
+            getDoc(doc(firestore, TOURNAMENT_COLLECTION, 'two_leagues')),
+            getDoc(doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC))
+        ]);
+
+        return {
+            backupType: 'FULL_SYSTEM',
+            timestamp: Date.now(),
+            data: {
+                league: league.exists() ? league.data() : null,
+                wakacl: wakacl.exists() ? wakacl.data() : null,
+                two_leagues: two_leagues.exists() ? two_leagues.data() : null,
+                global_settings: settings.exists() ? settings.data() : null
+            }
+        };
+    } catch (e) {
+        console.error("Backup failed:", e);
+        throw e;
+    }
+};
+
+export const restoreFullSystem = async (backupData: any) => {
+    if (backupData.backupType !== 'FULL_SYSTEM' || !backupData.data) {
+        throw new Error("Format file backup tidak valid.");
+    }
+
+    const { league, wakacl, two_leagues, global_settings } = backupData.data;
+    const promises = [];
+
+    if (league) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, 'league'), league));
+    if (wakacl) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, 'wakacl'), wakacl));
+    if (two_leagues) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, 'two_leagues'), two_leagues));
+    if (global_settings) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC), global_settings));
+
+    await Promise.all(promises);
+    return true;
+};
+
 export const getGlobalStats = async () => {
   try {
     const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
@@ -190,7 +271,6 @@ export const getGlobalStats = async () => {
   }
 };
 
-// --- NEW: Fetch All Teams across all modes ---
 export const getAllGlobalTeams = async (): Promise<Team[]> => {
     try {
         const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
@@ -417,19 +497,24 @@ export const sendNotification = async (email: string, title: string, message: st
     }
 };
 
+// FIX: REMOVED orderBy to prevent composite index error. Sorting happens client-side.
 export const subscribeToNotifications = (email: string, callback: (notifs: Notification[]) => void) => {
     if (!email) return () => {};
     
+    // Only filter by email to use single-field index
     const q = query(
         collection(firestore, NOTIFICATIONS_COLLECTION), 
-        where("email", "==", email),
-        orderBy("timestamp", "desc"),
-        limit(20)
+        where("email", "==", email)
     );
 
     return onSnapshot(q, (snap) => {
         const notifs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
-        callback(notifs);
+        // Sort client-side
+        notifs.sort((a, b) => b.timestamp - a.timestamp);
+        // Limit client-side
+        callback(notifs.slice(0, 20));
+    }, (error) => {
+        console.error("Notification subscription error:", error);
     });
 };
 
