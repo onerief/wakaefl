@@ -50,27 +50,9 @@ const firebaseConfig = {
   measurementId: "G-CXXT1NJEWH"
 };
 
-// Singleton pattern for Firebase App
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-
-// Safe initialization of Firestore
-let firestore;
-try {
-  // Try to initialize Firestore with settings (only works if not already initialized)
-  firestore = initializeFirestore(app, {
-    localCache: persistentLocalCache()
-  });
-} catch (error: any) {
-  // If FAILED_PRECONDITION (already initialized), just get the existing instance
-  if (error.code === 'failed-precondition' || error.message.includes('already been started')) {
-    firestore = getFirestore(app);
-  } else {
-    console.error("Firebase Initialization Error:", error);
-    // Fallback attempt
-    firestore = getFirestore(app);
-  }
-}
-
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// initializeFirestore with settings prefers explicit imports over getFirestore() usually if we want cache
+const firestore = initializeFirestore(app, { localCache: persistentLocalCache() });
 const auth = getAuth(app);
 const storage = getStorage(app); 
 
