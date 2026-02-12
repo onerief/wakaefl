@@ -1,9 +1,10 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { PlusCircle, Calendar, ArrowRight, Newspaper, Clock, Zap, Star, Trophy, ChevronLeft, ChevronRight, Globe, LayoutGrid, Shield, Users, ShoppingBag } from 'lucide-react';
+import { PlusCircle, Calendar, ArrowRight, Newspaper, Clock, Zap, Star, Trophy, ChevronLeft, ChevronRight, Globe, LayoutGrid, Shield, Users, ShoppingBag, Sparkles } from 'lucide-react';
 import { Card } from '../shared/Card';
 import { TournamentMode, Team, Match, NewsItem } from '../../types';
 import { TeamLogo } from '../shared/TeamLogo';
+import type { User } from 'firebase/auth';
 
 interface HomeDashboardProps {
   onSelectMode: (mode: TournamentMode | 'hall_of_fame' | 'news' | 'shop') => void;
@@ -15,6 +16,7 @@ interface HomeDashboardProps {
   allMatches?: Match[];
   news?: NewsItem[];
   visibleModes?: TournamentMode[];
+  currentUser?: User | null;
 }
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({ 
@@ -26,7 +28,8 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     userOwnedTeams = [],
     allMatches = [],
     news = [],
-    visibleModes = ['league', 'wakacl', 'two_leagues']
+    visibleModes = ['league', 'wakacl', 'two_leagues'],
+    currentUser
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -47,14 +50,25 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + latestNews.length) % latestNews.length);
 
   const nextMatchInfo = useMemo(() => {
-    if (userOwnedTeams.length === 0 || allMatches.length === 0) return null;
-    const userTeamIds = userOwnedTeams.map(t => t.team.id);
+    if (!userOwnedTeams || userOwnedTeams.length === 0 || !allMatches || allMatches.length === 0) return null;
+    
+    // SAFE MAPPING
+    const userTeamIds = userOwnedTeams.filter(t => t && t.team).map(t => t.team.id);
+    if (userTeamIds.length === 0) return null;
+
     const upcoming = allMatches.filter(m => 
-        m.status === 'scheduled' && (userTeamIds.includes(m.teamA.id) || userTeamIds.includes(m.teamB.id))
+        m && m.status === 'scheduled' && 
+        m.teamA && m.teamB && // Ensure teams exist in match
+        (userTeamIds.includes(m.teamA.id) || userTeamIds.includes(m.teamB.id))
     ).sort((a, b) => (a.matchday || 1) - (b.matchday || 1));
+    
     if (upcoming.length === 0) return null;
+    
     const match = upcoming[0];
-    const userTeamMode = userOwnedTeams.find(ut => ut.team.id === match.teamA.id || ut.team.id === match.teamB.id)?.mode;
+    const userTeamMode = userOwnedTeams.find(ut => 
+        (ut.team && match.teamA && ut.team.id === match.teamA.id) || 
+        (ut.team && match.teamB && ut.team.id === match.teamB.id)
+    )?.mode;
     
     if (userTeamMode && !visibleModes.includes(userTeamMode)) return null;
     
@@ -89,8 +103,47 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   };
 
   return (
-    <div className="space-y-10 md:space-y-20 py-2 md:py-4 animate-in fade-in duration-700 relative z-10 pb-20">
+    <div className="space-y-6 md:space-y-10 py-2 md:py-4 animate-in fade-in duration-700 relative z-10 pb-20">
       
+      {/* DYNAMIC WELCOME MESSAGE */}
+      <div className="flex flex-col gap-1 px-1">
+          {currentUser ? (
+              <>
+                  <h2 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter flex items-center gap-2">
+                      Halo, <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-vibrant to-brand-special">{currentUser.displayName?.split(' ')[0] || 'Coach'}!</span>
+                      <Sparkles className="text-brand-special animate-pulse" size={24} />
+                  </h2>
+                  <p className="text-brand-light text-xs sm:text-sm font-medium">Selamat datang kembali di arena. Siap untuk pertandingan hari ini?</p>
+              </>
+          ) : (
+              <>
+                  <h2 className="text-2xl sm:text-4xl font-black text-white italic uppercase tracking-tighter flex items-center gap-2">
+                      Welcome, <span className="text-brand-vibrant">Challengers!</span>
+                      <Zap className="text-yellow-400 animate-bounce" size={24} />
+                  </h2>
+                  <p className="text-brand-light text-xs sm:text-sm font-medium">Bergabunglah dalam kompetisi eFootball terbesar di Way Kanan.</p>
+              </>
+          )}
+      </div>
+
+      {/* QUICK STATS BAR - COMPACT VERSION MOVED UP */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+          {[
+              { label: 'Peserta', val: teamCount, icon: Users, color: 'text-blue-400' },
+              { label: 'Sponsors', val: partnerCount, icon: Star, color: 'text-yellow-400' },
+              { label: 'Kompetisi', val: visibleModes.length, icon: Trophy, color: 'text-purple-400' },
+              { label: 'Server', val: 'Online', icon: Zap, color: 'text-green-400' }
+          ].map((stat, i) => (
+              <div key={i} className="bg-brand-secondary/40 border border-white/5 p-2 sm:p-3 rounded-xl flex items-center gap-3 hover:border-white/10 transition-all shadow-lg">
+                  <div className={`p-1.5 rounded-lg bg-white/5 ${stat.color} shrink-0 shadow-inner`}><stat.icon size={14} className="sm:w-4 sm:h-4" /></div>
+                  <div className="min-w-0">
+                      <p className="text-sm sm:text-lg font-black text-white italic leading-none">{stat.val}</p>
+                      <p className="text-[7px] sm:text-[9px] font-bold text-brand-light uppercase tracking-widest opacity-60 truncate">{stat.label}</p>
+                  </div>
+              </div>
+          ))}
+      </div>
+
       {/* BERITA SLIDESHOW (Prominent UCL Style Hero) */}
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div 
@@ -155,24 +208,6 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 </div>
             )}
         </div>
-      </div>
-
-      {/* QUICK STATS BAR */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
-          {[
-              { label: 'Total Peserta', val: teamCount, icon: Users, color: 'text-blue-400' },
-              { label: 'Official Sponsors', val: partnerCount, icon: Star, color: 'text-yellow-400' },
-              { label: 'Mode Kompetisi', val: visibleModes.length, icon: Trophy, color: 'text-purple-400' },
-              { label: 'Status Server', val: 'Online', icon: Zap, color: 'text-green-400' }
-          ].map((stat, i) => (
-              <div key={i} className="bg-brand-secondary/40 border border-white/5 p-5 rounded-[1.5rem] flex items-center gap-4 hover:border-white/10 transition-all">
-                  <div className={`p-3 rounded-xl bg-white/5 ${stat.color}`}><stat.icon size={20} /></div>
-                  <div>
-                      <p className="text-2xl font-black text-white italic leading-none">{stat.val}</p>
-                      <p className="text-[10px] font-bold text-brand-light uppercase tracking-widest opacity-50 mt-1">{stat.label}</p>
-                  </div>
-              </div>
-          ))}
       </div>
 
       {/* COMPETITION EXPLORER - THE MAIN MENU */}

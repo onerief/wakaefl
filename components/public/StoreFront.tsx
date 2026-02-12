@@ -107,7 +107,7 @@ export const StoreFront: React.FC<StoreFrontProps> = ({ products = [], categorie
                                     className={`w-full flex items-center justify-center gap-1.5 sm:gap-2 py-2.5 sm:py-3.5 ${product.buyUrl ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-500 hover:bg-emerald-600'} text-white rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95 group/btn`}
                                 >
                                     {product.buyUrl ? <ExternalLink size={14} className="sm:w-4 sm:h-4 group-hover/btn:scale-110 transition-transform" /> : <MessageCircle size={14} className="sm:w-4 sm:h-4 group-hover/btn:rotate-12 transition-transform" />} 
-                                    <span>{product.buyUrl ? 'Marketplace' : 'Beli via WA'}</span>
+                                    <span>{product.buyUrl ? 'Beli' : 'Beli via WA'}</span>
                                 </button>
                             </div>
                         </div>
