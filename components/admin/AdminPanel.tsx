@@ -4,7 +4,7 @@ import type { Team, Group, Match, KnockoutStageRounds, KnockoutMatch, Tournament
 import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
-import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Crown, ImageIcon, ShieldCheck, Share2, FileJson, LayoutGrid, Zap, Sparkles, X, Newspaper, ShoppingBag, Type, Globe, RefreshCw, Eye, EyeOff, ChevronDown, Check, Archive } from 'lucide-react';
+import { Trophy, Users, ListChecks, Plus, BookOpen, Settings, Crown, ImageIcon, ShieldCheck, Share2, FileJson, LayoutGrid, Zap, Sparkles, X, Newspaper, ShoppingBag, Type, Globe, RefreshCw, Eye, EyeOff, ChevronDown, Check, Archive, Save, Loader, AlertTriangle, Wifi } from 'lucide-react';
 import { Card } from '../shared/Card';
 import { RulesEditor } from './RulesEditor';
 import { BannerSettings } from './BannerSettings';
@@ -39,6 +39,8 @@ interface AdminPanelProps {
   history: SeasonHistory[];
   isDoubleRoundRobin: boolean;
   isSyncing?: boolean;
+  hasUnsavedChanges?: boolean;
+  forceSave?: () => Promise<void>;
   isRegistrationOpen: boolean;
   visibleModes?: TournamentMode[];
   setMode: (mode: TournamentMode) => void;
@@ -148,6 +150,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       }
       props.updateVisibleModes(updated);
       addToast(`Visibilitas ${modeToToggle.toUpperCase()} diperbarui.`, 'info');
+  };
+
+  const handleForceSave = async () => {
+      if (props.forceSave) {
+          await props.forceSave();
+          addToast('Data berhasil disimpan manual.', 'success');
+      }
   };
 
   const renderContent = () => {
@@ -458,10 +467,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                 {currentTabInfo?.icon && <currentTabInfo.icon size={24} className={currentTabInfo.color} />} {currentTabInfo?.label}
              </h1>
              <div className="flex items-center gap-4">
-                 <div className="flex items-center gap-2">
-                     <div className={`w-1.5 h-1.5 rounded-full ${props.isSyncing ? 'bg-yellow-400 animate-pulse' : 'bg-green-500'}`}></div>
-                     <span className="text-[9px] font-black text-brand-light uppercase opacity-60">{props.isSyncing ? 'Syncing...' : 'Saved to Cloud'}</span>
+                 
+                 {/* Connection Status Indicator */}
+                 <div className="flex items-center gap-3 bg-black/30 px-3 py-1.5 rounded-full border border-white/5">
+                     <div className={`flex items-center gap-2 ${props.isSyncing ? 'text-yellow-400' : props.hasUnsavedChanges ? 'text-yellow-500' : 'text-green-500'}`}>
+                         {props.isSyncing ? (
+                             <RefreshCw className="animate-spin" size={14} />
+                         ) : (
+                             <Wifi size={14} />
+                         )}
+                         <span className="text-[10px] font-black uppercase tracking-widest">
+                             {props.isSyncing ? 'Syncing...' : props.hasUnsavedChanges ? 'Unsaved' : 'Connected'}
+                         </span>
+                     </div>
+                     {props.hasUnsavedChanges && !props.isSyncing && (
+                         <button 
+                            onClick={handleForceSave}
+                            className="bg-yellow-500 hover:bg-yellow-400 text-brand-primary text-[9px] font-black uppercase px-2 py-0.5 rounded ml-1 animate-pulse"
+                         >
+                             Save Now
+                         </button>
+                     )}
                  </div>
+
                  <div className="h-4 w-px bg-white/10"></div>
                  <span className="text-[10px] font-black text-brand-vibrant uppercase tracking-widest bg-brand-vibrant/5 px-3 py-1 rounded-full border border-brand-vibrant/20">Active Session</span>
              </div>

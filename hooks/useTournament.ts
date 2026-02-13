@@ -225,6 +225,8 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   const [state, dispatch] = useReducer(tournamentReducer, createInitialState(activeMode));
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  // Add explicit state to track if we have unsaved changes visually
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   const isUpdatingFromServer = useRef(false);
   const hasPendingChanges = useRef(false);
@@ -236,6 +238,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       // If the update didn't come from the server subscription, mark as pending
       if (!isUpdatingFromServer.current && !isLoading) {
           hasPendingChanges.current = true;
+          setHasUnsavedChanges(true);
       }
   }, [state, isLoading]);
 
@@ -247,8 +250,8 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
         dispatch({ type: 'SET_STATE', payload: serverData });
         // Reset pending changes since we just synced with server
         hasPendingChanges.current = false;
+        setHasUnsavedChanges(false);
         
-        // Small timeout to allow state to settle before enabling "local edit" tracking
         setTimeout(() => { 
             isUpdatingFromServer.current = false; 
             setIsLoading(false); 
@@ -257,28 +260,34 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
     return () => unsubscribe();
   }, [activeMode]);
 
-  // AUTO-SAVE Interval (Every 2 Minutes)
+  // Force Save Function
+  const forceSave = useCallback(async () => {
+      if (!isAdmin) return;
+      setIsSyncing(true);
+      try {
+          console.log(`[ForceSave] Saving data for ${activeMode}...`);
+          await saveTournamentData(activeMode, stateRef.current);
+          hasPendingChanges.current = false;
+          setHasUnsavedChanges(false);
+      } catch (e) {
+          console.error("[ForceSave] Error:", e);
+      } finally {
+          setIsSyncing(false);
+      }
+  }, [activeMode, isAdmin]);
+
+  // AUTO-SAVE Interval (Reduced to 5 Seconds for better reliability)
   useEffect(() => {
     if (!isAdmin) return;
 
     const autoSaveInterval = setInterval(async () => {
-        if (hasPendingChanges.current && !isLoading) {
-            setIsSyncing(true);
-            try {
-                console.log(`[AutoSave] Saving changes for mode: ${activeMode}...`);
-                await saveTournamentData(activeMode, stateRef.current);
-                hasPendingChanges.current = false;
-                console.log(`[AutoSave] Save successful.`);
-            } catch (e) {
-                console.error("[AutoSave] Error saving data:", e);
-            } finally {
-                setIsSyncing(false);
-            }
+        if (hasPendingChanges.current && !isLoading && !isSyncing) {
+            await forceSave();
         }
-    }, 120000); // 2 minutes = 120,000 ms
+    }, 5000); // 5 Seconds Interval
 
     return () => clearInterval(autoSaveInterval);
-  }, [activeMode, isAdmin, isLoading]);
+  }, [isAdmin, isLoading, isSyncing, forceSave]);
 
   const generateKnockoutBracket = useCallback(() => {
     const topTeamsByGroup: { winner: Team | null, runnerUp: Team | null }[] = state.groups.map(group => {
@@ -372,7 +381,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
 
   return { 
       ...state, 
-      isLoading, isSyncing, clubStats, playerStats,
+      isLoading, isSyncing, clubStats, playerStats, hasUnsavedChanges, forceSave,
       updateNews: (news: NewsItem[]) => dispatch({ type: 'UPDATE_NEWS', payload: news }),
       updateProducts: (products: Product[]) => dispatch({ type: 'UPDATE_PRODUCTS', payload: products }),
       updateNewsCategories: (cats: string[]) => dispatch({ type: 'UPDATE_NEWS_CATEGORIES', payload: cats }),
