@@ -131,7 +131,7 @@ type Action =
   | { type: 'UPDATE_PARTNERS', payload: Partner[] }
   | { type: 'SET_REGISTRATION_STATUS', payload: boolean }
   | { type: 'UPDATE_HEADER_LOGO', payload: string }
-  | { type: 'UPDATE_PWA_ICON', payload: string } // New Action
+  | { type: 'UPDATE_PWA_ICON', payload: string }
   | { type: 'ADD_HISTORY_ENTRY', payload: SeasonHistory }
   | { type: 'DELETE_HISTORY_ENTRY', payload: string }
   | { type: 'ADD_KNOCKOUT_MATCH'; payload: KnockoutMatch }
@@ -181,7 +181,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'UPDATE_BANNERS': newState = { ...state, banners: action.payload }; break;
     case 'UPDATE_PARTNERS': newState = { ...state, partners: action.payload }; break;
     case 'UPDATE_HEADER_LOGO': newState = { ...state, headerLogoUrl: action.payload }; break;
-    case 'UPDATE_PWA_ICON': newState = { ...state, pwaIconUrl: action.payload }; break; // New Case
+    case 'UPDATE_PWA_ICON': newState = { ...state, pwaIconUrl: action.payload }; break; 
     case 'SET_REGISTRATION_STATUS': newState = { ...state, isRegistrationOpen: action.payload }; break;
     case 'SET_STATUS': newState = { ...state, status: action.payload }; break;
     case 'ADD_HISTORY_ENTRY': newState = { ...state, history: [action.payload, ...state.history] }; break;
@@ -198,7 +198,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
             partners: state.partners,
             rules: state.rules,
             headerLogoUrl: state.headerLogoUrl,
-            pwaIconUrl: state.pwaIconUrl, // Persist PWA Icon on reset
+            pwaIconUrl: state.pwaIconUrl, 
             newsCategories: state.newsCategories,
             shopCategories: state.shopCategories,
             marqueeMessages: state.marqueeMessages,
@@ -229,30 +229,25 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   const [state, dispatch] = useReducer(tournamentReducer, createInitialState(activeMode));
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  // Add explicit state to track if we have unsaved changes visually
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   const isUpdatingFromServer = useRef(false);
   const hasPendingChanges = useRef(false);
   const stateRef = useRef(state);
 
-  // Keep stateRef up to date for autosave
   useEffect(() => { 
       stateRef.current = state;
-      // If the update didn't come from the server subscription, mark as pending
       if (!isUpdatingFromServer.current && !isLoading) {
           hasPendingChanges.current = true;
           setHasUnsavedChanges(true);
       }
   }, [state, isLoading]);
 
-  // Initial Data Subscription
   useEffect(() => {
     setIsLoading(true);
     const unsubscribe = subscribeToTournamentData(activeMode, (serverData) => {
         isUpdatingFromServer.current = true;
         dispatch({ type: 'SET_STATE', payload: serverData });
-        // Reset pending changes since we just synced with server
         hasPendingChanges.current = false;
         setHasUnsavedChanges(false);
         
@@ -264,7 +259,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
     return () => unsubscribe();
   }, [activeMode]);
 
-  // Force Save Function
   const forceSave = useCallback(async () => {
       if (!isAdmin) return;
       setIsSyncing(true);
@@ -280,16 +274,13 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       }
   }, [activeMode, isAdmin]);
 
-  // AUTO-SAVE Interval (Reduced to 5 Seconds for better reliability)
   useEffect(() => {
     if (!isAdmin) return;
-
     const autoSaveInterval = setInterval(async () => {
         if (hasPendingChanges.current && !isLoading && !isSyncing) {
             await forceSave();
         }
-    }, 5000); // 5 Seconds Interval
-
+    }, 5000); 
     return () => clearInterval(autoSaveInterval);
   }, [isAdmin, isLoading, isSyncing, forceSave]);
 
@@ -379,6 +370,71 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       });
   }, [state.teams]);
 
+  const initializeLeague = useCallback(() => {
+      const leagueGroup: Group = {
+          id: 'league-season',
+          name: 'Regular Season',
+          teams: [...state.teams],
+          standings: []
+      };
+
+      const newMatches: Match[] = [];
+      const teams = [...leagueGroup.teams];
+      
+      if (teams.length < 2) {
+           dispatch({ 
+              type: 'GENERATE_GROUPS', 
+              payload: { groups: [leagueGroup], matches: [], knockoutStage: null } 
+          });
+          return;
+      }
+
+      // Round Robin Algorithm
+      const dummyTeam: Team = { id: 'bye', name: 'BYE' } as Team;
+      if (teams.length % 2 !== 0) {
+          teams.push(dummyTeam); 
+      }
+
+      const numRounds = (teams.length - 1) * 2; // Double round robin
+      const numMatchesPerRound = teams.length / 2;
+
+      for (let round = 0; round < numRounds; round++) {
+          for (let i = 0; i < numMatchesPerRound; i++) {
+              const home = teams[i];
+              const away = teams[teams.length - 1 - i];
+
+              if (home.id !== 'bye' && away.id !== 'bye') {
+                  const isSecondLeg = round >= (numRounds / 2);
+                  const teamA = isSecondLeg ? away : home;
+                  const teamB = isSecondLeg ? home : away;
+
+                  newMatches.push({
+                      id: `m-league-${round + 1}-${i}`,
+                      teamA,
+                      teamB,
+                      scoreA: null,
+                      scoreB: null,
+                      status: 'scheduled',
+                      group: 'league-season',
+                      leg: isSecondLeg ? 2 : 1,
+                      matchday: round + 1
+                  });
+              }
+          }
+          // Rotate array
+          teams.splice(1, 0, teams.pop()!);
+      }
+
+      dispatch({ 
+          type: 'GENERATE_GROUPS', 
+          payload: { 
+              groups: [leagueGroup], 
+              matches: newMatches, 
+              knockoutStage: null 
+          } 
+      });
+  }, [state.teams]);
+
   const clubStats = useMemo(() => {
       const stats: Record<string, { team: Team, goals: number }> = {};
       state.teams.forEach(t => { if (t && t.id) stats[t.id] = { team: t, goals: 0 }; });
@@ -440,7 +496,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       updateBanners: (b: string[]) => dispatch({ type: 'UPDATE_BANNERS', payload: b }),
       updatePartners: (p: Partner[]) => dispatch({ type: 'UPDATE_PARTNERS', payload: p }),
       updateHeaderLogo: (url: string) => dispatch({ type: 'UPDATE_HEADER_LOGO', payload: url }),
-      updatePwaIcon: (url: string) => dispatch({ type: 'UPDATE_PWA_ICON', payload: url }), // Export new function
+      updatePwaIcon: (url: string) => dispatch({ type: 'UPDATE_PWA_ICON', payload: url }),
       setRegistrationOpen: (open: boolean) => dispatch({ type: 'SET_REGISTRATION_STATUS', payload: open }),
       setTournamentStatus: (status: 'active' | 'completed') => dispatch({ type: 'SET_STATUS', payload: status }),
       addHistoryEntry: (entry: SeasonHistory) => dispatch({ type: 'ADD_HISTORY_ENTRY', payload: entry }),
@@ -472,7 +528,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
                   for (let i = 0; i < n / 2; i++) {
                       const tA = teamsForScheduling[i]; const tB = teamsForScheduling[n - 1 - i];
                       if (tA.id !== 'bye' && tB.id !== 'bye') {
-                          newMatches.push({ id: `m-${g.id}-${round}-${i}`, teamA: tA, teamB: tB, scoreA: null, scoreB: null, status: 'finished' as const, group: g.id, leg: 1, matchday: round + 1 });
+                          newMatches.push({ id: `m-${g.id}-${round}-${i}`, teamA: tA, teamB: tB, scoreA: null, scoreB: null, status: 'scheduled', group: g.id, leg: 1, matchday: round + 1 });
                       }
                   }
                   teamsForScheduling.splice(1, 0, teamsForScheduling.pop()!);
@@ -482,7 +538,8 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       },
       addMatchComment: (matchId: string, userId: string, userName: string, userEmail: string, text: string, isAdmin: boolean = false) =>
         dispatch({ type: 'ADD_MATCH_COMMENT', payload: { matchId, comment: { id: `c${Date.now()}`, userId, userName, userEmail, text, timestamp: Date.now(), isAdmin } } }),
-      autoGenerateGroups, // Export new function
+      autoGenerateGroups,
+      initializeLeague, // Exported for use in ManualGroupManager
       generateSummary
   };
 };

@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
-import type { Team, Group, Match } from '../../types';
+import type { Team, Group, Match, TournamentMode } from '../../types';
 import { Button } from '../shared/Button';
-import { Plus, Trash2, Shuffle, Users, X, Wand2, Calculator } from 'lucide-react';
+import { Plus, Trash2, Shuffle, Users, X, Wand2, Calculator, LayoutList } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { ConfirmationModal } from './ConfirmationModal';
 
@@ -17,6 +17,8 @@ interface ManualGroupManagerProps {
     generateMatches: () => void;
     onGenerationSuccess: () => void;
     autoGenerateGroups?: (numberOfGroups: number) => void;
+    initializeLeague?: () => void;
+    mode?: TournamentMode;
 }
 
 const GroupCard: React.FC<{
@@ -97,10 +99,14 @@ const GroupCard: React.FC<{
     );
 };
 
-export const ManualGroupManager: React.FC<ManualGroupManagerProps> = ({ teams, groups, matches, addGroup, deleteGroup, addTeamToGroup, removeTeamFromGroup, generateMatches, onGenerationSuccess, autoGenerateGroups }) => {
+export const ManualGroupManager: React.FC<ManualGroupManagerProps> = ({ 
+    teams, groups, matches, addGroup, deleteGroup, addTeamToGroup, removeTeamFromGroup, 
+    generateMatches, onGenerationSuccess, autoGenerateGroups, initializeLeague, mode 
+}) => {
     const { addToast } = useToast();
     const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
     const [showAutoConfirm, setShowAutoConfirm] = useState(false);
+    const [showLeagueConfirm, setShowLeagueConfirm] = useState(false);
     const [numGroups, setNumGroups] = useState(4);
 
     const assignedTeamIds = useMemo(() => new Set(groups.flatMap(g => g.teams.map(t => t.id))), [groups]);
@@ -153,43 +159,70 @@ export const ManualGroupManager: React.FC<ManualGroupManagerProps> = ({ teams, g
             setShowAutoConfirm(false);
         }
     }
+
+    const confirmLeagueInit = () => {
+        if (initializeLeague) {
+            initializeLeague();
+            addToast('Liga Reguler berhasil diinisialisasi!', 'success');
+            setShowLeagueConfirm(false);
+        }
+    }
     
     return (
         <div className="space-y-8">
-            {/* Auto Generator Section */}
-            {autoGenerateGroups && (
-                <div className="bg-brand-vibrant/5 p-5 rounded-2xl border border-brand-vibrant/20 relative overflow-hidden">
+            {/* Conditional Generator Section */}
+            {mode === 'league' ? (
+                <div className="bg-blue-600/10 p-5 rounded-2xl border border-blue-500/30 relative overflow-hidden">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
                         <div>
-                            <h4 className="font-black text-brand-text flex items-center gap-2 uppercase tracking-wide text-sm">
-                                <Wand2 size={18} className="text-brand-vibrant" /> Automatic Generator
+                            <h4 className="font-black text-white flex items-center gap-2 uppercase tracking-wide text-sm">
+                                <LayoutList size={18} className="text-blue-400" /> League Structure
                             </h4>
-                            <p className="text-xs text-brand-light mt-1">Acak {teams.length} tim ke dalam grup secara otomatis.</p>
+                            <p className="text-xs text-blue-200/60 mt-1">Satu grup besar (klasemen tunggal) untuk {teams.length} tim.</p>
                         </div>
-                        
-                        <div className="flex items-center gap-3 w-full sm:w-auto bg-brand-primary p-2 rounded-xl border border-white/5">
-                            <div className="flex flex-col px-2">
-                                <label className="text-[8px] font-bold text-brand-light uppercase tracking-wider">Groups</label>
-                                <input 
-                                    type="number" 
-                                    min="1" 
-                                    max="26" 
-                                    value={numGroups} 
-                                    onChange={(e) => setNumGroups(parseInt(e.target.value) || 1)}
-                                    className="bg-transparent text-white font-black text-lg w-12 outline-none"
-                                />
-                            </div>
-                            <div className="h-8 w-px bg-white/10"></div>
-                            <div className="flex flex-col px-2">
-                                <label className="text-[8px] font-bold text-brand-light uppercase tracking-wider">Per Group</label>
-                                <span className="text-brand-vibrant font-black text-lg">{perGroup}</span>
-                            </div>
-                            <Button onClick={handleAutoGenerateClick} className="!py-2 !px-4 !text-[10px] font-black uppercase tracking-widest shadow-lg shadow-brand-vibrant/20">
-                                <Shuffle size={14} /> Generate
-                            </Button>
-                        </div>
+                        <Button 
+                            onClick={() => setShowLeagueConfirm(true)} 
+                            className="!py-2 !px-4 !text-[10px] font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 !bg-blue-600 hover:!bg-blue-700 border-none"
+                        >
+                            <Wand2 size={14} /> Generate Regular Season
+                        </Button>
                     </div>
                 </div>
+            ) : (
+                autoGenerateGroups && (
+                    <div className="bg-brand-vibrant/5 p-5 rounded-2xl border border-brand-vibrant/20 relative overflow-hidden">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+                            <div>
+                                <h4 className="font-black text-brand-text flex items-center gap-2 uppercase tracking-wide text-sm">
+                                    <Wand2 size={18} className="text-brand-vibrant" /> Automatic Generator
+                                </h4>
+                                <p className="text-xs text-brand-light mt-1">Acak {teams.length} tim ke dalam grup secara otomatis.</p>
+                            </div>
+                            
+                            <div className="flex items-center gap-3 w-full sm:w-auto bg-brand-primary p-2 rounded-xl border border-white/5">
+                                <div className="flex flex-col px-2">
+                                    <label className="text-[8px] font-bold text-brand-light uppercase tracking-wider">Groups</label>
+                                    <input 
+                                        type="number" 
+                                        min="1" 
+                                        max="26" 
+                                        value={numGroups} 
+                                        onChange={(e) => setNumGroups(parseInt(e.target.value) || 1)}
+                                        className="bg-transparent text-white font-black text-lg w-12 outline-none"
+                                    />
+                                </div>
+                                <div className="h-8 w-px bg-white/10"></div>
+                                <div className="flex flex-col px-2">
+                                    <label className="text-[8px] font-bold text-brand-light uppercase tracking-wider">Per Group</label>
+                                    <span className="text-brand-vibrant font-black text-lg">{perGroup}</span>
+                                </div>
+                                <Button onClick={handleAutoGenerateClick} className="!py-2 !px-4 !text-[10px] font-black uppercase tracking-widest shadow-lg shadow-brand-vibrant/20">
+                                    <Shuffle size={14} /> Generate
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )
             )}
 
             {/* Manual Management Section */}
@@ -204,9 +237,11 @@ export const ManualGroupManager: React.FC<ManualGroupManagerProps> = ({ teams, g
                         </p>
                      </div>
                     <div className="flex gap-2">
-                        <Button onClick={handleAddGroup} variant="secondary" className="!text-xs">
-                            <Plus size={14} /> Add Group
-                        </Button>
+                        {mode !== 'league' && (
+                            <Button onClick={handleAddGroup} variant="secondary" className="!text-xs">
+                                <Plus size={14} /> Add Group
+                            </Button>
+                        )}
                         <Button 
                           onClick={handleGenerateClick}
                           disabled={groups.length === 0}
@@ -242,7 +277,7 @@ export const ManualGroupManager: React.FC<ManualGroupManagerProps> = ({ teams, g
                     <div className="text-center bg-brand-primary/50 p-10 rounded-2xl border border-dashed border-white/10">
                         <Users size={32} className="mx-auto text-brand-light/20 mb-3" />
                         <h3 className="text-sm font-bold text-brand-text mb-1">No Groups Created</h3>
-                        <p className="text-xs text-brand-light">Use Auto Generate or add groups manually.</p>
+                        <p className="text-xs text-brand-light">Use {mode === 'league' ? 'Regular Season Generator' : 'Auto Generate'} above.</p>
                     </div>
                 )}
             </div>
@@ -267,6 +302,17 @@ export const ManualGroupManager: React.FC<ManualGroupManagerProps> = ({ teams, g
                 confirmText="Yes, Generate"
                 confirmButtonClass="bg-red-600 hover:bg-red-700"
                 variant="warning"
+            />
+
+            <ConfirmationModal
+                isOpen={showLeagueConfirm}
+                onClose={() => setShowLeagueConfirm(false)}
+                onConfirm={confirmLeagueInit}
+                title="Initialize League Season"
+                message={<p>Ini akan membuat <strong>1 Grup Klasemen Besar</strong> berisi semua tim yang terdaftar dan membuat jadwal <strong>Double Round Robin</strong>. Data grup/jadwal lama di mode ini akan dihapus.</p>}
+                confirmText="Buat Jadwal Liga"
+                confirmButtonClass="bg-blue-600 hover:bg-blue-700"
+                variant="info"
             />
         </div>
     );

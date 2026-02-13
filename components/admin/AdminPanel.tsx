@@ -68,15 +68,16 @@ interface AdminPanelProps {
   manualDeleteGroup: (groupId: string) => void;
   manualAddTeamToGroup: (teamId: string, groupId: string) => void;
   manualRemoveTeamFromGroup: (teamId: string, groupId: string) => void;
-  autoGenerateGroups?: (numberOfGroups: number) => void; // New prop
+  autoGenerateGroups?: (numberOfGroups: number) => void; 
+  initializeLeague?: () => void; // New prop for league initialization
   generateMatchesFromGroups: () => void;
   setTournamentState: (state: TournamentState) => void;
   addHistoryEntry: (entry: SeasonHistory) => void;
   deleteHistoryEntry: (id: string) => void;
   headerLogoUrl?: string;
   updateHeaderLogo?: (url: string) => void;
-  pwaIconUrl?: string; // NEW
-  updatePwaIcon?: (url: string) => void; // NEW
+  pwaIconUrl?: string;
+  updatePwaIcon?: (url: string) => void;
   setRegistrationOpen: (open: boolean) => void;
   setTournamentStatus: (status: 'active' | 'completed') => void;
   updateVisibleModes: (modes: TournamentMode[]) => void;
@@ -164,7 +165,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
 
   const renderContent = () => {
     switch(activeTab) {
-      case 'teams': return <TeamManager {...props as any} onGenerationSuccess={() => setActiveTab('group-fixtures')} autoGenerateGroups={props.autoGenerateGroups} />;
+      case 'teams': return <TeamManager {...props as any} onGenerationSuccess={() => setActiveTab('group-fixtures')} autoGenerateGroups={props.autoGenerateGroups} initializeLeague={props.initializeLeague} />;
       case 'marquee': return (
           <MarqueeSettings 
               messages={props.marqueeMessages || []} 
