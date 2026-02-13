@@ -29,6 +29,7 @@ interface TeamManagerProps {
   manualDeleteGroup: (groupId: string) => void;
   manualAddTeamToGroup: (teamId: string, groupId: string) => void;
   manualRemoveTeamFromGroup: (teamId: string, groupId: string) => void;
+  autoGenerateGroups?: (numberOfGroups: number) => void; // New Prop
   generateMatchesFromGroups: () => void;
   setTournamentState: (state: TournamentState) => void;
   rules: string;
@@ -42,7 +43,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
     teams, groups, mode, addTeam, updateTeam, deleteTeam, unbindTeam,
     onGenerationSuccess, resetTournament,
     manualAddGroup, manualDeleteGroup, manualAddTeamToGroup, 
-    manualRemoveTeamFromGroup, generateMatchesFromGroups, setTournamentState, resolveTeamClaim
+    manualRemoveTeamFromGroup, autoGenerateGroups, generateMatchesFromGroups, setTournamentState, resolveTeamClaim
   } = props;
   
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('list');
@@ -322,7 +323,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
 
       {activeSubTab === 'setup' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <Card className="!p-4 sm:!p-6 border-brand-accent/30"><h3 className="text-sm font-black italic text-brand-text uppercase tracking-[0.2em] mb-4 flex items-center gap-2"><LayoutGrid size={18} className="text-brand-vibrant" /> Manual Group Setup</h3><ManualGroupManager teams={teams} groups={groups} matches={props.matches} addGroup={manualAddGroup} deleteGroup={manualDeleteGroup} addTeamToGroup={manualAddTeamToGroup} removeTeamFromGroup={manualRemoveTeamFromGroup} generateMatches={generateMatchesFromGroups} onGenerationSuccess={onGenerationSuccess} /></Card>
+              <Card className="!p-4 sm:!p-6 border-brand-accent/30"><h3 className="text-sm font-black italic text-brand-text uppercase tracking-[0.2em] mb-4 flex items-center gap-2"><LayoutGrid size={18} className="text-brand-vibrant" /> Group Setup & Fixtures</h3><ManualGroupManager teams={teams} groups={groups} matches={props.matches} addGroup={manualAddGroup} deleteGroup={manualDeleteGroup} addTeamToGroup={manualAddTeamToGroup} removeTeamFromGroup={manualRemoveTeamFromGroup} generateMatches={generateMatchesFromGroups} onGenerationSuccess={onGenerationSuccess} autoGenerateGroups={autoGenerateGroups} /></Card>
               <Card className="!p-4 sm:!p-6 border-brand-vibrant/20"><h3 className="text-sm font-black italic text-brand-text uppercase tracking-[0.2em] mb-4 flex items-center gap-2"><SettingsIcon size={18} className="text-brand-special" /> Data Recovery</h3><div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><Button onClick={handleBackupData} variant="secondary" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest"><Download size={14} /> Unduh Backup</Button><Button onClick={() => fileInputRef.current?.click()} variant="secondary" disabled={isRestoring} className="w-full !py-3 text-[10px] uppercase font-black tracking-widest">{isRestoring ? <RefreshCw className="animate-spin" size={14} /> : <Upload size={14} />} Pulihkan ke Cloud</Button></div><div className="mt-6 pt-6 border-t border-white/5"><Button onClick={() => setShowResetConfirm(true)} variant="danger" className="w-full !py-3 text-[10px] uppercase font-black tracking-widest bg-red-600/10 hover:bg-red-600"><RefreshCw size={14} /> Hard Reset</Button></div><input type="file" ref={fileInputRef} onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = async (ev) => { try { setIsRestoring(true); const data = JSON.parse(ev.target?.result as string); setTournamentState({ ...data, mode, status: data.status || 'active', isRegistrationOpen: data.isRegistrationOpen ?? true }); await saveTournamentData(mode, data); addToast('Data berhasil dipulihkan!', 'success'); } catch (err) { addToast("File tidak valid.", 'error'); } finally { setIsRestoring(false); } }; reader.readAsText(file); }} className="hidden" accept="application/json" /></Card>
           </div>
       )}

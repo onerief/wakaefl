@@ -1,8 +1,8 @@
+
 import React, { useState, useMemo } from 'react';
 import type { Team, Group, Match } from '../../types';
 import { Button } from '../shared/Button';
-// FIX: Added 'X' to the import from lucide-react.
-import { Plus, Trash2, Shuffle, Users, X } from 'lucide-react';
+import { Plus, Trash2, Shuffle, Users, X, Wand2, Calculator } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { ConfirmationModal } from './ConfirmationModal';
 
@@ -16,6 +16,7 @@ interface ManualGroupManagerProps {
     removeTeamFromGroup: (teamId: string, groupId: string) => void;
     generateMatches: () => void;
     onGenerationSuccess: () => void;
+    autoGenerateGroups?: (numberOfGroups: number) => void;
 }
 
 const GroupCard: React.FC<{
@@ -96,12 +97,22 @@ const GroupCard: React.FC<{
     );
 };
 
-export const ManualGroupManager: React.FC<ManualGroupManagerProps> = ({ teams, groups, matches, addGroup, deleteGroup, addTeamToGroup, removeTeamFromGroup, generateMatches, onGenerationSuccess }) => {
+export const ManualGroupManager: React.FC<ManualGroupManagerProps> = ({ teams, groups, matches, addGroup, deleteGroup, addTeamToGroup, removeTeamFromGroup, generateMatches, onGenerationSuccess, autoGenerateGroups }) => {
     const { addToast } = useToast();
     const [showGenerateConfirm, setShowGenerateConfirm] = useState(false);
+    const [showAutoConfirm, setShowAutoConfirm] = useState(false);
+    const [numGroups, setNumGroups] = useState(4);
 
     const assignedTeamIds = useMemo(() => new Set(groups.flatMap(g => g.teams.map(t => t.id))), [groups]);
     const unassignedTeams = useMemo(() => teams.filter(t => !assignedTeamIds.has(t.id)), [teams, assignedTeamIds]);
+
+    // Calculate teams per group preview
+    const perGroup = useMemo(() => {
+        if(numGroups <= 0) return 0;
+        const min = Math.floor(teams.length / numGroups);
+        const remainder = teams.length % numGroups;
+        return remainder === 0 ? `${min}` : `${min} - ${min + 1}`;
+    }, [numGroups, teams.length]);
 
     const handleAddGroup = () => {
         const existingGroupLetters = groups.map(g => g.name.split(' ')[1]);
@@ -126,65 +137,136 @@ export const ManualGroupManager: React.FC<ManualGroupManagerProps> = ({ teams, g
         onGenerationSuccess();
         setShowGenerateConfirm(false);
     }
+
+    const handleAutoGenerateClick = () => {
+        if (numGroups < 1) {
+            addToast('Minimum 1 group.', 'error');
+            return;
+        }
+        setShowAutoConfirm(true);
+    }
+
+    const confirmAutoGenerate = () => {
+        if(autoGenerateGroups) {
+            autoGenerateGroups(numGroups);
+            addToast('Groups generated automatically!', 'success');
+            setShowAutoConfirm(false);
+        }
+    }
     
     return (
-        <div className="space-y-6">
-            <div className="bg-brand-primary p-4 rounded-lg space-y-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="space-y-8">
+            {/* Auto Generator Section */}
+            {autoGenerateGroups && (
+                <div className="bg-brand-vibrant/5 p-5 rounded-2xl border border-brand-vibrant/20 relative overflow-hidden">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+                        <div>
+                            <h4 className="font-black text-brand-text flex items-center gap-2 uppercase tracking-wide text-sm">
+                                <Wand2 size={18} className="text-brand-vibrant" /> Automatic Generator
+                            </h4>
+                            <p className="text-xs text-brand-light mt-1">Acak {teams.length} tim ke dalam grup secara otomatis.</p>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 w-full sm:w-auto bg-brand-primary p-2 rounded-xl border border-white/5">
+                            <div className="flex flex-col px-2">
+                                <label className="text-[8px] font-bold text-brand-light uppercase tracking-wider">Groups</label>
+                                <input 
+                                    type="number" 
+                                    min="1" 
+                                    max="26" 
+                                    value={numGroups} 
+                                    onChange={(e) => setNumGroups(parseInt(e.target.value) || 1)}
+                                    className="bg-transparent text-white font-black text-lg w-12 outline-none"
+                                />
+                            </div>
+                            <div className="h-8 w-px bg-white/10"></div>
+                            <div className="flex flex-col px-2">
+                                <label className="text-[8px] font-bold text-brand-light uppercase tracking-wider">Per Group</label>
+                                <span className="text-brand-vibrant font-black text-lg">{perGroup}</span>
+                            </div>
+                            <Button onClick={handleAutoGenerateClick} className="!py-2 !px-4 !text-[10px] font-black uppercase tracking-widest shadow-lg shadow-brand-vibrant/20">
+                                <Shuffle size={14} /> Generate
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Manual Management Section */}
+            <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
                      <div>
-                        <h4 className="font-bold text-brand-text">Unassigned Teams ({unassignedTeams.length})</h4>
-                        <p className="text-sm text-brand-light">These teams are not yet in a group.</p>
+                        <h4 className="font-bold text-brand-text flex items-center gap-2">
+                            <Users size={18} className="text-brand-light" /> Manual Management
+                        </h4>
+                        <p className="text-xs text-brand-light mt-1">
+                            {unassignedTeams.length > 0 ? <span className="text-yellow-400 font-bold">{unassignedTeams.length} Unassigned Teams</span> : <span className="text-green-400 font-bold">All Teams Assigned</span>}
+                        </p>
                      </div>
                     <div className="flex gap-2">
-                        <Button onClick={handleAddGroup} variant="secondary">
-                            <Plus size={16} /> Add Group
+                        <Button onClick={handleAddGroup} variant="secondary" className="!text-xs">
+                            <Plus size={14} /> Add Group
                         </Button>
                         <Button 
                           onClick={handleGenerateClick}
                           disabled={groups.length === 0}
                           title={groups.length === 0 ? "Add at least one group first" : ""}
+                          className="!text-xs font-bold"
                         >
-                            <Shuffle size={16} /> Generate Fixtures From Manual Setup
+                            <Calculator size={14} /> Update Fixtures
                         </Button>
                     </div>
                 </div>
+
                 {unassignedTeams.length > 0 && (
-                    <div className="flex flex-wrap gap-2 text-sm text-brand-text p-2 bg-brand-secondary rounded">
-                       {unassignedTeams.map(t => <span key={t.id} className="bg-brand-accent/50 px-2 py-1 rounded">{t.name}</span>)}
+                    <div className="flex flex-wrap gap-2 text-xs text-brand-text p-3 bg-black/20 rounded-xl border border-white/5">
+                       {unassignedTeams.map(t => <span key={t.id} className="bg-white/5 px-2 py-1 rounded border border-white/5">{t.name}</span>)}
+                    </div>
+                )}
+
+                {groups.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {groups.map(group => (
+                            <GroupCard
+                                key={group.id}
+                                group={group}
+                                unassignedTeams={unassignedTeams}
+                                matches={matches}
+                                onDelete={deleteGroup}
+                                onAddTeam={addTeamToGroup}
+                                onRemoveTeam={removeTeamFromGroup}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center bg-brand-primary/50 p-10 rounded-2xl border border-dashed border-white/10">
+                        <Users size={32} className="mx-auto text-brand-light/20 mb-3" />
+                        <h3 className="text-sm font-bold text-brand-text mb-1">No Groups Created</h3>
+                        <p className="text-xs text-brand-light">Use Auto Generate or add groups manually.</p>
                     </div>
                 )}
             </div>
-
-            {groups.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {groups.map(group => (
-                        <GroupCard
-                            key={group.id}
-                            group={group}
-                            unassignedTeams={unassignedTeams}
-                            matches={matches}
-                            onDelete={deleteGroup}
-                            onAddTeam={addTeamToGroup}
-                            onRemoveTeam={removeTeamFromGroup}
-                        />
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center bg-brand-primary p-8 rounded-lg">
-                    <Users size={40} className="mx-auto text-brand-light mb-4" />
-                    <h3 className="text-xl font-bold text-brand-text mb-2">No Groups Created</h3>
-                    <p className="text-brand-light">Click "Add Group" to start building your group stage manually.</p>
-                </div>
-            )}
             
             <ConfirmationModal
                 isOpen={showGenerateConfirm}
                 onClose={() => setShowGenerateConfirm(false)}
                 onConfirm={handleConfirmGenerate}
-                title="Confirm Fixture Generation"
-                message="This will delete all current group stage matches and create new ones based on your manual setup. This action cannot be undone."
-                confirmText="Yes, Generate"
+                title="Update Fixtures"
+                message="This will regenerate the match schedule based on current groups. Scores for existing matches might be reset if team positions change."
+                confirmText="Update Fixtures"
                 confirmButtonClass="bg-brand-vibrant text-white hover:bg-opacity-80"
+                variant="info"
+            />
+
+            <ConfirmationModal
+                isOpen={showAutoConfirm}
+                onClose={() => setShowAutoConfirm(false)}
+                onConfirm={confirmAutoGenerate}
+                title="Auto Generate Groups"
+                message={<p>This will <strong>delete all existing groups and matches</strong> and redistribute teams randomly. Are you sure?</p>}
+                confirmText="Yes, Generate"
+                confirmButtonClass="bg-red-600 hover:bg-red-700"
+                variant="warning"
             />
         </div>
     );

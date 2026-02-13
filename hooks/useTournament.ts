@@ -351,6 +351,34 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
     return { success: true };
   }, [state.groups]);
 
+  const autoGenerateGroups = useCallback((numberOfGroups: number) => {
+      const shuffled = [...state.teams].sort(() => Math.random() - 0.5);
+      const newGroups: Group[] = [];
+      const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+      
+      for (let i = 0; i < numberOfGroups; i++) {
+          newGroups.push({
+              id: `g-${Date.now()}-${i}`,
+              name: `Group ${alphabet[i] || (i + 1)}`,
+              teams: [],
+              standings: []
+          });
+      }
+
+      shuffled.forEach((team, index) => {
+          newGroups[index % numberOfGroups].teams.push(team);
+      });
+
+      dispatch({ 
+          type: 'GENERATE_GROUPS', 
+          payload: { 
+              groups: newGroups, 
+              matches: [], 
+              knockoutStage: null 
+          } 
+      });
+  }, [state.teams]);
+
   const clubStats = useMemo(() => {
       const stats: Record<string, { team: Team, goals: number }> = {};
       state.teams.forEach(t => { if (t && t.id) stats[t.id] = { team: t, goals: 0 }; });
@@ -454,6 +482,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       },
       addMatchComment: (matchId: string, userId: string, userName: string, userEmail: string, text: string, isAdmin: boolean = false) =>
         dispatch({ type: 'ADD_MATCH_COMMENT', payload: { matchId, comment: { id: `c${Date.now()}`, userId, userName, userEmail, text, timestamp: Date.now(), isAdmin } } }),
+      autoGenerateGroups, // Export new function
       generateSummary
   };
 };
