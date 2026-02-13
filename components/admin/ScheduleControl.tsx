@@ -18,19 +18,28 @@ interface ScheduleControlProps {
 export const ScheduleControl: React.FC<ScheduleControlProps> = ({ 
     settings, onStart, onPause, onSetMatchday, onCheckTimeouts, totalMatchdays 
 }) => {
-    const [duration, setDuration] = useState(settings.matchdayDurationHours || 24);
+    // Guard against undefined settings (e.g., initial load or migration)
+    const safeSettings = settings || {
+        isActive: false,
+        currentMatchday: 1,
+        matchdayStartTime: null,
+        matchdayDurationHours: 24,
+        autoProcessEnabled: false
+    };
+
+    const [duration, setDuration] = useState(safeSettings.matchdayDurationHours || 24);
     const [timeLeft, setTimeLeft] = useState<string>('');
     const { addToast } = useToast();
 
     // Timer Logic
     useEffect(() => {
-        if (!settings.isActive || !settings.matchdayStartTime) {
+        if (!safeSettings.isActive || !safeSettings.matchdayStartTime) {
             setTimeLeft('');
             return;
         }
 
         const interval = setInterval(() => {
-            const deadline = settings.matchdayStartTime! + (settings.matchdayDurationHours * 3600000);
+            const deadline = safeSettings.matchdayStartTime! + (safeSettings.matchdayDurationHours * 3600000);
             const now = Date.now();
             const diff = deadline - now;
 
@@ -45,7 +54,7 @@ export const ScheduleControl: React.FC<ScheduleControlProps> = ({
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [settings]);
+    }, [safeSettings]);
 
     const handleForceCheck = () => {
         if (window.confirm("Cek otomatis akan memberikan kemenangan WO kepada tim yang aktif chat jika lawannya tidak aktif. Lanjutkan?")) {
@@ -54,7 +63,7 @@ export const ScheduleControl: React.FC<ScheduleControlProps> = ({
         }
     };
 
-    const nextMatchday = settings.currentMatchday + 1;
+    const nextMatchday = safeSettings.currentMatchday + 1;
 
     return (
         <Card className="border-brand-vibrant/30 bg-black/20 mb-6">
@@ -63,17 +72,17 @@ export const ScheduleControl: React.FC<ScheduleControlProps> = ({
                 {/* Status Panel */}
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                        <Clock size={20} className={settings.isActive ? "text-green-400 animate-pulse" : "text-brand-light"} />
+                        <Clock size={20} className={safeSettings.isActive ? "text-green-400 animate-pulse" : "text-brand-light"} />
                         <h3 className="text-lg font-black text-white uppercase italic tracking-tighter">
                             Smart Schedule Control
                         </h3>
                     </div>
                     
                     <div className="flex items-center gap-3 text-sm">
-                        <div className={`px-3 py-1 rounded-lg border text-xs font-bold uppercase tracking-wider ${settings.isActive ? 'bg-green-500/20 border-green-500 text-green-400' : 'bg-red-500/20 border-red-500 text-red-400'}`}>
-                            {settings.isActive ? 'Running' : 'Paused'}
+                        <div className={`px-3 py-1 rounded-lg border text-xs font-bold uppercase tracking-wider ${safeSettings.isActive ? 'bg-green-500/20 border-green-500 text-green-400' : 'bg-red-500/20 border-red-500 text-red-400'}`}>
+                            {safeSettings.isActive ? 'Running' : 'Paused'}
                         </div>
-                        <span className="text-brand-light font-bold">Matchday {settings.currentMatchday}</span>
+                        <span className="text-brand-light font-bold">Matchday {safeSettings.currentMatchday}</span>
                         {timeLeft && <span className="text-white font-mono bg-black/40 px-2 py-0.5 rounded border border-white/10">{timeLeft}</span>}
                     </div>
                 </div>
@@ -83,7 +92,7 @@ export const ScheduleControl: React.FC<ScheduleControlProps> = ({
                     
                     {/* Primary Action */}
                     <div className="flex gap-2">
-                        {!settings.isActive ? (
+                        {!safeSettings.isActive ? (
                             <div className="flex gap-2">
                                 <div className="relative">
                                     <input 
@@ -116,15 +125,15 @@ export const ScheduleControl: React.FC<ScheduleControlProps> = ({
                         <span className="text-[10px] font-bold text-brand-light uppercase ml-1">Navigasi Hari:</span>
                         <div className="flex gap-2">
                             <button 
-                                onClick={() => onSetMatchday(Math.max(1, settings.currentMatchday - 1))}
-                                disabled={settings.currentMatchday <= 1}
+                                onClick={() => onSetMatchday(Math.max(1, safeSettings.currentMatchday - 1))}
+                                disabled={safeSettings.currentMatchday <= 1}
                                 className="px-2 py-1 bg-black/40 rounded hover:bg-white/10 text-white disabled:opacity-30"
                             >
                                 Prev
                             </button>
-                            <span className="font-mono text-white font-bold px-2">{settings.currentMatchday}</span>
+                            <span className="font-mono text-white font-bold px-2">{safeSettings.currentMatchday}</span>
                             <button 
-                                onClick={() => onSetMatchday(settings.currentMatchday + 1)}
+                                onClick={() => onSetMatchday(safeSettings.currentMatchday + 1)}
                                 className="px-2 py-1 bg-black/40 rounded hover:bg-white/10 text-white"
                             >
                                 Next

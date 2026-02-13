@@ -67,17 +67,76 @@ const REGISTRATIONS_COLLECTION = 'registrations';
 const NOTIFICATIONS_COLLECTION = 'notifications';
 
 // --- DATA SANITIZATION ---
-export const sanitizeData = (data: any): any => {
-    if (data === null || data === undefined) return null;
-    if (typeof data !== 'object') return data;
-    if (data instanceof Date) return data.toISOString();
+// Robust helper to strip circular references, DOM nodes, and undefined values
+export const deepClean = (input: any, stack = new WeakSet()): any => {
+    // Handle primitives and null
+    if (input === null || typeof input !== 'object') return input;
     
-    // Simple deep copy to remove undefined/circular refs
+    // Handle Date
+    if (input instanceof Date) return input.toISOString();
+    
+    // Handle potential DOM nodes, React Internals, or weird Window objects
+    // The 'src' error often comes from an Image object or Event object
+    // Also check for specific minified constructor names if possible, or just generic DOM props
+    if (
+        input.nodeType || 
+        input._reactInternals || 
+        input instanceof Event || 
+        (input.constructor && input.constructor.name && (
+            input.constructor.name === 'SyntheticBaseEvent' || 
+            input.constructor.name === 'SyntheticEvent' ||
+            input.constructor.name.includes('HTML') ||
+            input.constructor.name.includes('Element')
+        )) ||
+        // Check for common Event properties
+        (input.nativeEvent && input.target)
+    ) {
+        return undefined;
+    }
+
+    // Check cycle
+    if (stack.has(input)) {
+        return undefined; // Omit circular ref
+    }
+
+    stack.add(input);
+
+    let res: any;
+    if (Array.isArray(input)) {
+        // Filter out undefineds from arrays to keep them clean
+        res = input.map(v => deepClean(v, stack)).filter(v => v !== undefined);
+    } else {
+        res = {};
+        Object.keys(input).forEach(key => {
+            // Skip internal React keys or known problem keys if necessary
+            if (key.startsWith('_') || key === 'view' || key === 'source' || key === 'target' || key === 'currentTarget') return;
+            
+            const cleanVal = deepClean(input[key], stack);
+            if (cleanVal !== undefined) {
+                res[key] = cleanVal;
+            }
+        });
+    }
+
+    // Note: WeakSet doesn't need explicit delete/remove, but for recursion logic in a single pass it helps to track path. 
+    // However, WeakSet tracks object identity globally. 
+    // For pure cycle detection in a tree, we typically use a Set of objects in the current path.
+    // But modifying the function signature to pass 'stack' allows us to use WeakSet correctly for the current traversal.
+    // We don't need to remove from WeakSet because we are creating a copy.
+    
+    return res;
+};
+
+export const sanitizeData = (data: any): any => {
     try {
-        return JSON.parse(JSON.stringify(data));
+        const cleaned = deepClean(data);
+        // Double check with JSON stringify to ensure it's absolutely safe
+        // If this throws, we catch it and return null to prevent app crash
+        JSON.stringify(cleaned); 
+        return cleaned;
     } catch (e) {
-        console.warn("Data sanitization failed, returning null", e);
-        return null;
+        console.error("SanitizeData Failed:", e);
+        return null; // Safe fallback
     }
 };
 
@@ -138,6 +197,11 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
         mode: state.mode
     });
 
+    if (!cleanState) {
+        console.error("Critical: Failed to sanitize tournament state. Data not saved to prevent corruption.");
+        return false;
+    }
+
     const globalData = sanitizeData({
         banners: state.banners || [],
         partners: state.partners || [],
@@ -152,6 +216,11 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
         visibleModes: state.visibleModes || ['league', 'wakacl', 'two_leagues']
     });
 
+    if (!globalData) {
+        console.error("Critical: Failed to sanitize global settings.");
+        return false;
+    }
+
     await Promise.all([
         setDoc(doc(firestore, TOURNAMENT_COLLECTION, mode), cleanState),
         setDoc(doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC), globalData)
@@ -159,7 +228,8 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
     return true;
   } catch (error) { 
       console.error("Error saving data:", error); 
-      throw error; 
+      // Do not throw, just log, to prevent app crash loop
+      return false;
   }
 };
 
@@ -240,12 +310,12 @@ export const getFullSystemBackup = async () => {
     return {
         backupType: 'FULL_SYSTEM',
         timestamp: Date.now(),
-        data: {
+        data: deepClean({
             league: league.data(),
             wakacl: wakacl.data(),
             two_leagues: two_leagues.data(),
             global_settings: settings.data()
-        }
+        })
     };
 };
 
@@ -253,10 +323,10 @@ export const restoreFullSystem = async (backupData: any) => {
     if (!firestore) throw new Error("Service unavailable");
     const { league, wakacl, two_leagues, global_settings } = backupData.data;
     const promises = [];
-    if (league) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, 'league'), league));
-    if (wakacl) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, 'wakacl'), wakacl));
-    if (two_leagues) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, 'two_leagues'), two_leagues));
-    if (global_settings) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC), global_settings));
+    if (league) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, 'league'), sanitizeData(league)));
+    if (wakacl) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, 'wakacl'), sanitizeData(wakacl)));
+    if (two_leagues) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, 'two_leagues'), sanitizeData(two_leagues)));
+    if (global_settings) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC), sanitizeData(global_settings)));
     await Promise.all(promises);
 };
 

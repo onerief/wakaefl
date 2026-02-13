@@ -19,7 +19,7 @@ import {
     Server
 } from 'lucide-react';
 import { useToast } from '../shared/Toast';
-import { saveTournamentData, getFullSystemBackup, restoreFullSystem } from '../../services/firebaseService';
+import { saveTournamentData, getFullSystemBackup, restoreFullSystem, deepClean } from '../../services/firebaseService';
 import type { Team, Match, Group, TournamentState, TournamentMode, Partner, KnockoutStageRounds, ScheduleSettings } from '../../types';
 
 interface DataManagerProps {
@@ -69,7 +69,10 @@ export const DataManager: React.FC<DataManagerProps> = ({
                 case 'all': exportData = { teams, matches, groups, rules, banners, partners, headerLogoUrl, knockoutStage, scheduleSettings }; break;
             }
 
-            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            // Use deepClean to prevent circular structure errors
+            const cleanData = deepClean(exportData);
+            
+            const blob = new Blob([JSON.stringify(cleanData, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -80,6 +83,7 @@ export const DataManager: React.FC<DataManagerProps> = ({
             URL.revokeObjectURL(url);
             addToast(`Ekspor ${key.toUpperCase()} berhasil!`, 'success');
         } catch (e) {
+            console.error(e);
             addToast('Gagal melakukan ekspor.', 'error');
         }
     };
@@ -87,6 +91,7 @@ export const DataManager: React.FC<DataManagerProps> = ({
     const handleGlobalExport = async () => {
         setIsProcessing(true);
         try {
+            // getFullSystemBackup already uses deepClean internally
             const data = await getFullSystemBackup();
             const dateStr = new Date().toISOString().replace(/:/g, '-').split('.')[0];
             const filename = `wakaefl-FULL-SYSTEM-BACKUP-${dateStr}.json`;
