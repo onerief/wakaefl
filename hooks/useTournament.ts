@@ -21,6 +21,7 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
   history: [],
   isRegistrationOpen: true, 
   headerLogoUrl: '',
+  pwaIconUrl: '', // Initial empty state
   news: [],
   products: [],
   newsCategories: ['Match', 'Transfer', 'Info', 'Interview'],
@@ -130,6 +131,7 @@ type Action =
   | { type: 'UPDATE_PARTNERS', payload: Partner[] }
   | { type: 'SET_REGISTRATION_STATUS', payload: boolean }
   | { type: 'UPDATE_HEADER_LOGO', payload: string }
+  | { type: 'UPDATE_PWA_ICON', payload: string } // New Action
   | { type: 'ADD_HISTORY_ENTRY', payload: SeasonHistory }
   | { type: 'DELETE_HISTORY_ENTRY', payload: string }
   | { type: 'ADD_KNOCKOUT_MATCH'; payload: KnockoutMatch }
@@ -179,6 +181,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'UPDATE_BANNERS': newState = { ...state, banners: action.payload }; break;
     case 'UPDATE_PARTNERS': newState = { ...state, partners: action.payload }; break;
     case 'UPDATE_HEADER_LOGO': newState = { ...state, headerLogoUrl: action.payload }; break;
+    case 'UPDATE_PWA_ICON': newState = { ...state, pwaIconUrl: action.payload }; break; // New Case
     case 'SET_REGISTRATION_STATUS': newState = { ...state, isRegistrationOpen: action.payload }; break;
     case 'SET_STATUS': newState = { ...state, status: action.payload }; break;
     case 'ADD_HISTORY_ENTRY': newState = { ...state, history: [action.payload, ...state.history] }; break;
@@ -195,6 +198,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
             partners: state.partners,
             rules: state.rules,
             headerLogoUrl: state.headerLogoUrl,
+            pwaIconUrl: state.pwaIconUrl, // Persist PWA Icon on reset
             newsCategories: state.newsCategories,
             shopCategories: state.shopCategories,
             marqueeMessages: state.marqueeMessages,
@@ -408,6 +412,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       updateBanners: (b: string[]) => dispatch({ type: 'UPDATE_BANNERS', payload: b }),
       updatePartners: (p: Partner[]) => dispatch({ type: 'UPDATE_PARTNERS', payload: p }),
       updateHeaderLogo: (url: string) => dispatch({ type: 'UPDATE_HEADER_LOGO', payload: url }),
+      updatePwaIcon: (url: string) => dispatch({ type: 'UPDATE_PWA_ICON', payload: url }), // Export new function
       setRegistrationOpen: (open: boolean) => dispatch({ type: 'SET_REGISTRATION_STATUS', payload: open }),
       setTournamentStatus: (status: 'active' | 'completed') => dispatch({ type: 'SET_STATUS', payload: status }),
       addHistoryEntry: (entry: SeasonHistory) => dispatch({ type: 'ADD_HISTORY_ENTRY', payload: entry }),

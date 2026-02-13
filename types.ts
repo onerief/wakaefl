@@ -172,6 +172,7 @@ export interface TournamentState {
   history: SeasonHistory[];
   isRegistrationOpen: boolean;
   headerLogoUrl?: string;
+  pwaIconUrl?: string; // New field for custom app icon
   news?: NewsItem[];
   products?: Product[];
   newsCategories?: string[];

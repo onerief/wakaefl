@@ -74,6 +74,8 @@ interface AdminPanelProps {
   deleteHistoryEntry: (id: string) => void;
   headerLogoUrl?: string;
   updateHeaderLogo?: (url: string) => void;
+  pwaIconUrl?: string; // NEW
+  updatePwaIcon?: (url: string) => void; // NEW
   setRegistrationOpen: (open: boolean) => void;
   setTournamentStatus: (status: 'active' | 'completed') => void;
   updateVisibleModes: (modes: TournamentMode[]) => void;
@@ -90,7 +92,7 @@ const ADMIN_TABS: { id: AdminTab; label: string; icon: any; color: string }[] = 
     { id: 'marquee', label: 'Running Text', icon: Type, color: 'text-brand-vibrant' },
     { id: 'banners', label: 'Banner Home', icon: ImageIcon, color: 'text-pink-400' },
     { id: 'partners', label: 'Sponsor', icon: Share2, color: 'text-emerald-400' },
-    { id: 'branding', label: 'Logo Web', icon: ShieldCheck, color: 'text-cyan-400' },
+    { id: 'branding', label: 'Logo & App', icon: ShieldCheck, color: 'text-cyan-400' },
     { id: 'history', label: 'Riwayat Juara', icon: Crown, color: 'text-orange-400' },
     { id: 'rules', label: 'Aturan', icon: BookOpen, color: 'text-brand-light' },
     { id: 'data', label: 'Database', icon: FileJson, color: 'text-rose-400' },
@@ -184,6 +186,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
           <BrandingSettings 
               headerLogoUrl={props.headerLogoUrl || ''}
               onUpdateHeaderLogo={props.updateHeaderLogo || (() => {})}
+              pwaIconUrl={props.pwaIconUrl || ''}
+              onUpdatePwaIcon={props.updatePwaIcon || (() => {})}
           />
       );
       case 'news': return (

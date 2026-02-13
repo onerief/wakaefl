@@ -64,6 +64,43 @@ function AppContent() {
   const tournament = useTournament(activeMode, isAdminAuthenticated);
   const { addToast } = useToast();
 
+  // --- DYNAMIC MANIFEST INJECTION ---
+  useEffect(() => {
+      if (tournament.pwaIconUrl) {
+          const link = document.querySelector('#manifest-link') as HTMLLinkElement;
+          if (link) {
+              const dynamicManifest = {
+                  "short_name": "WakaEFL",
+                  "name": "WakaEFL Tournament Hub",
+                  "icons": [
+                    {
+                      "src": tournament.pwaIconUrl,
+                      "sizes": "192x192",
+                      "type": "image/png",
+                      "purpose": "any maskable"
+                    },
+                    {
+                      "src": tournament.pwaIconUrl,
+                      "sizes": "512x512",
+                      "type": "image/png",
+                      "purpose": "any maskable"
+                    }
+                  ],
+                  "start_url": ".",
+                  "display": "standalone",
+                  "theme_color": "#020617",
+                  "background_color": "#020617",
+                  "orientation": "portrait"
+              };
+              
+              const stringManifest = JSON.stringify(dynamicManifest);
+              const blob = new Blob([stringManifest], {type: 'application/json'});
+              const manifestURL = URL.createObjectURL(blob);
+              link.setAttribute('href', manifestURL);
+          }
+      }
+  }, [tournament.pwaIconUrl]);
+
   // --- SIMPLE ROUTING LOGIC ---
   // Only sync on initial load or browser back/forward buttons
   useEffect(() => {
@@ -256,6 +293,7 @@ function AppContent() {
                         setRegistrationOpen={tournament.setRegistrationOpen}
                         setTournamentStatus={tournament.setTournamentStatus}
                         updateHeaderLogo={tournament.updateHeaderLogo}
+                        updatePwaIcon={tournament.updatePwaIcon}
                         updateVisibleModes={tournament.updateVisibleModes}
                         updateMatch={tournament.updateMatch}
                     />
