@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 import { saveTournamentData, getFullSystemBackup, restoreFullSystem } from '../../services/firebaseService';
-import type { Team, Match, Group, TournamentState, TournamentMode, Partner, KnockoutStageRounds } from '../../types';
+import type { Team, Match, Group, TournamentState, TournamentMode, Partner, KnockoutStageRounds, ScheduleSettings } from '../../types';
 
 interface DataManagerProps {
     teams: Team[];
@@ -32,11 +32,12 @@ interface DataManagerProps {
     headerLogoUrl: string;
     mode: TournamentMode;
     knockoutStage: KnockoutStageRounds | null;
+    scheduleSettings: ScheduleSettings;
     setTournamentState: (state: TournamentState) => void;
 }
 
 export const DataManager: React.FC<DataManagerProps> = ({ 
-    teams, matches, groups, rules, banners, partners, headerLogoUrl, mode, knockoutStage, setTournamentState 
+    teams, matches, groups, rules, banners, partners, headerLogoUrl, mode, knockoutStage, scheduleSettings, setTournamentState 
 }) => {
     const { addToast } = useToast();
     const [isProcessing, setIsProcessing] = useState(false);
@@ -62,10 +63,10 @@ export const DataManager: React.FC<DataManagerProps> = ({
 
             switch(key) {
                 case 'teams': exportData = { teams }; break;
-                case 'matches': exportData = { matches, groups, knockoutStage }; break;
+                case 'matches': exportData = { matches, groups, knockoutStage, scheduleSettings }; break;
                 case 'rules': exportData = { rules }; break;
                 case 'settings': exportData = { banners, partners, headerLogoUrl }; break;
-                case 'all': exportData = { teams, matches, groups, rules, banners, partners, headerLogoUrl, knockoutStage }; break;
+                case 'all': exportData = { teams, matches, groups, rules, banners, partners, headerLogoUrl, knockoutStage, scheduleSettings }; break;
             }
 
             const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -146,6 +147,7 @@ export const DataManager: React.FC<DataManagerProps> = ({
                     headerLogoUrl: importedData.headerLogoUrl || headerLogoUrl,
                     mode: mode,
                     knockoutStage: importedData.knockoutStage || knockoutStage,
+                    scheduleSettings: importedData.scheduleSettings || scheduleSettings,
                     isDoubleRoundRobin: true,
                     status: 'active',
                     history: importedData.history || [],

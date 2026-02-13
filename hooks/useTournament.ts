@@ -1,6 +1,6 @@
 
 import { useReducer, useCallback, useState, useEffect, useRef, useMemo } from 'react';
-import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment, SeasonHistory, NewsItem, Product, PlayerStat, MatchPlayerStats } from '../types';
+import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment, SeasonHistory, NewsItem, Product, PlayerStat, MatchPlayerStats, ScheduleSettings } from '../types';
 import { generateSummary } from '../services/geminiService';
 import { subscribeToTournamentData, saveTournamentData, sanitizeData } from '../services/firebaseService';
 import { useToast } from '../components/shared/Toast';
@@ -21,7 +21,7 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
   history: [],
   isRegistrationOpen: true, 
   headerLogoUrl: '',
-  pwaIconUrl: '', // Initial empty state
+  pwaIconUrl: '', 
   news: [],
   products: [],
   newsCategories: ['Match', 'Transfer', 'Info', 'Interview'],
@@ -33,7 +33,14 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
     "MAINKAN DENGAN SPORTIF, MENANG DENGAN ELEGAN!",
     "UPDATE SKOR DAN KLASEMEN SECARA REAL-TIME DI SINI!"
   ],
-  visibleModes: ['league', 'wakacl', 'two_leagues']
+  visibleModes: ['league', 'wakacl', 'two_leagues'],
+  scheduleSettings: {
+      isActive: false,
+      currentMatchday: 1,
+      matchdayStartTime: null,
+      matchdayDurationHours: 24,
+      autoProcessEnabled: false
+  }
 });
 
 const calculateStandings = (teams: Team[], matches: Match[], groupId: string, groupName: string): Standing[] => {
@@ -85,26 +92,24 @@ const hydrateTournamentData = (state: FullTournamentState): FullTournamentState 
         const groupTeams = (g.teams || []).map(t => getFullTeam(t));
         return { ...g, teams: groupTeams, standings: calculateStandings(groupTeams, hydratedMatches, g.id, g.name) };
     });
-    const hydratedKnockout = state.knockoutStage ? {
-        'Play-offs': (state.knockoutStage['Play-offs'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null })),
-        'Round of 16': (state.knockoutStage['Round of 16'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null })),
-        'Quarter-finals': (state.knockoutStage['Quarter-finals'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null })),
-        'Semi-finals': (state.knockoutStage['Semi-finals'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null })),
-        'Final': (state.knockoutStage['Final'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null }))
-    } : null;
-
-    const hydratedHistory = (state.history || []).map(h => ({
-        ...h,
-        champion: getFullTeam(h.champion),
-        runnerUp: h.runnerUp ? getFullTeam(h.runnerUp) : undefined
-    }));
+    // Ensure scheduleSettings exists (migration for old data)
+    const hydratedSettings = state.scheduleSettings || createInitialState(state.mode).scheduleSettings;
 
     return { 
         ...state, 
         groups: hydratedGroups, 
         matches: hydratedMatches, 
-        knockoutStage: hydratedKnockout as any,
-        history: hydratedHistory 
+        scheduleSettings: hydratedSettings,
+        history: (state.history || []).map(h => ({
+            ...h, champion: getFullTeam(h.champion), runnerUp: h.runnerUp ? getFullTeam(h.runnerUp) : undefined
+        })),
+        knockoutStage: state.knockoutStage ? {
+            'Play-offs': (state.knockoutStage['Play-offs'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null })),
+            'Round of 16': (state.knockoutStage['Round of 16'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null })),
+            'Quarter-finals': (state.knockoutStage['Quarter-finals'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null })),
+            'Semi-finals': (state.knockoutStage['Semi-finals'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null })),
+            'Final': (state.knockoutStage['Final'] || []).map((m: any) => ({ ...m, teamA: m.teamA ? getFullTeam(m.teamA) : null, teamB: m.teamB ? getFullTeam(m.teamB) : null }))
+        } : null
     };
 };
 
@@ -138,7 +143,9 @@ type Action =
   | { type: 'DELETE_KNOCKOUT_MATCH'; payload: { round: keyof KnockoutStageRounds, id: string } }
   | { type: 'GENERATE_KNOCKOUT_BRACKET'; payload: KnockoutStageRounds }
   | { type: 'UPDATE_VISIBLE_MODES'; payload: TournamentMode[] }
-  | { type: 'ADD_MATCH_COMMENT'; payload: { matchId: string, comment: MatchComment } };
+  | { type: 'ADD_MATCH_COMMENT'; payload: { matchId: string, comment: MatchComment } }
+  | { type: 'UPDATE_SCHEDULE_SETTINGS'; payload: Partial<ScheduleSettings> }
+  | { type: 'PROCESS_AUTO_WO'; payload: Match[] }; // Bulk update matches
 
 const tournamentReducer = (state: FullTournamentState, action: Action): FullTournamentState => {
   let newState: FullTournamentState;
@@ -188,6 +195,14 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'DELETE_HISTORY_ENTRY': newState = { ...state, history: state.history.filter(h => h.seasonId !== action.payload) }; break;
     case 'UPDATE_VISIBLE_MODES': newState = { ...state, visibleModes: action.payload }; break;
     case 'ADD_MATCH_COMMENT': newState = { ...state, matches: state.matches.map(m => m.id === action.payload.matchId ? { ...m, comments: [...(m.comments || []), action.payload.comment] } : m) }; break;
+    case 'UPDATE_SCHEDULE_SETTINGS': newState = { ...state, scheduleSettings: { ...state.scheduleSettings, ...action.payload } }; break;
+    case 'PROCESS_AUTO_WO': {
+        // Bulk update matches with WO results
+        const updatedMatchIds = new Set(action.payload.map(m => m.id));
+        const newMatches = state.matches.map(m => updatedMatchIds.has(m.id) ? (action.payload.find(up => up.id === m.id) || m) : m);
+        newState = { ...state, matches: newMatches };
+        break;
+    }
     case 'RESET': {
         newState = { 
             ...createInitialState(state.mode),
@@ -216,6 +231,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
             groups: [],
             knockoutStage: null,
             status: 'active',
+            scheduleSettings: createInitialState(state.mode).scheduleSettings, // Reset schedule
             teams: keepTeams ? state.teams : []
         };
         break;
@@ -283,6 +299,95 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
     }, 5000); 
     return () => clearInterval(autoSaveInterval);
   }, [isAdmin, isLoading, isSyncing, forceSave]);
+
+  // SMART SCHEDULE LOGIC
+  const processMatchdayTimeouts = useCallback(() => {
+      const settings = state.scheduleSettings;
+      if (!settings.isActive || !settings.matchdayStartTime) return { processedCount: 0, message: 'Jadwal tidak aktif.' };
+
+      const now = Date.now();
+      const deadline = settings.matchdayStartTime + (settings.matchdayDurationHours * 3600000);
+      
+      // Only process if time is up OR forced
+      if (now < deadline) return { processedCount: 0, message: 'Waktu matchday belum habis.' };
+
+      const currentMatches = state.matches.filter(m => 
+          (m.matchday === settings.currentMatchday) && (m.status !== 'finished')
+      );
+
+      const updatedMatches: Match[] = [];
+
+      currentMatches.forEach(match => {
+          const comments = match.comments || [];
+          
+          // Identify activity based on owner email matching
+          const teamAEmail = match.teamA.ownerEmail?.toLowerCase();
+          const teamBEmail = match.teamB.ownerEmail?.toLowerCase();
+
+          const teamAActive = comments.some(c => c.userEmail.toLowerCase() === teamAEmail);
+          const teamBActive = comments.some(c => c.userEmail.toLowerCase() === teamBEmail);
+
+          // Logic Penentuan WO
+          let newMatch = { ...match };
+          let changed = false;
+
+          if (teamAActive && !teamBActive) {
+              // A wins via WO
+              newMatch.scoreA = 3;
+              newMatch.scoreB = 0;
+              newMatch.status = 'finished';
+              newMatch.summary = 'Menang WO (Otomatis oleh Sistem)';
+              changed = true;
+          } else if (!teamAActive && teamBActive) {
+              // B wins via WO
+              newMatch.scoreA = 0;
+              newMatch.scoreB = 3;
+              newMatch.status = 'finished';
+              newMatch.summary = 'Menang WO (Otomatis oleh Sistem)';
+              changed = true;
+          } else if (!teamAActive && !teamBActive) {
+              // Both inactive -> Draw 0-0
+              newMatch.scoreA = 0;
+              newMatch.scoreB = 0;
+              newMatch.status = 'finished';
+              newMatch.summary = 'Imbang WO (Tidak ada aktivitas)';
+              changed = true;
+          }
+          // If both active -> Leave as is (Status Quo), admin must resolve or players must input score
+
+          if (changed) updatedMatches.push(newMatch);
+      });
+
+      if (updatedMatches.length > 0) {
+          dispatch({ type: 'PROCESS_AUTO_WO', payload: updatedMatches });
+          // Stop the timer after processing to avoid repeated processing
+          dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { isActive: false } }); 
+          return { processedCount: updatedMatches.length, message: `${updatedMatches.length} pertandingan diproses WO otomatis.` };
+      }
+
+      return { processedCount: 0, message: 'Tidak ada pertandingan yang memenuhi syarat WO.' };
+
+  }, [state.scheduleSettings, state.matches]);
+
+  // Public Actions for Schedule
+  const startMatchday = (duration: number) => {
+      dispatch({ 
+          type: 'UPDATE_SCHEDULE_SETTINGS', 
+          payload: { 
+              isActive: true, 
+              matchdayStartTime: Date.now(),
+              matchdayDurationHours: duration
+          } 
+      });
+  };
+
+  const pauseSchedule = () => {
+      dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { isActive: false } });
+  };
+
+  const setMatchday = (day: number) => {
+      dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { currentMatchday: day, isActive: false, matchdayStartTime: null } });
+  };
 
   const generateKnockoutBracket = useCallback(() => {
     const topTeamsByGroup: { winner: Team | null, runnerUp: Team | null }[] = state.groups.map(group => {
@@ -539,7 +644,13 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       addMatchComment: (matchId: string, userId: string, userName: string, userEmail: string, text: string, isAdmin: boolean = false) =>
         dispatch({ type: 'ADD_MATCH_COMMENT', payload: { matchId, comment: { id: `c${Date.now()}`, userId, userName, userEmail, text, timestamp: Date.now(), isAdmin } } }),
       autoGenerateGroups,
-      initializeLeague, // Exported for use in ManualGroupManager
-      generateSummary
+      initializeLeague,
+      generateSummary,
+      
+      // Schedule Control Exports
+      startMatchday,
+      pauseSchedule,
+      setMatchday,
+      processMatchdayTimeouts
   };
 };

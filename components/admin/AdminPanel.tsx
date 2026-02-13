@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import type { Team, Group, Match, KnockoutStageRounds, KnockoutMatch, TournamentState, Partner, TournamentMode, TournamentStatus, SeasonHistory, NewsItem, Product } from '../../types';
+import type { Team, Group, Match, KnockoutStageRounds, KnockoutMatch, TournamentState, Partner, TournamentMode, TournamentStatus, SeasonHistory, NewsItem, Product, ScheduleSettings } from '../../types';
 import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
@@ -20,6 +20,7 @@ import { KnockoutMatchForm } from './KnockoutMatchForm';
 import { ArchiveSeasonModal } from './ArchiveSeasonModal';
 import { useToast } from '../shared/Toast';
 import { MatchDetailsModal } from './MatchDetailsModal';
+import { ScheduleControl } from './ScheduleControl';
 
 interface AdminPanelProps {
   teams: Team[];
@@ -37,6 +38,7 @@ interface AdminPanelProps {
   mode: TournamentMode;
   status: TournamentStatus;
   history: SeasonHistory[];
+  scheduleSettings: ScheduleSettings;
   isDoubleRoundRobin: boolean;
   isSyncing?: boolean;
   hasUnsavedChanges?: boolean;
@@ -69,7 +71,7 @@ interface AdminPanelProps {
   manualAddTeamToGroup: (teamId: string, groupId: string) => void;
   manualRemoveTeamFromGroup: (teamId: string, groupId: string) => void;
   autoGenerateGroups?: (numberOfGroups: number) => void; 
-  initializeLeague?: () => void; // New prop for league initialization
+  initializeLeague?: () => void; 
   generateMatchesFromGroups: () => void;
   setTournamentState: (state: TournamentState) => void;
   addHistoryEntry: (entry: SeasonHistory) => void;
@@ -81,6 +83,11 @@ interface AdminPanelProps {
   setRegistrationOpen: (open: boolean) => void;
   setTournamentStatus: (status: 'active' | 'completed') => void;
   updateVisibleModes: (modes: TournamentMode[]) => void;
+  // Schedule Control Actions
+  startMatchday?: (duration: number) => void;
+  pauseSchedule?: () => void;
+  setMatchday?: (day: number) => void;
+  processMatchdayTimeouts?: () => { processedCount: number, message: string };
 }
 
 type AdminTab = 'teams' | 'group-fixtures' | 'knockout' | 'news' | 'shop' | 'marquee' | 'banners' | 'partners' | 'history' | 'rules' | 'branding' | 'data' | 'settings';
@@ -230,39 +237,53 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               headerLogoUrl={props.headerLogoUrl || ''}
               mode={props.mode}
               knockoutStage={props.knockoutStage}
+              scheduleSettings={props.scheduleSettings}
               setTournamentState={props.setTournamentState}
           />
       );
       case 'group-fixtures': return (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 pb-20">
-            {props.groups.map(group => {
-                const groupMatches = props.matches.filter(m => m.group === group.id || m.group === group.name.replace('Group ', '').trim());
-                if (groupMatches.length === 0) return null;
-                const schedule = groupMatches.reduce((acc, m) => {
-                    const key = `L${m.leg || 1}-D${m.matchday || 1}`;
-                    if (!acc[key]) acc[key] = []; acc[key].push(m); return acc;
-                }, {} as Record<string, Match[]>);
-                const activeKey = selectedMatchdays[group.id] || Object.keys(schedule)[0];
-                return (
-                    <div key={group.id} className="bg-brand-secondary/30 p-5 rounded-[1.5rem] border border-white/5 shadow-xl">
-                        <div className="flex justify-between items-center mb-5 pb-3 border-b border-white/5">
-                            <h4 className="text-lg font-black text-brand-vibrant uppercase italic tracking-tight">{group.name}</h4>
-                            <select 
-                                value={activeKey} 
-                                onChange={(e) => setSelectedMatchdays(prev => ({...prev, [group.id]: e.target.value}))}
-                                className="bg-brand-primary border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white font-bold outline-none"
-                            >
-                                {Object.keys(schedule).map(k => <option key={k} value={k}>{k.replace('L', 'Leg ').replace('D', ' Day ')}</option>)}
-                            </select>
+        <div className="pb-20 space-y-6">
+            {props.startMatchday && props.pauseSchedule && props.setMatchday && props.processMatchdayTimeouts && (
+                <ScheduleControl 
+                    settings={props.scheduleSettings}
+                    onStart={props.startMatchday}
+                    onPause={props.pauseSchedule}
+                    onSetMatchday={props.setMatchday}
+                    onCheckTimeouts={props.processMatchdayTimeouts}
+                    totalMatchdays={38} // Hardcoded or dynamic
+                />
+            )}
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                {props.groups.map(group => {
+                    const groupMatches = props.matches.filter(m => m.group === group.id || m.group === group.name.replace('Group ', '').trim());
+                    if (groupMatches.length === 0) return null;
+                    const schedule = groupMatches.reduce((acc, m) => {
+                        const key = `L${m.leg || 1}-D${m.matchday || 1}`;
+                        if (!acc[key]) acc[key] = []; acc[key].push(m); return acc;
+                    }, {} as Record<string, Match[]>);
+                    const activeKey = selectedMatchdays[group.id] || Object.keys(schedule)[0];
+                    return (
+                        <div key={group.id} className="bg-brand-secondary/30 p-5 rounded-[1.5rem] border border-white/5 shadow-xl">
+                            <div className="flex justify-between items-center mb-5 pb-3 border-b border-white/5">
+                                <h4 className="text-lg font-black text-brand-vibrant uppercase italic tracking-tight">{group.name}</h4>
+                                <select 
+                                    value={activeKey} 
+                                    onChange={(e) => setSelectedMatchdays(prev => ({...prev, [group.id]: e.target.value}))}
+                                    className="bg-brand-primary border border-white/10 rounded-lg px-2 py-1 text-[10px] text-white font-bold outline-none"
+                                >
+                                    {Object.keys(schedule).map(k => <option key={k} value={k}>{k.replace('L', 'Leg ').replace('D', ' Day ')}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-3">
+                                {schedule[activeKey]?.map(match => (
+                                    <MatchEditor key={match.id} match={match} onUpdateScore={props.updateMatchScore} onGenerateSummary={async () => ''} onEditSchedule={(m) => setEditingMatch(m)} />
+                                ))}
+                            </div>
                         </div>
-                        <div className="space-y-3">
-                             {schedule[activeKey]?.map(match => (
-                                <MatchEditor key={match.id} match={match} onUpdateScore={props.updateMatchScore} onGenerateSummary={async () => ''} onEditSchedule={(m) => setEditingMatch(m)} />
-                            ))}
-                        </div>
-                    </div>
-                );
-            })}
+                    );
+                })}
+            </div>
         </div>
       );
       case 'knockout': return (

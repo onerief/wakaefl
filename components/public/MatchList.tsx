@@ -1,8 +1,8 @@
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import type { Match, Team, MatchComment } from '../../types';
 import { Card } from '../shared/Card';
-import { MonitorPlay, MessageSquare, Send, UserCircle, Save, Plus, Minus, Camera, Loader, Shield, Lock, Star, Layout, MapPin } from 'lucide-react';
+import { MonitorPlay, MessageSquare, Send, UserCircle, Save, Plus, Minus, Camera, Loader, Shield, Lock, Star, Layout, MapPin, Clock } from 'lucide-react';
 import { ProofModal } from './ProofModal';
 import { TeamLogo } from '../shared/TeamLogo';
 import type { User } from 'firebase/auth';
@@ -37,6 +37,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const hasComments = match.comments && match.comments.length > 0;
     
     const isMyMatch = userOwnedTeamIds.includes(match.teamA.id) || userOwnedTeamIds.includes(match.teamB.id);
+
+    // Auto-scroll comments
+    const commentsEndRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        if (showComments && commentsEndRef.current) {
+            commentsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [showComments, match.comments]);
 
     const chatPermissions = useMemo(() => {
         if (!currentUser) return { canChat: false, reason: 'Login untuk chat' };
@@ -91,6 +99,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             <span className="flex items-center gap-1 px-1 py-0.5 bg-brand-vibrant text-white font-black rounded-md uppercase animate-pulse scale-[0.8] sm:scale-100 origin-left">
                                 <Star size={8} className="fill-white" /> My Match
                             </span>
+                        )}
+                        {match.summary && match.summary.includes('WO') && (
+                            <span className="text-red-400 font-bold ml-1 flex items-center gap-1"><Clock size={8}/> WO SYSTEM</span>
                         )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -179,6 +190,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             ) : (
                                 <div className="text-center py-2 text-[7px] font-black text-brand-light/20 uppercase">Belum ada diskusi</div>
                             )}
+                            <div ref={commentsEndRef} />
                         </div>
                         <div className="p-2 bg-brand-secondary/40 border-t border-white/5">
                             {chatPermissions.canChat ? (

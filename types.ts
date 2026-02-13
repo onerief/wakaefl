@@ -158,6 +158,14 @@ export interface SeasonHistory {
   mode?: TournamentMode;
 }
 
+export interface ScheduleSettings {
+  isActive: boolean;
+  currentMatchday: number;
+  matchdayStartTime: number | null; // Timestamp
+  matchdayDurationHours: number; // Default 24
+  autoProcessEnabled: boolean;
+}
+
 export interface TournamentState {
   teams: Team[];
   groups: Group[];
@@ -172,13 +180,14 @@ export interface TournamentState {
   history: SeasonHistory[];
   isRegistrationOpen: boolean;
   headerLogoUrl?: string;
-  pwaIconUrl?: string; // New field for custom app icon
+  pwaIconUrl?: string; 
   news?: NewsItem[];
   products?: Product[];
   newsCategories?: string[];
   shopCategories?: string[];
   marqueeMessages?: string[];
   visibleModes?: TournamentMode[];
+  scheduleSettings: ScheduleSettings; // NEW FIELD
 }
 
 export type View = 'home' | 'league' | 'wakacl' | 'two_leagues' | 'admin' | 'hall_of_fame' | 'news' | 'privacy' | 'about' | 'terms' | 'shop';
