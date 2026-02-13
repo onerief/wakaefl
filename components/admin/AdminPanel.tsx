@@ -430,6 +430,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               </div>
           </div>
 
+          {/* NEW: MOBILE STATUS & SAVE BAR (VISIBLE ONLY ON MOBILE) */}
+          <div className={`px-3 py-1.5 flex items-center justify-between border-t border-white/5 ${props.hasUnsavedChanges ? 'bg-yellow-500/10' : 'bg-black/20'}`}>
+               <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest ${props.isSyncing ? 'text-blue-400' : props.hasUnsavedChanges ? 'text-yellow-500' : 'text-green-500'}`}>
+                   {props.isSyncing ? <RefreshCw size={12} className="animate-spin"/> : <Wifi size={12}/>}
+                   <span>{props.isSyncing ? 'Syncing...' : props.hasUnsavedChanges ? 'Unsaved' : 'Connected'}</span>
+               </div>
+               {props.hasUnsavedChanges && !props.isSyncing && (
+                   <button onClick={handleForceSave} className="bg-yellow-500 text-brand-primary px-3 py-1 rounded text-[9px] font-black uppercase shadow-lg active:scale-95 transition-all flex items-center gap-1 animate-pulse">
+                      <Save size={10} /> Save Now
+                   </button>
+               )}
+          </div>
+
           {isMobileMenuOpen && (
               <>
                   <div className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
