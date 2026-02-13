@@ -50,11 +50,21 @@ const firebaseConfig = {
   measurementId: "G-CXXT1NJEWH"
 };
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-// initializeFirestore with settings prefers explicit imports over getFirestore() usually if we want cache
-const firestore = initializeFirestore(app, { localCache: persistentLocalCache() });
-const auth = getAuth(app);
-const storage = getStorage(app); 
+// --- INITIALIZATION ---
+let app;
+let firestore;
+let auth;
+let storage;
+
+try {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+    // Initialize Firestore with explicit settings if needed, or default
+    firestore = getFirestore(app);
+    auth = getAuth(app);
+    storage = getStorage(app); 
+} catch (error) {
+    console.error("CRITICAL: Firebase Initialization Failed", error);
+}
 
 const TOURNAMENT_COLLECTION = 'tournament';
 const SETTINGS_DOC = 'global_settings';
@@ -105,12 +115,14 @@ export const sanitizeData = (data: any): any => {
 
 // --- AUTH FUNCTIONS ---
 export const onAuthChange = (callback: (user: User | null) => void) => {
+  if (!auth) return () => {};
   return onAuthStateChanged(auth, callback);
 };
-export const signOutUser = () => signOut(auth);
-export const signInUser = (email, password) => signInWithEmailAndPassword(auth, email, password);
-export const registerUser = (email, password) => createUserWithEmailAndPassword(auth, email, password);
+export const signOutUser = () => auth ? signOut(auth) : Promise.reject("Auth not initialized");
+export const signInUser = (email, password) => auth ? signInWithEmailAndPassword(auth, email, password) : Promise.reject("Auth not initialized");
+export const registerUser = (email, password) => auth ? createUserWithEmailAndPassword(auth, email, password) : Promise.reject("Auth not initialized");
 export const signInWithGoogle = async () => {
+  if (!auth) throw new Error("Auth not initialized");
   const provider = new GoogleAuthProvider();
   return signInWithPopup(auth, provider);
 };
@@ -120,6 +132,7 @@ export const updateUserProfile = async (user: User, displayName: string) => {
 
 // --- STORAGE FUNCTIONS ---
 export const uploadTeamLogo = async (file: File): Promise<string> => {
+  if (!storage) throw new Error("Storage not initialized");
   const storageRef = ref(storage, `logos/${Date.now()}-${file.name}`);
   await uploadBytes(storageRef, file);
   return getDownloadURL(storageRef);
@@ -127,6 +140,10 @@ export const uploadTeamLogo = async (file: File): Promise<string> => {
 
 // --- DATA FETCHING ---
 export const saveTournamentData = async (mode: TournamentMode, state: TournamentState) => {
+  if (!firestore) {
+      console.error("Firestore not initialized, cannot save data.");
+      return false;
+  }
   try {
     const dehydrateTeam = (t: any) => {
         if (!t) return null;
@@ -198,6 +215,7 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
 };
 
 export const getTournamentData = async (mode: TournamentMode): Promise<TournamentState | null> => {
+  if (!firestore) return null;
   try {
       const d = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
       if (!d.exists()) return null;
@@ -210,6 +228,7 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
 
 // --- GLOBAL BACKUP FUNCTIONS ---
 export const getFullSystemBackup = async () => {
+    if (!firestore) throw new Error("Firestore not initialized");
     try {
         const [league, wakacl, two_leagues, settings] = await Promise.all([
             getDoc(doc(firestore, TOURNAMENT_COLLECTION, 'league')),
@@ -235,6 +254,7 @@ export const getFullSystemBackup = async () => {
 };
 
 export const restoreFullSystem = async (backupData: any) => {
+    if (!firestore) throw new Error("Firestore not initialized");
     if (backupData.backupType !== 'FULL_SYSTEM' || !backupData.data) {
         throw new Error("Format file backup tidak valid.");
     }
@@ -252,6 +272,7 @@ export const restoreFullSystem = async (backupData: any) => {
 };
 
 export const getGlobalStats = async () => {
+  if (!firestore) return { teamCount: 0, partnerCount: 0 };
   try {
     const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
     const teamIds = new Set<string>();
@@ -272,6 +293,10 @@ export const getGlobalStats = async () => {
 };
 
 export const getAllGlobalTeams = async (): Promise<Team[]> => {
+    if (!firestore) {
+        console.warn("Firestore not available for getAllGlobalTeams");
+        return [];
+    }
     try {
         const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
         const uniqueTeams = new Map<string, Team>();
@@ -296,11 +321,11 @@ export const getAllGlobalTeams = async (): Promise<Team[]> => {
 };
 
 export const getUserTeams = async (email: string) => {
+  if (!firestore || !email) return [];
   try {
       const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
       const owned: { mode: TournamentMode, team: Team }[] = [];
       const normalizedEmail = (email || '').toLowerCase();
-      if (!normalizedEmail) return [];
 
       for (const mode of modes) {
         const d = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
@@ -321,6 +346,8 @@ export const getUserTeams = async (email: string) => {
 };
 
 export const subscribeToTournamentData = (mode: TournamentMode, callback: (data: TournamentState) => void) => {
+    if (!firestore) return () => {};
+    
     const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
     const leagueDocRef = doc(firestore, TOURNAMENT_COLLECTION, 'league'); 
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
@@ -405,6 +432,7 @@ export const subscribeToTournamentData = (mode: TournamentMode, callback: (data:
 
 // --- REGISTRATIONS ---
 export const subscribeToRegistrations = (callback: (regs: any[]) => void, errorCallback?: (err: any) => void) => {
+  if (!firestore) return () => {};
   const q = query(collection(firestore, REGISTRATIONS_COLLECTION), orderBy('timestamp', 'desc'));
   return onSnapshot(q, (snap) => {
     const regs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -414,8 +442,12 @@ export const subscribeToRegistrations = (callback: (regs: any[]) => void, errorC
       if (errorCallback) errorCallback(err);
   });
 };
-export const deleteRegistration = (id: string) => deleteDoc(doc(firestore, REGISTRATIONS_COLLECTION, id));
+export const deleteRegistration = (id: string) => {
+    if (!firestore) return Promise.reject("Firestore not available");
+    return deleteDoc(doc(firestore, REGISTRATIONS_COLLECTION, id));
+};
 export const submitNewTeamRegistration = async (data: any, email: string) => {
+  if (!firestore) throw new Error("Firestore not available");
   return addDoc(collection(firestore, REGISTRATIONS_COLLECTION), {
     ...data,
     ownerEmail: email,
@@ -425,6 +457,7 @@ export const submitNewTeamRegistration = async (data: any, email: string) => {
 
 // --- TEAM MANAGEMENT ---
 export const addApprovedTeamToFirestore = async (mode: TournamentMode, team: Team) => {
+  if (!firestore) throw new Error("Firestore not available");
   const modeRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
   await runTransaction(firestore, async (transaction) => {
     const snap = await transaction.get(modeRef);
@@ -434,6 +467,7 @@ export const addApprovedTeamToFirestore = async (mode: TournamentMode, team: Tea
   });
 };
 export const updateUserTeamData = async (mode: TournamentMode, teamId: string, updates: Partial<Team>) => {
+  if (!firestore) throw new Error("Firestore not available");
   const modeRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
   await runTransaction(firestore, async (transaction) => {
     const snap = await transaction.get(modeRef);
@@ -445,6 +479,7 @@ export const updateUserTeamData = async (mode: TournamentMode, teamId: string, u
   });
 };
 export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: string, email: string) => {
+  if (!firestore) throw new Error("Firestore not available");
   const modeRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
   await runTransaction(firestore, async (transaction) => {
     const snap = await transaction.get(modeRef);
@@ -461,6 +496,7 @@ export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: strin
 
 // --- CHAT ---
 export const subscribeToGlobalChat = (callback: (messages: ChatMessage[]) => void) => {
+  if (!firestore) return () => {};
   // Use 'desc' to get the latest messages, then reverse them for display
   const q = query(collection(firestore, CHAT_COLLECTION), orderBy('timestamp', 'desc'), limit(50));
   return onSnapshot(q, (snap) => {
@@ -470,6 +506,7 @@ export const subscribeToGlobalChat = (callback: (messages: ChatMessage[]) => voi
 };
 
 export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: boolean, teamName?: string) => {
+  if (!firestore) throw new Error("Firestore not available");
   return addDoc(collection(firestore, CHAT_COLLECTION), {
     text,
     userId: user.uid,
@@ -483,6 +520,7 @@ export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: b
 
 // --- NOTIFICATIONS ---
 export const sendNotification = async (email: string, title: string, message: string, type: 'info' | 'success' | 'warning' = 'info') => {
+    if (!firestore) return;
     try {
         await addDoc(collection(firestore, NOTIFICATIONS_COLLECTION), {
             email,
@@ -497,9 +535,8 @@ export const sendNotification = async (email: string, title: string, message: st
     }
 };
 
-// FIX: REMOVED orderBy to prevent composite index error. Sorting happens client-side.
 export const subscribeToNotifications = (email: string, callback: (notifs: Notification[]) => void) => {
-    if (!email) return () => {};
+    if (!firestore || !email) return () => {};
     
     // Only filter by email to use single-field index
     const q = query(
@@ -519,5 +556,6 @@ export const subscribeToNotifications = (email: string, callback: (notifs: Notif
 };
 
 export const deleteNotification = async (id: string) => {
+    if (!firestore) return;
     await deleteDoc(doc(firestore, NOTIFICATIONS_COLLECTION, id));
 };

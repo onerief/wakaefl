@@ -91,24 +91,6 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   return (
     <div className="space-y-10 md:space-y-20 py-2 md:py-4 animate-in fade-in duration-700 relative z-10 pb-20">
       
-      {/* QUICK STATS BAR - Moved to Top */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
-          {[
-              { label: 'Total Peserta', val: teamCount, icon: Users, color: 'text-blue-400' },
-              { label: 'Official Sponsors', val: partnerCount, icon: Star, color: 'text-yellow-400' },
-              { label: 'Mode Kompetisi', val: visibleModes.length, icon: Trophy, color: 'text-purple-400' },
-              { label: 'Status Server', val: 'Online', icon: Zap, color: 'text-green-400' }
-          ].map((stat, i) => (
-              <div key={i} className="bg-brand-secondary/40 border border-white/5 p-5 rounded-[1.5rem] flex items-center gap-4 hover:border-white/10 transition-all">
-                  <div className={`p-3 rounded-xl bg-white/5 ${stat.color}`}><stat.icon size={20} /></div>
-                  <div>
-                      <p className="text-2xl font-black text-white italic leading-none">{stat.val}</p>
-                      <p className="text-[10px] font-bold text-brand-light uppercase tracking-widest opacity-50 mt-1">{stat.label}</p>
-                  </div>
-              </div>
-          ))}
-      </div>
-
       {/* BERITA SLIDESHOW (Prominent UCL Style Hero) */}
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
         <div 
@@ -173,6 +155,24 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                 </div>
             )}
         </div>
+      </div>
+
+      {/* QUICK STATS BAR */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
+          {[
+              { label: 'Total Peserta', val: teamCount, icon: Users, color: 'text-blue-400' },
+              { label: 'Official Sponsors', val: partnerCount, icon: Star, color: 'text-yellow-400' },
+              { label: 'Mode Kompetisi', val: visibleModes.length, icon: Trophy, color: 'text-purple-400' },
+              { label: 'Status Server', val: 'Online', icon: Zap, color: 'text-green-400' }
+          ].map((stat, i) => (
+              <div key={i} className="bg-brand-secondary/40 border border-white/5 p-5 rounded-[1.5rem] flex items-center gap-4 hover:border-white/10 transition-all">
+                  <div className={`p-3 rounded-xl bg-white/5 ${stat.color}`}><stat.icon size={20} /></div>
+                  <div>
+                      <p className="text-2xl font-black text-white italic leading-none">{stat.val}</p>
+                      <p className="text-[10px] font-bold text-brand-light uppercase tracking-widest opacity-50 mt-1">{stat.label}</p>
+                  </div>
+              </div>
+          ))}
       </div>
 
       {/* COMPETITION EXPLORER - THE MAIN MENU */}
