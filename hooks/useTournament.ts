@@ -622,23 +622,68 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           const newGroups = state.groups.map(g => g.id === gid ? { ...g, teams: g.teams.filter(x => x.id !== tid) } : g);
           dispatch({ type: 'GENERATE_GROUPS', payload: { groups: newGroups, matches: state.matches, knockoutStage: state.knockoutStage } });
       },
-      generateMatchesFromGroups: () => {
+      generateMatchesFromGroups: (roundRobinType: 'single' | 'double' = 'single') => {
           const newMatches: Match[] = [];
           state.groups.forEach(g => {
               const teamsForScheduling = [...g.teams];
+              
               if (teamsForScheduling.length < 2) return;
-              if (teamsForScheduling.length % 2 !== 0) teamsForScheduling.push({ id: 'bye', name: 'BYE' } as Team);
+              
+              // Handle odd number of teams with a dummy "BYE" team
+              if (teamsForScheduling.length % 2 !== 0) {
+                  teamsForScheduling.push({ id: 'bye', name: 'BYE' } as Team);
+              }
+              
               const n = teamsForScheduling.length;
-              for (let round = 0; round < n - 1; round++) {
-                  for (let i = 0; i < n / 2; i++) {
-                      const tA = teamsForScheduling[i]; const tB = teamsForScheduling[n - 1 - i];
+              const roundsPerLeg = n - 1;
+              const matchesPerRound = n / 2;
+
+              // Generate First Leg (Normal Round Robin)
+              for (let round = 0; round < roundsPerLeg; round++) {
+                  for (let i = 0; i < matchesPerRound; i++) {
+                      const tA = teamsForScheduling[i]; 
+                      const tB = teamsForScheduling[n - 1 - i];
+                      
                       if (tA.id !== 'bye' && tB.id !== 'bye') {
-                          newMatches.push({ id: `m-${g.id}-${round}-${i}`, teamA: tA, teamB: tB, scoreA: null, scoreB: null, status: 'scheduled', group: g.id, leg: 1, matchday: round + 1 });
+                          // Alternate home/away for fair distribution in single leg
+                          const isHome = round % 2 === 0 ? i === 0 : i !== 0; 
+                          const home = isHome ? tA : tB;
+                          const away = isHome ? tB : tA;
+
+                          newMatches.push({ 
+                              id: `m-${g.id}-L1-R${round + 1}-${i}`, 
+                              teamA: home, 
+                              teamB: away, 
+                              scoreA: null, scoreB: null, status: 'scheduled', 
+                              group: g.id, leg: 1, matchday: round + 1 
+                          });
                       }
                   }
+                  // Rotate teams (keep index 0 fixed, rotate the rest)
                   teamsForScheduling.splice(1, 0, teamsForScheduling.pop()!);
               }
+
+              // Generate Second Leg (Double Round Robin) - If requested
+              if (roundRobinType === 'double') {
+                  // Reset rotation for 2nd leg logic or just invert the 1st leg matches?
+                  // Easier strategy: Loop through existing leg 1 matches and create reverse fixtures
+                  // But we need them to be in subsequent matchdays.
+                  
+                  const leg1Matches = newMatches.filter(m => m.group === g.id && m.leg === 1);
+                  
+                  leg1Matches.forEach(m => {
+                      newMatches.push({
+                          id: `m-${g.id}-L2-R${(m.matchday || 0) + roundsPerLeg}-${m.id.split('-').pop()}`,
+                          teamA: m.teamB, // Swap Home/Away
+                          teamB: m.teamA,
+                          scoreA: null, scoreB: null, status: 'scheduled',
+                          group: g.id, leg: 2, 
+                          matchday: (m.matchday || 0) + roundsPerLeg // Offset matchday
+                      });
+                  });
+              }
           });
+          
           dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups, matches: newMatches, knockoutStage: state.knockoutStage } });
       },
       addMatchComment: (matchId: string, userId: string, userName: string, userEmail: string, text: string, isAdmin: boolean = false) =>

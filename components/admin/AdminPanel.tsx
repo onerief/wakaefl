@@ -72,7 +72,7 @@ interface AdminPanelProps {
   manualRemoveTeamFromGroup: (teamId: string, groupId: string) => void;
   autoGenerateGroups?: (numberOfGroups: number) => void; 
   initializeLeague?: () => void; 
-  generateMatchesFromGroups: () => void;
+  generateMatchesFromGroups: (type: 'single' | 'double') => void;
   setTournamentState: (state: TournamentState) => void;
   addHistoryEntry: (entry: SeasonHistory) => void;
   deleteHistoryEntry: (id: string) => void;

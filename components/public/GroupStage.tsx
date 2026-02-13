@@ -94,7 +94,7 @@ export const GroupStage: React.FC<GroupStageProps> = ({ groups, onSelectTeam, us
                       <div className={`transition-transform duration-500 ${isExpanded ? 'rotate-180 text-brand-vibrant' : 'text-brand-light'}`}><ChevronDown size={24} /></div>
                   </div>
               </button>
-              <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[1500px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div ref={el => { groupRefs.current[group.id] = el; }} className="p-4 sm:p-6 pt-0 sm:pt-0">
                     <div className="h-px bg-white/5 mb-6"></div>
                     <StandingsTable standings={group.standings} onSelectTeam={onSelectTeam} history={history} />

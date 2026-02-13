@@ -14,16 +14,16 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSel
   const latestChampionId = history && history.length > 0 ? history[0].champion.id : null;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40 backdrop-blur-md shadow-2xl w-full">
-      <div className="w-full">
+    <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40 backdrop-blur-md shadow-2xl w-full flex flex-col">
+      <div className="w-full max-h-[65vh] overflow-y-auto custom-scrollbar relative">
         <table className="w-full text-left table-fixed border-collapse">
-          <thead className="text-[8px] sm:text-[10px] text-brand-light uppercase bg-brand-secondary/80 border-b border-white/10 backdrop-blur-md">
+          <thead className="text-[8px] sm:text-[10px] text-brand-light uppercase bg-brand-secondary/95 border-b border-white/10 backdrop-blur-md sticky top-0 z-20 shadow-md">
             <tr>
-              <th scope="col" className="py-2.5 font-black tracking-wider text-center w-[10%]">#</th>
-              <th scope="col" className="py-2.5 font-black tracking-wider text-left pl-1 w-[50%]">Club</th>
-              <th scope="col" className="py-2.5 font-black tracking-wider text-center w-[12%]">P</th>
-              <th scope="col" className="py-2.5 font-black tracking-wider text-center w-[14%]">GD</th>
-              <th scope="col" className="py-2.5 font-black tracking-wider text-center w-[14%]">Pts</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center w-[10%] bg-brand-secondary/95">#</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-left pl-1 w-[50%] bg-brand-secondary/95">Club</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center w-[12%] bg-brand-secondary/95">P</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center w-[14%] bg-brand-secondary/95">GD</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center w-[14%] bg-brand-secondary/95">Pts</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -94,7 +94,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSel
         </table>
       </div>
       
-      <div className="p-2 sm:p-3 bg-black/40 border-t border-white/5 flex items-center justify-between">
+      <div className="p-2 sm:p-3 bg-black/40 border-t border-white/5 flex items-center justify-between relative z-20">
           <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
                   <div className="w-1 h-1 bg-brand-vibrant rounded-full shadow-[0_0_8px_#2563eb]"></div>

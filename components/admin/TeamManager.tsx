@@ -31,7 +31,7 @@ interface TeamManagerProps {
   manualRemoveTeamFromGroup: (teamId: string, groupId: string) => void;
   autoGenerateGroups?: (numberOfGroups: number) => void;
   initializeLeague?: () => void;
-  generateMatchesFromGroups: () => void;
+  generateMatchesFromGroups: (type: 'single' | 'double') => void;
   setTournamentState: (state: TournamentState) => void;
   rules: string;
   resolveTeamClaim?: (teamId: string, approved: boolean) => void;
@@ -89,6 +89,11 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   }, [newRegistrations]);
 
   const totalRequestCount = sortedRegistrations.length + pendingClaims.length;
+  
+  // Calculate unassigned teams (registered but not in any group)
+  const unassignedCount = useMemo(() => {
+      return teams.filter(t => !groups.some(g => g.teams.some(gt => gt.id === t.id))).length;
+  }, [teams, groups]);
 
   const isTeamInUse = (teamId: string) => groups.some(g => g.teams.some(t => t.id === teamId));
 
@@ -215,7 +220,10 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
       <div className="flex bg-brand-primary/50 p-1 rounded-xl border border-white/5 mb-4 overflow-hidden">
           <button onClick={() => setActiveSubTab('list')} className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] sm:text-xs font-black uppercase rounded-lg transition-all ${activeSubTab === 'list' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}><Users size={16} /> Daftar Tim</button>
           <button onClick={() => setActiveSubTab('requests')} className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] sm:text-xs font-black uppercase rounded-lg transition-all relative ${activeSubTab === 'requests' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}><Bell size={16} /> Request {totalRequestCount > 0 && <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-red-500 text-white text-[9px] flex items-center justify-center rounded-full animate-bounce font-black border-2 border-brand-primary">{totalRequestCount}</span>}</button>
-          <button onClick={() => setActiveSubTab('setup')} className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] sm:text-xs font-black uppercase rounded-lg transition-all ${activeSubTab === 'setup' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}><LayoutGrid size={16} /> Pengaturan</button>
+          <button onClick={() => setActiveSubTab('setup')} className={`flex-1 flex items-center justify-center gap-2 py-3 text-[10px] sm:text-xs font-black uppercase rounded-lg transition-all relative ${activeSubTab === 'setup' ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}>
+              <LayoutGrid size={16} /> Pengaturan
+              {unassignedCount > 0 && <span className="absolute top-1.5 right-1.5 w-5 h-5 bg-yellow-500 text-black text-[9px] flex items-center justify-center rounded-full font-black animate-pulse border-2 border-brand-primary">{unassignedCount}</span>}
+          </button>
       </div>
 
       {activeSubTab === 'list' && (
