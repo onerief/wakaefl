@@ -360,8 +360,8 @@ export const subscribeToMatchComments = (mode: TournamentMode, callback: (commen
     if (!firestore || !mode) return () => {};
     try {
         const colRef = collection(firestore, TOURNAMENT_COLLECTION, mode, MATCH_COMMENTS_COLLECTION);
-        // Penting: Hapus sementara orderBy jika masih error permission untuk memastikan ini bukan masalah Index
         const q = query(colRef, orderBy('timestamp', 'asc'));
+        
         return onSnapshot(q, (snap) => {
             const commentsMap: Record<string, MatchComment[]> = {};
             snap.forEach(docSnap => {
@@ -371,9 +371,14 @@ export const subscribeToMatchComments = (mode: TournamentMode, callback: (commen
                 commentsMap[mId].push({ ...data, id: docSnap.id } as MatchComment);
             });
             callback(commentsMap);
-        }, (err) => {
-            // Jika error masih muncul, Firestore biasanya memberikan link di console untuk membuat INDEX
-            console.error("subscribeToMatchComments error:", err);
+        }, (err: any) => {
+            // SANGAT PENTING: Cek link di console Anda
+            if (err.message && err.message.includes('index')) {
+                console.error("PENTING: KLIK LINK INI UNTUK AKTIFKAN FITUR CHAT:");
+                console.error(err.message.split('here: ')[1]);
+            } else {
+                console.error("subscribeToMatchComments error:", err);
+            }
         });
     } catch (e) {
         console.error("Critical error in subscribeToMatchComments:", e);
