@@ -176,30 +176,36 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
 
                 {showComments && (
-                    <div className="bg-black/80 border-t border-white/10 animate-in slide-in-from-top-2 duration-300">
-                        <div className="max-h-32 sm:max-h-48 overflow-y-auto p-2 sm:p-3 space-y-2 custom-scrollbar">
+                    <div className="bg-neutral-900 border-t border-white/10 animate-in slide-in-from-top-2 duration-300">
+                        <div className="max-h-36 sm:max-h-56 overflow-y-auto p-3 space-y-2 custom-scrollbar">
                             {hasComments ? (
                                 match.comments?.map((comment) => (
-                                    <div key={comment.id} className="flex gap-1.5">
-                                        <div className="min-w-0 flex-1">
-                                            <span className={`text-[6px] sm:text-[8px] font-black uppercase truncate ${comment.isAdmin ? 'text-brand-special' : 'text-brand-light'}`}>{comment.userName}:</span>
-                                            <span className="text-[8px] sm:text-[10px] text-white leading-tight ml-1">{comment.text}</span>
+                                    <div key={comment.id} className={`flex flex-col gap-0.5 ${comment.userId === currentUser?.uid ? 'items-end' : 'items-start'}`}>
+                                        <span className={`text-[9px] font-black uppercase ${comment.userId === currentUser?.uid ? 'text-brand-vibrant' : comment.isAdmin ? 'text-brand-special' : 'text-brand-light/70'}`}>
+                                            {comment.userName}{comment.isAdmin ? ' (Admin)' : ''}
+                                        </span>
+                                        <div className={`px-2.5 py-1.5 rounded-lg text-[10px] sm:text-xs leading-relaxed break-words max-w-[90%] font-medium ${
+                                            comment.userId === currentUser?.uid 
+                                            ? 'bg-brand-vibrant/20 text-white border border-brand-vibrant/30 rounded-tr-none' 
+                                            : 'bg-white/10 text-brand-text border border-white/5 rounded-tl-none'
+                                        }`}>
+                                            {comment.text}
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <div className="text-center py-2 text-[7px] font-black text-brand-light/20 uppercase">Belum ada diskusi</div>
+                                <div className="text-center py-4 text-[9px] font-black text-brand-light/30 uppercase tracking-widest italic">Belum ada diskusi</div>
                             )}
                             <div ref={commentsEndRef} />
                         </div>
-                        <div className="p-2 bg-brand-secondary/40 border-t border-white/5">
+                        <div className="p-2 bg-black/60 border-t border-white/5">
                             {chatPermissions.canChat ? (
                                 <form onSubmit={handleSubmitComment} className="flex gap-2">
-                                    <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Tulis..." className="flex-grow bg-black/60 border border-white/10 rounded-lg px-2 py-1 text-[8px] sm:text-[10px] text-white focus:border-brand-vibrant outline-none" />
-                                    <button type="submit" disabled={!newComment.trim()} className="p-1 bg-brand-vibrant text-white rounded-lg transition-all"><Send size={10} /></button>
+                                    <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Tulis komentar..." className="flex-grow bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[10px] sm:text-xs text-white focus:border-brand-vibrant outline-none placeholder:text-brand-light/30 focus:bg-black transition-colors" />
+                                    <button type="submit" disabled={!newComment.trim()} className="p-2 bg-brand-vibrant text-white rounded-lg transition-all active:scale-95 disabled:opacity-50"><Send size={14} /></button>
                                 </form>
                             ) : (
-                                <div className="text-center text-[6px] text-brand-light/30 uppercase italic flex items-center justify-center gap-1"><Lock size={8} /> {chatPermissions.reason}</div>
+                                <div className="text-center text-[8px] text-brand-light/40 uppercase italic flex items-center justify-center gap-1 py-1"><Lock size={10} /> {chatPermissions.reason}</div>
                             )}
                         </div>
                     </div>

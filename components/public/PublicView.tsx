@@ -177,16 +177,16 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
                             {/* BYE TEAMS INDICATOR */}
                             {byeTeams.length > 0 && (
-                                <div className="mt-6 pt-4 border-t border-white/5">
+                                <div className="mt-4 p-3 bg-black/40 rounded-xl border border-white/5">
                                     <div className="flex items-center gap-2 mb-2 px-1">
-                                        <Coffee size={12} className="text-brand-light opacity-60" />
-                                        <span className="text-[10px] font-black text-brand-light uppercase tracking-widest opacity-60">Sedang Istirahat (BYE)</span>
+                                        <Coffee size={12} className="text-yellow-500" />
+                                        <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest">Rest Week (BYE)</span>
                                     </div>
-                                    <div className="grid grid-cols-1 gap-2">
+                                    <div className="flex flex-wrap gap-2">
                                         {byeTeams.map(team => (
-                                            <div key={team.id} className="flex items-center gap-3 bg-white/5 p-2 rounded-xl border border-white/5 opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
-                                                 <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-6 h-6" />
-                                                 <span className="text-[10px] font-black text-white uppercase italic tracking-tight">{team.name}</span>
+                                            <div key={team.id} className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 opacity-80 hover:opacity-100 transition-all">
+                                                 <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-5 h-5" />
+                                                 <span className="text-[9px] font-bold text-white uppercase tracking-tight">{team.name}</span>
                                             </div>
                                         ))}
                                     </div>

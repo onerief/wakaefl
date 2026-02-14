@@ -32,7 +32,7 @@ import {
   uploadBytes, 
   getDownloadURL 
 } from "firebase/storage";
-import type { TournamentState, TournamentMode, Team, ChatMessage, Notification } from '../types';
+import type { TournamentState, TournamentMode, Team, ChatMessage, Notification, Match, MatchComment } from '../types';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCXZAvanJ8Ra-3oCRXvsaKBopGce4CPuXQ",
@@ -428,6 +428,28 @@ export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: strin
     if (teamIndex !== -1) {
         teams[teamIndex].requestedOwnerEmail = email;
         transaction.update(modeRef, { teams: teams });
+    }
+  });
+};
+
+// --- MATCH MANAGEMENT ---
+export const addMatchCommentToFirestore = async (mode: TournamentMode, matchId: string, comment: MatchComment) => {
+  if(!firestore) throw new Error("No service");
+  const modeRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+  await runTransaction(firestore, async (transaction) => {
+    const snap = await transaction.get(modeRef);
+    if (!snap.exists()) return;
+    
+    const data = snap.data();
+    const matches = (data.matches || []) as Match[];
+    const matchIndex = matches.findIndex(m => m.id === matchId);
+    
+    if (matchIndex !== -1) {
+        const match = matches[matchIndex];
+        const comments = match.comments || [];
+        const newComments = [...comments, comment];
+        matches[matchIndex] = { ...match, comments: newComments };
+        transaction.update(modeRef, { matches: matches });
     }
   });
 };

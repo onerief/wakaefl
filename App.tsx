@@ -22,7 +22,7 @@ import { ToastProvider } from './components/shared/Toast';
 import { TeamProfileModal } from './components/public/TeamProfileModal';
 import { UserProfileModal } from './components/public/UserProfileModal';
 import { TeamRegistrationModal } from './components/public/TeamRegistrationModal';
-import { onAuthChange, signOutUser, getGlobalStats, getUserTeams } from './services/firebaseService';
+import { onAuthChange, signOutUser, getGlobalStats, getUserTeams, addMatchCommentToFirestore } from './services/firebaseService';
 import { useToast } from './components/shared/Toast';
 import { Spinner } from './components/shared/Spinner';
 import { DashboardSkeleton } from './components/shared/Skeleton';
@@ -191,6 +191,39 @@ function AppContent() {
     addToast('Berhasil keluar.', 'info');
   };
 
+  const handleAddCommentWrapper = async (matchId: string, text: string) => {
+      if (!currentUser) {
+          addToast("Silakan login untuk mengirim komentar.", "error");
+          return;
+      }
+      
+      // Optimistic Update
+      tournament.addMatchComment(
+          matchId,
+          currentUser.uid,
+          currentUser.displayName || 'User',
+          currentUser.email || '',
+          text,
+          isAdminAuthenticated
+      );
+
+      // Persist to Server
+      try {
+          await addMatchCommentToFirestore(activeMode, matchId, {
+              id: `c${Date.now()}`,
+              userId: currentUser.uid,
+              userName: currentUser.displayName || 'User',
+              userEmail: currentUser.email || '',
+              text: text,
+              timestamp: Date.now(),
+              isAdmin: isAdminAuthenticated
+          });
+      } catch (e) {
+          console.error("Failed to save comment:", e);
+          addToast("Gagal menyimpan komentar ke server.", "error");
+      }
+  };
+
   const showBanners = view !== 'admin' && view !== 'hall_of_fame' && !['privacy', 'about', 'terms'].includes(view);
 
   return (
@@ -270,7 +303,7 @@ function AppContent() {
                     history={tournament.history}
                     onSelectTeam={setViewingTeam} 
                     currentUser={currentUser} 
-                    onAddMatchComment={tournament.addMatchComment} 
+                    onAddMatchComment={handleAddCommentWrapper} 
                     isAdmin={isAdminAuthenticated} 
                     onUpdateMatchScore={tournament.updateMatchScore} 
                     onUpdateKnockoutScore={tournament.updateKnockoutMatch} 
