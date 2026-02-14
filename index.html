@@ -13,6 +13,10 @@
       if (typeof global === 'undefined') {
         window.global = window;
       }
+      // Polyfill for process which is required by @google/genai SDK usage pattern
+      if (typeof process === 'undefined') {
+        window.process = { env: {} };
+      }
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
