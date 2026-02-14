@@ -436,21 +436,27 @@ export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: strin
 export const addMatchCommentToFirestore = async (mode: TournamentMode, matchId: string, comment: MatchComment) => {
   if(!firestore) throw new Error("No service");
   const modeRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+  
   await runTransaction(firestore, async (transaction) => {
     const snap = await transaction.get(modeRef);
-    if (!snap.exists()) return;
+    if (!snap.exists()) throw new Error("Tournament data not found");
     
     const data = snap.data();
     const matches = (data.matches || []) as Match[];
     const matchIndex = matches.findIndex(m => m.id === matchId);
     
-    if (matchIndex !== -1) {
-        const match = matches[matchIndex];
-        const comments = match.comments || [];
-        const newComments = [...comments, comment];
-        matches[matchIndex] = { ...match, comments: newComments };
-        transaction.update(modeRef, { matches: matches });
-    }
+    if (matchIndex === -1) throw new Error("Match not found");
+    
+    // Use spread to avoid mutating read-only data from snapshot directly in some environments
+    const updatedMatches = [...matches];
+    const targetMatch = { ...updatedMatches[matchIndex] };
+    const currentComments = targetMatch.comments || [];
+    
+    // Append new comment
+    targetMatch.comments = [...currentComments, comment];
+    updatedMatches[matchIndex] = targetMatch;
+    
+    transaction.update(modeRef, { matches: updatedMatches });
   });
 };
 

@@ -197,7 +197,7 @@ function AppContent() {
           return;
       }
       
-      // Optimistic Update
+      // Optimistic Update (Immediate UI feedback)
       tournament.addMatchComment(
           matchId,
           currentUser.uid,
@@ -207,7 +207,7 @@ function AppContent() {
           isAdminAuthenticated
       );
 
-      // Persist to Server
+      // Persist to Server (Backend Storage)
       try {
           await addMatchCommentToFirestore(activeMode, matchId, {
               id: `c${Date.now()}`,
