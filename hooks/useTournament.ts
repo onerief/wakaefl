@@ -1,3 +1,4 @@
+
 import { useReducer, useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment, SeasonHistory, NewsItem, Product, PlayerStat, MatchPlayerStats, ScheduleSettings } from '../types';
 import { generateSummary } from '../services/geminiService';
@@ -92,7 +93,6 @@ const hydrateTournamentData = (state: FullTournamentState): FullTournamentState 
         const groupTeams = (g.teams || []).map(t => getFullTeam(t));
         return { ...g, teams: groupTeams, standings: calculateStandings(groupTeams, hydratedMatches, g.id, g.name) };
     });
-    // Ensure scheduleSettings exists (migration for old data)
     const hydratedSettings = state.scheduleSettings || createInitialState(state.mode).scheduleSettings;
 
     return { 
@@ -171,10 +171,8 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'SET_STATE': {
         const rawState = action.payload;
         const currentComments = state.matchComments || {};
-        // Preserve comments from separate collection
         const matchesWithComments = mergeCommentsIntoMatches(rawState.matches || [], currentComments);
         const knockoutWithComments = mergeCommentsIntoKnockout(rawState.knockoutStage, currentComments);
-        
         newState = { ...state, ...rawState, matches: matchesWithComments, knockoutStage: knockoutWithComments, matchComments: currentComments };
         break;
     }
@@ -230,13 +228,10 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'UPDATE_VISIBLE_MODES': newState = { ...state, visibleModes: action.payload }; break;
     case 'ADD_MATCH_COMMENT': {
         const { matchId, comment } = action.payload;
-        // Optimistic update for both matches and knockout
         const newCommentsMap = { ...(state.matchComments || {}) };
         newCommentsMap[matchId] = [...(newCommentsMap[matchId] || []), comment];
-        
         const newMatches = mergeCommentsIntoMatches(state.matches, newCommentsMap);
         const newKnockout = mergeCommentsIntoKnockout(state.knockoutStage, newCommentsMap);
-        
         newState = { ...state, matches: newMatches, knockoutStage: newKnockout, matchComments: newCommentsMap };
         break;
     }
@@ -247,13 +242,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
         newState = { ...state, matches: newMatches };
         break;
     }
-    case 'RESET': {
-        newState = { 
-            ...createInitialState(state.mode),
-            history: state.history,
-        }; 
-        break;
-    }
+    case 'RESET': newState = { ...createInitialState(state.mode), history: state.history }; break;
     case 'ARCHIVE_SEASON': {
         const { historyEntry, keepTeams } = action.payload;
         newState = {
@@ -265,7 +254,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
             status: 'active',
             scheduleSettings: createInitialState(state.mode).scheduleSettings, 
             teams: keepTeams ? state.teams : [],
-            matchComments: {} // Clear comments for new season
+            matchComments: {} 
         };
         break;
     }
@@ -294,27 +283,21 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
 
   useEffect(() => {
     setIsLoading(true);
-    // Subscribe to Main Data
     const unsubscribeTournament = subscribeToTournamentData(activeMode, (serverData) => {
         isUpdatingFromServer.current = true;
         dispatch({ type: 'SET_STATE', payload: serverData });
         hasPendingChanges.current = false;
         setHasUnsavedChanges(false);
-        
         setTimeout(() => { 
             isUpdatingFromServer.current = false; 
             setIsLoading(false); 
         }, 100);
     });
 
-    // Subscribe to Comments
     const unsubscribeComments = subscribeToMatchComments(activeMode, (commentsMap) => {
         isUpdatingFromServer.current = true;
         dispatch({ type: 'SET_COMMENTS', payload: commentsMap });
-        
-        setTimeout(() => { 
-            isUpdatingFromServer.current = false; 
-        }, 100);
+        setTimeout(() => { isUpdatingFromServer.current = false; }, 100);
     });
 
     return () => { unsubscribeTournament(); unsubscribeComments(); };
@@ -324,7 +307,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       if (!isAdmin) return;
       setIsSyncing(true);
       try {
-          console.log(`[ForceSave] Saving data for ${activeMode}...`);
           await saveTournamentData(activeMode, stateRef.current);
           hasPendingChanges.current = false;
           setHasUnsavedChanges(false);
@@ -345,34 +327,22 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
     return () => clearInterval(autoSaveInterval);
   }, [isAdmin, isLoading, isSyncing, forceSave]);
 
-  // SMART SCHEDULE LOGIC
   const processMatchdayTimeouts = useCallback(() => {
       const settings = state.scheduleSettings;
       if (!settings.isActive || !settings.matchdayStartTime) return { processedCount: 0, message: 'Jadwal tidak aktif.' };
-
       const now = Date.now();
       const deadline = settings.matchdayStartTime + (settings.matchdayDurationHours * 3600000);
-      
       if (now < deadline) return { processedCount: 0, message: 'Waktu matchday belum habis.' };
-
-      const currentMatches = state.matches.filter(m => 
-          (m.matchday === settings.currentMatchday) && (m.status !== 'finished')
-      );
-
+      const currentMatches = state.matches.filter(m => (m.matchday === settings.currentMatchday) && (m.status !== 'finished'));
       const updatedMatches: Match[] = [];
-
       currentMatches.forEach(match => {
           const comments = match.comments || [];
-          
           const teamAEmail = match.teamA.ownerEmail?.toLowerCase();
           const teamBEmail = match.teamB.ownerEmail?.toLowerCase();
-
           const teamAActive = comments.some(c => c.userEmail.toLowerCase() === teamAEmail);
           const teamBActive = comments.some(c => c.userEmail.toLowerCase() === teamBEmail);
-
           let newMatch = { ...match };
           let changed = false;
-
           if (teamAActive && !teamBActive) {
               newMatch.scoreA = 3; newMatch.scoreB = 0; newMatch.status = 'finished'; newMatch.summary = 'Menang WO (Otomatis oleh Sistem)'; changed = true;
           } else if (!teamAActive && teamBActive) {
@@ -380,48 +350,31 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           } else if (!teamAActive && !teamBActive) {
               newMatch.scoreA = 0; newMatch.scoreB = 0; newMatch.status = 'finished'; newMatch.summary = 'Imbang WO (Tidak ada aktivitas)'; changed = true;
           }
-
           if (changed) updatedMatches.push(newMatch);
       });
-
       if (updatedMatches.length > 0) {
           dispatch({ type: 'PROCESS_AUTO_WO', payload: updatedMatches });
           dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { isActive: false } }); 
           return { processedCount: updatedMatches.length, message: `${updatedMatches.length} pertandingan diproses WO otomatis.` };
       }
-
       return { processedCount: 0, message: 'Tidak ada pertandingan yang memenuhi syarat WO.' };
-
   }, [state.scheduleSettings, state.matches]);
 
   const startMatchday = (duration: number) => {
-      dispatch({ 
-          type: 'UPDATE_SCHEDULE_SETTINGS', 
-          payload: { isActive: true, matchdayStartTime: Date.now(), matchdayDurationHours: duration } 
-      });
+      dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { isActive: true, matchdayStartTime: Date.now(), matchdayDurationHours: duration } });
   };
-
-  const pauseSchedule = () => {
-      dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { isActive: false } });
-  };
-
-  const setMatchday = (day: number) => {
-      dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { currentMatchday: day, isActive: false, matchdayStartTime: null } });
-  };
+  const pauseSchedule = () => dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { isActive: false } });
+  const setMatchday = (day: number) => dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { currentMatchday: day, isActive: false, matchdayStartTime: null } });
 
   const generateKnockoutBracket = useCallback(() => {
     const topTeamsByGroup: { winner: Team | null, runnerUp: Team | null }[] = state.groups.map(group => {
         const sorted = [...group.standings].sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
         return { winner: sorted[0]?.team || null, runnerUp: sorted[1]?.team || null };
     });
-
     if (topTeamsByGroup.some(g => !g.winner)) return { success: false, message: "Pastikan semua grup memiliki pemenang." };
-
     const newKnockout: KnockoutStageRounds = { 'Play-offs': [], 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': [] };
-
     if (state.groups.length === 2) {
-        const gA = topTeamsByGroup[0];
-        const gB = topTeamsByGroup[1];
+        const gA = topTeamsByGroup[0]; const gB = topTeamsByGroup[1];
         newKnockout['Semi-finals'].push({ id: `ko-sf-1`, round: 'Semi-finals', matchNumber: 1, teamA: gA.winner, teamB: gB.runnerUp, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'ko-final-1', placeholderA: 'Winner A', placeholderB: 'Runner B' });
         newKnockout['Semi-finals'].push({ id: `ko-sf-2`, round: 'Semi-finals', matchNumber: 2, teamA: gB.winner, teamB: gA.runnerUp, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'ko-final-1', placeholderA: 'Winner B', placeholderB: 'Runner A' });
         newKnockout['Final'].push({ id: `ko-final-1`, round: 'Final', matchNumber: 1, teamA: null, teamB: null, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null, placeholderA: 'Winner SF1', placeholderB: 'Winner SF2' });
@@ -495,11 +448,9 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       return Object.values(stats).sort((a, b) => b.goals - a.goals).filter(s => s.goals > 0);
   }, [state.matches, state.knockoutStage, state.teams]);
 
-  const playerStats = useMemo(() => { return { topScorers: [], topAssists: [] }; }, []);
-
   return { 
       ...state, 
-      isLoading, isSyncing, clubStats, playerStats, hasUnsavedChanges, forceSave,
+      isLoading, isSyncing, clubStats, playerStats: { topScorers: [], topAssists: [] }, hasUnsavedChanges, forceSave,
       updateNews: (news: NewsItem[]) => dispatch({ type: 'UPDATE_NEWS', payload: news }),
       updateProducts: (products: Product[]) => dispatch({ type: 'UPDATE_PRODUCTS', payload: products }),
       updateNewsCategories: (cats: string[]) => dispatch({ type: 'UPDATE_NEWS_CATEGORIES', payload: cats }),
@@ -554,8 +505,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
               if (teamsForScheduling.length < 2) return;
               if (teamsForScheduling.length % 2 !== 0) teamsForScheduling.push({ id: 'bye', name: 'BYE' } as Team);
               const n = teamsForScheduling.length;
-              const roundsPerLeg = n - 1;
-              const matchesPerRound = n / 2;
+              const roundsPerLeg = n - 1; const matchesPerRound = n / 2;
               for (let round = 0; round < roundsPerLeg; round++) {
                   for (let i = 0; i < matchesPerRound; i++) {
                       const tA = teamsForScheduling[i]; const tB = teamsForScheduling[n - 1 - i];

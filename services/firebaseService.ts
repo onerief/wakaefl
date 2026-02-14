@@ -4,6 +4,7 @@ import {
   doc, 
   setDoc, 
   getDoc, 
+  getDocs,
   runTransaction,
   collection,
   addDoc,
@@ -13,7 +14,9 @@ import {
   onSnapshot,
   deleteDoc,
   getFirestore,
-  where
+  where,
+  writeBatch,
+  arrayUnion
 } from "firebase/firestore";
 import { 
   getAuth, 
@@ -44,20 +47,19 @@ const firebaseConfig = {
   measurementId: "G-CXXT1NJEWH"
 };
 
-// --- INITIALIZATION (ROBUST V10 PATTERN) ---
+// --- INITIALIZATION ---
 let app;
-let firestore;
-let auth;
+let firestore: any;
+let auth: any;
 let storage;
 
 try {
-    // Check if app is already initialized to prevent hot-reload errors
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
     firestore = getFirestore(app);
     auth = getAuth(app);
     storage = getStorage(app);
 } catch (error) {
-    console.error("CRITICAL: Firebase Initialization Failed", error);
+    console.error("Firebase Initialization Error:", error);
 }
 
 const TOURNAMENT_COLLECTION = 'tournament';
@@ -68,27 +70,17 @@ const REGISTRATIONS_COLLECTION = 'registrations';
 const NOTIFICATIONS_COLLECTION = 'notifications';
 
 // --- DATA SANITIZATION ---
-// Robust helper to strip circular references, DOM nodes, and undefined values
 export const deepClean = (input: any, stack = new WeakSet()): any => {
-    // 1. Handle primitives and null immediately
     if (input === null || typeof input !== 'object') return input;
-    
-    // 2. Handle Date objects
     if (input instanceof Date) return input.toISOString();
-    
-    // 3. Cycle Detection
     if (stack.has(input)) return undefined;
     
-    // 4. Aggressive DOM Node and React Element Filtering
-    // nodeType > 0 implies a DOM element. _reactInternals implies a React fiber.
-    // Also check for minified React Event constructors (often have obscure names but standard props)
     if (
-        input.nodeType || 
-        input._reactInternals || 
-        input.$$typeof ||
-        // Duck typing for Event-like objects (React Synthetic or Native)
-        (input.nativeEvent && input.target) || 
-        (typeof input.preventDefault === 'function' && typeof input.stopPropagation === 'function')
+        (input as any).nodeType || 
+        (input as any)._reactInternals || 
+        (input as any).$$typeof ||
+        ((input as any).nativeEvent && (input as any).target) || 
+        (typeof (input as any).preventDefault === 'function' && typeof (input as any).stopPropagation === 'function')
     ) {
         return undefined;
     }
@@ -98,14 +90,11 @@ export const deepClean = (input: any, stack = new WeakSet()): any => {
     try {
         let res: any;
         if (Array.isArray(input)) {
-            // Filter out undefineds from arrays to keep them clean
             res = input.map(v => deepClean(v, stack)).filter(v => v !== undefined);
         } else {
             res = {};
             Object.keys(input).forEach(key => {
-                // Skip internal React keys or known problem keys
                 if (key.startsWith('_') || key === 'view' || key === 'source' || key === 'target' || key === 'currentTarget') return;
-                
                 const cleanVal = deepClean(input[key], stack);
                 if (cleanVal !== undefined) {
                     res[key] = cleanVal;
@@ -114,20 +103,17 @@ export const deepClean = (input: any, stack = new WeakSet()): any => {
         }
         return res;
     } catch (e) {
-        return undefined; // Safe fallback if iteration fails
+        return undefined; 
     }
 };
 
 export const sanitizeData = (data: any): any => {
     try {
         const cleaned = deepClean(data);
-        // Double check with JSON stringify to ensure it's absolutely safe
-        // If this throws, we catch it and return null to prevent app crash
-        JSON.stringify(cleaned); 
         return cleaned;
     } catch (e) {
         console.error("SanitizeData Failed:", e);
-        return null; // Safe fallback
+        return null; 
     }
 };
 
@@ -157,19 +143,60 @@ export const uploadTeamLogo = async (file: File): Promise<string> => {
 };
 
 // --- DATA FETCHING ---
+export const getTournamentData = async (mode: TournamentMode): Promise<TournamentState | null> => {
+  if (!firestore || !mode) return null;
+  try {
+    const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+    const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
+    
+    const [modeSnap, settingsSnap] = await Promise.all([
+        getDoc(modeDocRef),
+        getDoc(settingsDocRef)
+    ]);
+
+    if (!modeSnap.exists()) return null;
+
+    const modeData = modeSnap.data();
+    const globalData = settingsSnap.exists() ? settingsSnap.data() : {};
+    
+    const combinedHistory = (globalData.history && globalData.history.length > 0) 
+        ? globalData.history 
+        : (modeData.history || []);
+
+    return { 
+        ...modeData,
+        teams: modeData.teams || [],
+        groups: modeData.groups || [],
+        matches: modeData.matches || [],
+        news: globalData.news || [],
+        products: globalData.products || [],
+        newsCategories: globalData.newsCategories || ['Match', 'Info'],
+        shopCategories: globalData.shopCategories || ['Coin'],
+        marqueeMessages: globalData.marqueeMessages || [],
+        history: combinedHistory, 
+        visibleModes: globalData.visibleModes || ['league', 'wakacl', 'two_leagues'],
+        banners: globalData.banners || [], 
+        partners: globalData.partners || [], 
+        rules: globalData.rules || '', 
+        headerLogoUrl: globalData.headerLogoUrl || '' 
+    } as unknown as TournamentState;
+  } catch (error) { 
+      console.error("Error fetching tournament data:", error); 
+      return null;
+  }
+};
+
 export const saveTournamentData = async (mode: TournamentMode, state: TournamentState) => {
-  if (!firestore) return false;
+  if (!firestore || !mode) return false;
   try {
     const dehydrateTeam = (t: any) => t?.id || null;
-
     const cleanMatches = (state.matches || []).map(m => ({
         ...m,
         teamA: dehydrateTeam(m.teamA),
         teamB: dehydrateTeam(m.teamB),
         playerStats: m.playerStats || null,
-        comments: [] // Don't save comments to main structure, they are in subcollection
+        comments: [] 
     }));
-
     const cleanGroups = (state.groups || []).map(g => ({
         ...g,
         teams: (g.teams || []).map(t => dehydrateTeam(t)),
@@ -186,13 +213,11 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
         knockoutStage: cleanKnockout,
         status: state.status || 'active',
         isRegistrationOpen: state.isRegistrationOpen ?? true,
-        mode: state.mode
+        mode: state.mode,
+        scheduleSettings: state.scheduleSettings
     });
 
-    if (!cleanState) {
-        console.error("Critical: Failed to sanitize tournament state. Data not saved to prevent corruption.");
-        return false;
-    }
+    if (!cleanState) return false;
 
     const globalData = sanitizeData({
         banners: state.banners || [],
@@ -204,14 +229,11 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
         newsCategories: state.newsCategories || [],
         shopCategories: state.shopCategories || [],
         marqueeMessages: state.marqueeMessages || [],
-        history: cleanHistory, // IMPORTANT: Save history to global settings
+        history: cleanHistory, 
         visibleModes: state.visibleModes || ['league', 'wakacl', 'two_leagues']
     });
 
-    if (!globalData) {
-        console.error("Critical: Failed to sanitize global settings.");
-        return false;
-    }
+    if (!globalData) return false;
 
     await Promise.all([
         setDoc(doc(firestore, TOURNAMENT_COLLECTION, mode), cleanState),
@@ -220,25 +242,19 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
     return true;
   } catch (error) { 
       console.error("Error saving data:", error); 
-      // Do not throw, just log, to prevent app crash loop
       return false;
   }
 };
 
-export const getTournamentData = async (mode: TournamentMode): Promise<TournamentState | null> => {
-  if (!firestore) return null;
-  try {
-      const d = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
-      return d.exists() ? d.data() as TournamentState : null;
-  } catch (e) {
-      console.error("Failed to fetch data:", e);
-      return null;
-  }
-};
-
-// --- DATA SUBSCRIPTION (FIX FOR LEGEND MENU) ---
-export const subscribeToTournamentData = (mode: TournamentMode, callback: (data: TournamentState) => void) => {
-    if (!firestore) return () => {};
+export const subscribeToTournamentData = (
+    mode: TournamentMode, 
+    callback: (data: TournamentState) => void,
+    errorCallback?: (err: any) => void
+) => {
+    if (!firestore || !mode) {
+        if (errorCallback) errorCallback("Firestore not initialized or mode missing");
+        return () => {};
+    }
     
     const modeDocRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
     const settingsDocRef = doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC);
@@ -250,19 +266,15 @@ export const subscribeToTournamentData = (mode: TournamentMode, callback: (data:
         if (modeData !== undefined && globalData !== undefined) { 
             const safeMode = modeData || {};
             const safeGlobal = globalData || {};
-
-            // Prioritize global history if available to fix Legend menu blankness
             const combinedHistory = (safeGlobal.history && safeGlobal.history.length > 0) 
                 ? safeGlobal.history 
                 : (safeMode.history || []);
 
             callback({ 
                 ...safeMode,
-                // Ensure arrays are initialized
                 teams: safeMode.teams || [],
                 groups: safeMode.groups || [],
                 matches: safeMode.matches || [],
-                // Merge Global Data
                 news: safeGlobal.news || [],
                 products: safeGlobal.products || [],
                 newsCategories: safeGlobal.newsCategories || ['Match', 'Info'],
@@ -274,85 +286,40 @@ export const subscribeToTournamentData = (mode: TournamentMode, callback: (data:
                 partners: safeGlobal.partners || [], 
                 rules: safeGlobal.rules || '', 
                 headerLogoUrl: safeGlobal.headerLogoUrl || '' 
-            }); 
-        } 
+            } as unknown as TournamentState);
+        }
     };
 
-    const unsubMode = onSnapshot(modeDocRef, (snap) => { 
-        modeData = snap.exists() ? snap.data() : null; 
-        emit(); 
-    });
-    const unsubGlobal = onSnapshot(settingsDocRef, (snap) => { 
-        globalData = snap.exists() ? snap.data() : null; 
-        emit(); 
-    });
+    const unsubMode = onSnapshot(modeDocRef, (snap) => {
+        modeData = snap.exists() ? snap.data() : null;
+        emit();
+    }, errorCallback);
+
+    const unsubGlobal = onSnapshot(settingsDocRef, (snap) => {
+        globalData = snap.exists() ? snap.data() : null;
+        emit();
+    }, errorCallback);
+
     return () => { unsubMode(); unsubGlobal(); };
 };
 
-// --- GLOBAL BACKUP FUNCTIONS ---
-export const getFullSystemBackup = async () => {
-    if (!firestore) throw new Error("Service unavailable");
-    const [league, wakacl, two_leagues, settings] = await Promise.all([
-        getDoc(doc(firestore, TOURNAMENT_COLLECTION, 'league')),
-        getDoc(doc(firestore, TOURNAMENT_COLLECTION, 'wakacl')),
-        getDoc(doc(firestore, TOURNAMENT_COLLECTION, 'two_leagues')),
-        getDoc(doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC))
-    ]);
-
-    return {
-        backupType: 'FULL_SYSTEM',
-        timestamp: Date.now(),
-        data: deepClean({
-            league: league.data(),
-            wakacl: wakacl.data(),
-            two_leagues: two_leagues.data(),
-            global_settings: settings.data()
-        })
-    };
-};
-
-export const restoreFullSystem = async (backupData: any) => {
-    if (!firestore) throw new Error("Service unavailable");
-    const { league, wakacl, two_leagues, global_settings } = backupData.data;
-    const promises = [];
-    if (league) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, 'league'), sanitizeData(league)));
-    if (wakacl) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, 'wakacl'), sanitizeData(wakacl)));
-    if (two_leagues) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, 'two_leagues'), sanitizeData(two_leagues)));
-    if (global_settings) promises.push(setDoc(doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC), sanitizeData(global_settings)));
-    await Promise.all(promises);
-};
-
-// --- STATS & TEAMS ---
 export const getGlobalStats = async () => {
     if (!firestore) return { teamCount: 0, partnerCount: 0 };
     try {
-        // Lightweight check
-        const settings = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC));
-        const partnerCount = settings.exists() ? (settings.data().partners || []).length : 0;
-        return { teamCount: 0, partnerCount }; 
-    } catch {
-        return { teamCount: 0, partnerCount: 0 };
-    }
-};
-
-export const getAllGlobalTeams = async (): Promise<Team[]> => {
-    if (!firestore) return [];
-    try {
         const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
-        const uniqueTeams = new Map<string, Team>();
-        await Promise.all(modes.map(async (mode) => {
-            const d = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
-            if (d.exists()) {
-                const teams = (d.data().teams || []) as Team[];
-                teams.forEach(t => { 
-                    if(t && t.id && t.name !== 'TBD') uniqueTeams.set(t.name.toLowerCase(), t); 
-                });
+        let teamCount = 0;
+        for (const mode of modes) {
+            const snap = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
+            if (snap.exists()) {
+                teamCount += (snap.data().teams || []).length;
             }
-        }));
-        return Array.from(uniqueTeams.values());
+        }
+        const settingsSnap = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, SETTINGS_DOC));
+        const partnerCount = settingsSnap.exists() ? (settingsSnap.data().partners || []).length : 0;
+        return { teamCount, partnerCount };
     } catch (e) {
-        console.error("Error getting global teams:", e);
-        return [];
+        console.error("getGlobalStats error:", e);
+        return { teamCount: 0, partnerCount: 0 };
     }
 };
 
@@ -361,139 +328,222 @@ export const getUserTeams = async (email: string) => {
     try {
         const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
         const owned: { mode: TournamentMode, team: Team }[] = [];
-        const normalizedEmail = email.toLowerCase();
-        
-        for (const mode of modes) {
-            const d = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
-            if (d.exists()) {
-                const teams = (d.data().teams || []) as Team[];
-                teams.forEach(team => {
-                    if (team && team.ownerEmail?.toLowerCase() === normalizedEmail) {
-                        owned.push({ mode, team });
+        for (const m of modes) {
+            const snap = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, m));
+            if (snap.exists()) {
+                const teams = snap.data().teams || [];
+                teams.forEach((t: Team) => {
+                    if (t.ownerEmail?.toLowerCase() === email.toLowerCase()) {
+                        owned.push({ mode: m, team: t });
                     }
                 });
             }
         }
         return owned;
     } catch (e) {
+        console.error("getUserTeams error:", e);
         return [];
     }
 };
 
-// --- REGISTRATIONS ---
-export const subscribeToRegistrations = (callback: (regs: any[]) => void, errorCallback?: (err: any) => void) => {
-  if (!firestore) return () => {};
-  const q = query(collection(firestore, REGISTRATIONS_COLLECTION), orderBy('timestamp', 'desc'));
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-  }, errorCallback);
-};
-export const deleteRegistration = (id: string) => {
-    if(!firestore) return Promise.reject("No service");
-    return deleteDoc(doc(firestore, REGISTRATIONS_COLLECTION, id));
-};
-export const submitNewTeamRegistration = async (data: any, email: string) => {
-  if(!firestore) throw new Error("No service");
-  return addDoc(collection(firestore, REGISTRATIONS_COLLECTION), { ...data, ownerEmail: email, timestamp: Date.now() });
-};
-
-// --- TEAM MANAGEMENT ---
-export const addApprovedTeamToFirestore = async (mode: TournamentMode, team: Team) => {
-  if(!firestore) throw new Error("No service");
-  const modeRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
-  await runTransaction(firestore, async (transaction) => {
-    const snap = await transaction.get(modeRef);
-    const data = snap.exists() ? snap.data() : { teams: [] };
-    const teams = data.teams || [];
-    transaction.set(modeRef, { ...data, teams: [...teams, team] }, { merge: true });
-  });
-};
-export const updateUserTeamData = async (mode: TournamentMode, teamId: string, updates: Partial<Team>) => {
-  if(!firestore) throw new Error("No service");
-  const modeRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
-  await runTransaction(firestore, async (transaction) => {
-    const snap = await transaction.get(modeRef);
-    if (!snap.exists()) return;
-    const teams = (snap.data().teams || []) as Team[];
-    const updatedTeams = teams.map(t => t.id === teamId ? { ...t, ...updates } : t);
-    transaction.update(modeRef, { teams: updatedTeams });
-  });
-};
-export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: string, email: string) => {
-  if(!firestore) throw new Error("No service");
-  const modeRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
-  await runTransaction(firestore, async (transaction) => {
-    const snap = await transaction.get(modeRef);
-    if (!snap.exists()) return;
-    const teams = (snap.data().teams || []) as Team[];
-    const teamIndex = teams.findIndex(t => t.id === teamId);
-    if (teamIndex !== -1) {
-        teams[teamIndex].requestedOwnerEmail = email;
-        transaction.update(modeRef, { teams: teams });
-    }
-  });
-};
-
-// --- MATCH MANAGEMENT ---
 export const addMatchCommentToFirestore = async (mode: TournamentMode, matchId: string, comment: MatchComment) => {
-  if(!firestore) throw new Error("No service");
-  // Write to a separate collection to allow public writes even if main doc is locked
-  return addDoc(collection(firestore, MATCH_COMMENTS_COLLECTION), {
-      ...comment,
-      matchId,
-      tournamentMode: mode
-  });
+    if (!firestore || !mode || !matchId) return;
+    try {
+        const colRef = collection(firestore, TOURNAMENT_COLLECTION, mode, MATCH_COMMENTS_COLLECTION);
+        await addDoc(colRef, { ...comment, matchId });
+    } catch (e) {
+        console.error("addMatchCommentToFirestore error:", e);
+    }
 };
 
-export const subscribeToMatchComments = (mode: TournamentMode, callback: (commentsMap: Record<string, MatchComment[]>) => void) => {
-  if (!firestore) return () => {};
-  const q = query(collection(firestore, MATCH_COMMENTS_COLLECTION), where("tournamentMode", "==", mode), orderBy('timestamp', 'asc'));
-  
-  return onSnapshot(q, (snap) => {
-    const commentsMap: Record<string, MatchComment[]> = {};
-    snap.docs.forEach(doc => {
-        const data = doc.data();
-        const mId = data.matchId;
-        if (!commentsMap[mId]) commentsMap[mId] = [];
-        commentsMap[mId].push({ id: doc.id, ...data } as MatchComment);
+export const subscribeToMatchComments = (mode: TournamentMode, callback: (comments: Record<string, MatchComment[]>) => void) => {
+    if (!firestore || !mode) return () => {};
+    try {
+        const colRef = collection(firestore, TOURNAMENT_COLLECTION, mode, MATCH_COMMENTS_COLLECTION);
+        // Penting: Hapus sementara orderBy jika masih error permission untuk memastikan ini bukan masalah Index
+        const q = query(colRef, orderBy('timestamp', 'asc'));
+        return onSnapshot(q, (snap) => {
+            const commentsMap: Record<string, MatchComment[]> = {};
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const mId = data.matchId;
+                if (!commentsMap[mId]) commentsMap[mId] = [];
+                commentsMap[mId].push({ ...data, id: docSnap.id } as MatchComment);
+            });
+            callback(commentsMap);
+        }, (err) => {
+            // Jika error masih muncul, Firestore biasanya memberikan link di console untuk membuat INDEX
+            console.error("subscribeToMatchComments error:", err);
+        });
+    } catch (e) {
+        console.error("Critical error in subscribeToMatchComments:", e);
+        return () => {};
+    }
+};
+
+export const subscribeToRegistrations = (callback: (regs: any[]) => void, errorCallback?: (err: any) => void) => {
+    if (!firestore) {
+        if (errorCallback) errorCallback("Firestore not initialized");
+        return () => {};
+    }
+    const colRef = collection(firestore, REGISTRATIONS_COLLECTION);
+    return onSnapshot(query(colRef, orderBy('timestamp', 'desc')), (snap) => {
+        const regs: any[] = [];
+        snap.forEach(doc => regs.push({ ...doc.data(), id: doc.id }));
+        callback(regs);
+    }, errorCallback);
+};
+
+export const deleteRegistration = async (id: string) => {
+    if (!firestore) return;
+    await deleteDoc(doc(firestore, REGISTRATIONS_COLLECTION, id));
+};
+
+export const addApprovedTeamToFirestore = async (mode: TournamentMode, team: Team) => {
+    if (!firestore || !mode) return;
+    const docRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+    await runTransaction(firestore, async (transaction) => {
+        const snap = await transaction.get(docRef);
+        if (!snap.exists()) throw new Error("Mode document does not exist");
+        const teams = snap.data().teams || [];
+        transaction.update(docRef, { teams: [...teams, team] });
     });
-    callback(commentsMap);
-  });
 };
 
-// --- CHAT ---
-export const subscribeToGlobalChat = (callback: (messages: ChatMessage[]) => void) => {
-  if (!firestore) return () => {};
-  const q = query(collection(firestore, CHAT_COLLECTION), orderBy('timestamp', 'desc'), limit(50));
-  return onSnapshot(q, (snap) => {
-    const messages = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage)).reverse();
-    callback(messages);
-  });
-};
-export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: boolean, teamName?: string) => {
-  if (!firestore) throw new Error("No service");
-  return addDoc(collection(firestore, CHAT_COLLECTION), {
-    text, userId: user.uid, userName: user.displayName || 'Anonymous', userTeamName: teamName || null, userPhoto: user.photoURL || null, timestamp: Date.now(), isAdmin: !!isAdmin
-  });
-};
-
-// --- NOTIFICATIONS ---
 export const sendNotification = async (email: string, title: string, message: string, type: 'info' | 'success' | 'warning' = 'info') => {
     if (!firestore) return;
-    try {
-        await addDoc(collection(firestore, NOTIFICATIONS_COLLECTION), { email, title, message, timestamp: Date.now(), read: false, type });
-    } catch (e) { console.error(e); }
+    await addDoc(collection(firestore, NOTIFICATIONS_COLLECTION), {
+        email, title, message, type, timestamp: Date.now(), read: false
+    });
 };
+
+export const getAllGlobalTeams = async (): Promise<Team[]> => {
+    if (!firestore) return [];
+    const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
+    const allTeams: Team[] = [];
+    const seenNames = new Set<string>();
+    for (const m of modes) {
+        const snap = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, m));
+        if (snap.exists()) {
+            (snap.data().teams || []).forEach((t: Team) => {
+                if (!seenNames.has(t.name.toLowerCase())) {
+                    allTeams.push(t);
+                    seenNames.add(t.name.toLowerCase());
+                }
+            });
+        }
+    }
+    return allTeams;
+};
+
+export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: string, email: string) => {
+    if (!firestore || !mode) return;
+    const docRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+    await runTransaction(firestore, async (transaction) => {
+        const snap = await transaction.get(docRef);
+        if (!snap.exists()) throw new Error("Mode doc not found");
+        const teams = snap.data().teams || [];
+        const index = teams.findIndex((t: any) => t.id === teamId);
+        if (index === -1) throw new Error("Team not found");
+        if (teams[index].ownerEmail) throw new Error("Team already has an owner");
+        teams[index].requestedOwnerEmail = email;
+        transaction.update(docRef, { teams });
+    });
+};
+
+export const updateUserTeamData = async (mode: TournamentMode, teamId: string, updates: Partial<Team>) => {
+    if (!firestore || !mode) return;
+    const docRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+    await runTransaction(firestore, async (transaction) => {
+        const snap = await transaction.get(docRef);
+        if (!snap.exists()) throw new Error("Mode doc not found");
+        const teams = snap.data().teams || [];
+        const index = teams.findIndex((t: any) => t.id === teamId);
+        if (index === -1) throw new Error("Team not found");
+        teams[index] = { ...teams[index], ...updates };
+        transaction.update(docRef, { teams });
+    });
+};
+
 export const subscribeToNotifications = (email: string, callback: (notifs: Notification[]) => void) => {
-    if (!firestore) return () => {};
-    const q = query(collection(firestore, NOTIFICATIONS_COLLECTION), where("email", "==", email));
+    if (!firestore || !email) return () => {};
+    const colRef = collection(firestore, NOTIFICATIONS_COLLECTION);
+    const q = query(colRef, where('email', '==', email), orderBy('timestamp', 'desc'));
     return onSnapshot(q, (snap) => {
-        const notifs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
-        notifs.sort((a, b) => b.timestamp - a.timestamp);
+        const notifs: Notification[] = [];
+        snap.forEach(docSnap => notifs.push({ ...docSnap.data(), id: docSnap.id } as Notification));
         callback(notifs);
     });
 };
-export const deleteNotification = (id: string) => {
-    if(!firestore) return Promise.reject("No service");
-    return deleteDoc(doc(firestore, NOTIFICATIONS_COLLECTION, id));
+
+export const deleteNotification = async (id: string) => {
+    if (!firestore) return;
+    await deleteDoc(doc(firestore, NOTIFICATIONS_COLLECTION, id));
+};
+
+export const subscribeToGlobalChat = (callback: (messages: ChatMessage[]) => void) => {
+    if (!firestore) return () => {};
+    const colRef = collection(firestore, CHAT_COLLECTION);
+    const q = query(colRef, orderBy('timestamp', 'desc'), limit(50));
+    return onSnapshot(q, (snap) => {
+        const msgs: ChatMessage[] = [];
+        snap.forEach(docSnap => msgs.push({ ...docSnap.data(), id: docSnap.id } as ChatMessage));
+        callback(msgs.reverse());
+    });
+};
+
+export const sendGlobalChatMessage = async (text: string, user: User, isAdmin: boolean, teamName?: string) => {
+    if (!firestore || !user) return;
+    await addDoc(collection(firestore, CHAT_COLLECTION), {
+        text,
+        userId: user.uid,
+        userName: user.displayName || 'User',
+        userPhoto: user.photoURL,
+        userTeamName: teamName || null,
+        isAdmin,
+        timestamp: Date.now()
+    });
+};
+
+export const submitNewTeamRegistration = async (data: any, email: string) => {
+    if (!firestore) return;
+    await addDoc(collection(firestore, REGISTRATIONS_COLLECTION), {
+        ...data,
+        ownerEmail: email,
+        timestamp: Date.now(),
+        status: 'pending'
+    });
+};
+
+export const getFullSystemBackup = async () => {
+    if (!firestore) return null;
+    try {
+        const backup: any = {};
+        const collectionNames = [TOURNAMENT_COLLECTION, CHAT_COLLECTION, REGISTRATIONS_COLLECTION, NOTIFICATIONS_COLLECTION];
+        
+        for (const colName of collectionNames) {
+            const snap = await getDocs(collection(firestore, colName));
+            backup[colName] = {};
+            snap.forEach(docSnap => {
+                backup[colName][docSnap.id] = docSnap.data();
+            });
+        }
+        return deepClean(backup);
+    } catch (e) {
+        console.error("getFullSystemBackup error:", e);
+        return null;
+    }
+};
+
+export const restoreFullSystem = async (data: any) => {
+    if (!firestore || !data) return;
+    const batch = writeBatch(firestore);
+    
+    for (const colName in data) {
+        for (const docId in data[colName]) {
+            const docRef = doc(firestore, colName, docId);
+            batch.set(docRef, data[colName][docId]);
+        }
+    }
+    await batch.commit();
 };
