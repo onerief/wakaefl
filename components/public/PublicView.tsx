@@ -4,7 +4,7 @@ import type { Group, Match, KnockoutStageRounds, Team, KnockoutMatch, Tournament
 import { GroupStage } from './GroupStage';
 import { MatchCard } from './MatchList';
 import { KnockoutStageView } from './KnockoutStageView';
-import { RulesView } from './RulesView';
+import { RulesModal } from './RulesModal'; // Updated import
 import { StatsStandings } from './StatsStandings';
 import { Users, ListChecks, Trophy, BookOpen, Crown, ChevronDown, Zap, ShieldCheck, Star, Lock, Calendar, Info, BarChart3, Layout } from 'lucide-react';
 import type { User } from 'firebase/auth';
@@ -27,7 +27,7 @@ interface PublicViewProps {
   playerStats?: { topScorers: any[], topAssists: any[] };
 }
 
-type PublicTab = 'groups' | 'fixtures' | 'knockout' | 'stats' | 'rules';
+type PublicTab = 'groups' | 'fixtures' | 'knockout' | 'stats'; 
 
 const InternalTabButton: React.FC<{
     isActive: boolean;
@@ -37,14 +37,24 @@ const InternalTabButton: React.FC<{
 }> = ({ isActive, onClick, label, icon: Icon }) => (
     <button
         onClick={onClick}
-        className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[10px] sm:text-xs font-black uppercase transition-all whitespace-nowrap border shrink-0 ${
-            isActive 
-            ? 'bg-brand-vibrant text-white border-brand-vibrant shadow-[0_0_20px_rgba(37,99,235,0.3)]' 
-            : 'text-brand-light border-white/5 hover:text-white hover:bg-white/5'
-        }`}
+        className={`
+            group relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 
+            py-2.5 sm:py-3 rounded-xl transition-all w-full border overflow-hidden
+            ${isActive 
+                ? 'bg-brand-vibrant/10 border-brand-vibrant/30 text-brand-vibrant shadow-[inset_0_0_15px_rgba(37,99,235,0.15)]' 
+                : 'bg-white/[0.02] border-transparent hover:bg-white/5 text-brand-light/50 hover:text-brand-light'}
+        `}
     >
-        <Icon size={14} className={isActive ? 'text-white' : 'text-brand-light/40'} />
-        <span>{label}</span>
+        <Icon 
+            size={16} 
+            className={`transition-colors sm:w-[18px] sm:h-[18px] ${isActive ? 'fill-brand-vibrant/20' : 'group-hover:text-brand-light'}`} 
+        />
+        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-tight leading-none truncate w-full sm:w-auto text-center">
+            {label}
+        </span>
+        {isActive && (
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-vibrant shadow-[0_0_8px_#2563eb] sm:hidden"></span>
+        )}
     </button>
 );
 
@@ -57,6 +67,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
   const [selectedMatchdays, setSelectedMatchdays] = useState<Record<string, string>>({});
   const [isAdminModeActive, setIsAdminModeActive] = useState(false);
   const [focusMyTeam, setFocusMyTeam] = useState(false);
+  const [showRules, setShowRules] = useState(false); 
 
   const hasMyTeam = userOwnedTeamIds.length > 0;
   const supportsKnockout = mode === 'two_leagues' || mode === 'wakacl';
@@ -166,24 +177,54 @@ export const PublicView: React.FC<PublicViewProps> = ({
       case 'fixtures': return (<div className="space-y-6"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 px-1"><div className="flex items-center gap-4"><h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">Match Fixtures</h2><div className="px-2 py-0.5 bg-brand-vibrant/10 border border-brand-vibrant/30 rounded-full"><span className="text-[8px] font-black text-brand-vibrant uppercase tracking-widest animate-pulse">Live</span></div></div>{hasMyTeam && (<button onClick={() => setFocusMyTeam(!focusMyTeam)} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-xl border ${focusMyTeam ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-brand-secondary text-brand-light border-white/10 hover:border-brand-vibrant/40'}`}><Star size={14} className={focusMyTeam ? 'fill-white' : ''} /> {focusMyTeam ? 'Lihat Semua' : 'Fokus Tim Saya'}</button>)}</div>{groups.length > 0 ? renderFixtures() : <div className="text-center py-32 opacity-30 font-black italic">Jadwal Belum Dirilis</div>}</div>);
       case 'knockout': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>{mode === 'two_leagues' ? 'Semi Final & Final' : 'Knockout Stage'}</span><div className="h-px flex-grow bg-gradient-to-r from-brand-special/50 to-transparent"></div></h2><KnockoutStageView knockoutStage={knockoutStage || {}} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateKnockoutScore} userOwnedTeamIds={userOwnedTeamIds} /></div>);
       case 'stats': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter px-1 flex items-center gap-4"><BarChart3 className="text-brand-special" size={24} /><span>Peringkat Statistik</span></h2><StatsStandings clubStats={clubStats} playerStats={playerStats} /></div>);
-      case 'rules': return <RulesView rules={rules} />;
       default: return null;
     }
   }
 
   return (
     <div className="space-y-6">
-        {/* SUB NAVIGATION - Direct access to Klasemen/Jadwal/dll */}
-        {/* Adjusted sticky top to match fixed header height */}
-        <div className="sticky top-[56px] sm:top-[128px] z-[30] -mx-4 px-4 bg-brand-primary/90 backdrop-blur-xl py-4 border-b border-white/10 overflow-x-auto no-scrollbar shadow-2xl">
-            <div className="flex gap-3 min-w-max">
-                <InternalTabButton isActive={activeTab === 'groups'} onClick={() => setActiveTab('groups')} label="Klasemen" icon={Users} />
-                <InternalTabButton isActive={activeTab === 'fixtures'} onClick={() => setActiveTab('fixtures')} label="Jadwal" icon={ListChecks} />
-                {supportsKnockout && (
-                    <InternalTabButton isActive={activeTab === 'knockout'} onClick={() => setActiveTab('knockout')} label={mode === 'two_leagues' ? 'Finals' : 'Bagan'} icon={Trophy} />
-                )}
-                <InternalTabButton isActive={activeTab === 'stats'} onClick={() => setActiveTab('stats')} label="Statistik" icon={BarChart3} />
-                <InternalTabButton isActive={activeTab === 'rules'} onClick={() => setActiveTab('rules')} label="Aturan" icon={BookOpen} />
+        {/* SUB NAVIGATION - FIXED GRID LAYOUT - ALL ITEMS VISIBLE (NO SCROLL) */}
+        <div className="sticky top-[56px] sm:top-[128px] z-[30] -mx-4 bg-brand-primary/95 backdrop-blur-xl border-b border-white/5 shadow-2xl">
+            <div className="px-2 sm:px-4 py-2 sm:py-3 max-w-5xl mx-auto">
+                <div className={`grid ${supportsKnockout ? 'grid-cols-5' : 'grid-cols-4'} gap-1.5 sm:gap-3`}>
+                    <InternalTabButton 
+                        isActive={activeTab === 'groups'} 
+                        onClick={() => setActiveTab('groups')} 
+                        label="Klasemen" 
+                        icon={Users} 
+                    />
+                    <InternalTabButton 
+                        isActive={activeTab === 'fixtures'} 
+                        onClick={() => setActiveTab('fixtures')} 
+                        label="Jadwal" 
+                        icon={ListChecks} 
+                    />
+                    {supportsKnockout && (
+                        <InternalTabButton 
+                            isActive={activeTab === 'knockout'} 
+                            onClick={() => setActiveTab('knockout')} 
+                            label={mode === 'two_leagues' ? 'Finals' : 'Bagan'} 
+                            icon={Trophy} 
+                        />
+                    )}
+                    <InternalTabButton 
+                        isActive={activeTab === 'stats'} 
+                        onClick={() => setActiveTab('stats')} 
+                        label="Stats" 
+                        icon={BarChart3} 
+                    />
+                    
+                    {/* Rules Button as a direct Grid Item - Same size as others */}
+                    <button
+                        onClick={() => setShowRules(true)}
+                        className="group relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2.5 sm:py-3 rounded-xl transition-all w-full border bg-white/[0.02] border-transparent hover:bg-white/5 text-brand-light/50 hover:text-brand-light active:scale-95"
+                    >
+                        <BookOpen size={16} className="sm:w-[18px] sm:h-[18px] group-hover:text-brand-light" />
+                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-tight leading-none truncate w-full sm:w-auto text-center">
+                            Rules
+                        </span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -196,6 +237,9 @@ export const PublicView: React.FC<PublicViewProps> = ({
         )}
 
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 relative z-10 px-1 sm:px-0">{renderContent()}</div>
+
+        {/* Rules Modal */}
+        <RulesModal isOpen={showRules} onClose={() => setShowRules(false)} rules={rules} />
     </div>
   );
 };

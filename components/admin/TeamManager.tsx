@@ -10,7 +10,7 @@ import { useToast } from '../shared/Toast';
 import { ConfirmationModal } from './ConfirmationModal';
 import { ManualGroupManager } from './ManualGroupManager';
 import { TeamLogo } from '../shared/TeamLogo';
-import { subscribeToRegistrations, deleteRegistration, addApprovedTeamToFirestore, saveTournamentData, sendNotification, getAllGlobalTeams } from '../../services/firebaseService';
+import { subscribeToRegistrations, deleteRegistration, addApprovedTeamToFirestore, saveTournamentData, sendNotification, getAllGlobalTeams, deepClean } from '../../services/firebaseService';
 import { ImportTeamModal } from './ImportTeamModal';
 
 interface TeamManagerProps {
@@ -199,7 +199,11 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
   const handleBackupData = () => {
     try {
         const backupData = { teams, groups, matches: props.matches, knockoutStage: props.knockoutStage, rules: props.rules };
-        const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+        
+        // CRITICAL FIX: Use deepClean to sanitize data before stringifying to prevent circular structure crash
+        const cleanData = deepClean(backupData);
+        
+        const blob = new Blob([JSON.stringify(cleanData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -211,7 +215,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
         document.body.removeChild(a);
         addToast('Backup berhasil diunduh.', 'success');
     } catch (error) {
-        addToast('Gagal membuat backup.', 'error');
+        console.error(error);
+        addToast('Gagal membuat backup. Data mungkin mengandung circular reference.', 'error');
     }
   };
 

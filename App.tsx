@@ -66,7 +66,8 @@ function AppContent() {
 
   // --- DYNAMIC MANIFEST INJECTION ---
   useEffect(() => {
-      if (tournament.pwaIconUrl) {
+      // Ensure pwaIconUrl is a valid string before processing
+      if (tournament.pwaIconUrl && typeof tournament.pwaIconUrl === 'string') {
           const link = document.querySelector('#manifest-link') as HTMLLinkElement;
           if (link) {
               const dynamicManifest = {
@@ -93,10 +94,15 @@ function AppContent() {
                   "orientation": "portrait"
               };
               
-              const stringManifest = JSON.stringify(dynamicManifest);
-              const blob = new Blob([stringManifest], {type: 'application/json'});
-              const manifestURL = URL.createObjectURL(blob);
-              link.setAttribute('href', manifestURL);
+              try {
+                  const stringManifest = JSON.stringify(dynamicManifest);
+                  const blob = new Blob([stringManifest], {type: 'application/json'});
+                  const manifestURL = URL.createObjectURL(blob);
+                  link.setAttribute('href', manifestURL);
+              } catch (e) {
+                  console.error("Failed to inject dynamic manifest:", e);
+                  // Optionally reset/cleanup if needed, but primarily prevents crash
+              }
           }
       }
   }, [tournament.pwaIconUrl]);

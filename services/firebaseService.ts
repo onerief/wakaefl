@@ -69,62 +69,52 @@ const NOTIFICATIONS_COLLECTION = 'notifications';
 // --- DATA SANITIZATION ---
 // Robust helper to strip circular references, DOM nodes, and undefined values
 export const deepClean = (input: any, stack = new WeakSet()): any => {
-    // Handle primitives and null
+    // 1. Handle primitives and null immediately
     if (input === null || typeof input !== 'object') return input;
     
-    // Handle Date
+    // 2. Handle Date objects
     if (input instanceof Date) return input.toISOString();
     
-    // Handle potential DOM nodes, React Internals, or weird Window objects
-    // The 'src' error often comes from an Image object or Event object
-    // Also check for specific minified constructor names if possible, or just generic DOM props
+    // 3. Cycle Detection
+    if (stack.has(input)) return undefined;
+    
+    // 4. Aggressive DOM Node and React Element Filtering
+    // nodeType > 0 implies a DOM element. _reactInternals implies a React fiber.
+    // Also check for minified React Event constructors (often have obscure names but standard props)
     if (
         input.nodeType || 
         input._reactInternals || 
-        input instanceof Event || 
-        (input.constructor && input.constructor.name && (
-            input.constructor.name === 'SyntheticBaseEvent' || 
-            input.constructor.name === 'SyntheticEvent' ||
-            input.constructor.name.includes('HTML') ||
-            input.constructor.name.includes('Element')
-        )) ||
-        // Check for common Event properties
-        (input.nativeEvent && input.target)
+        input.$$typeof ||
+        // Duck typing for Event-like objects (React Synthetic or Native)
+        (input.nativeEvent && input.target) || 
+        (typeof input.preventDefault === 'function' && typeof input.stopPropagation === 'function')
     ) {
         return undefined;
     }
 
-    // Check cycle
-    if (stack.has(input)) {
-        return undefined; // Omit circular ref
-    }
-
     stack.add(input);
 
-    let res: any;
-    if (Array.isArray(input)) {
-        // Filter out undefineds from arrays to keep them clean
-        res = input.map(v => deepClean(v, stack)).filter(v => v !== undefined);
-    } else {
-        res = {};
-        Object.keys(input).forEach(key => {
-            // Skip internal React keys or known problem keys if necessary
-            if (key.startsWith('_') || key === 'view' || key === 'source' || key === 'target' || key === 'currentTarget') return;
-            
-            const cleanVal = deepClean(input[key], stack);
-            if (cleanVal !== undefined) {
-                res[key] = cleanVal;
-            }
-        });
+    try {
+        let res: any;
+        if (Array.isArray(input)) {
+            // Filter out undefineds from arrays to keep them clean
+            res = input.map(v => deepClean(v, stack)).filter(v => v !== undefined);
+        } else {
+            res = {};
+            Object.keys(input).forEach(key => {
+                // Skip internal React keys or known problem keys
+                if (key.startsWith('_') || key === 'view' || key === 'source' || key === 'target' || key === 'currentTarget') return;
+                
+                const cleanVal = deepClean(input[key], stack);
+                if (cleanVal !== undefined) {
+                    res[key] = cleanVal;
+                }
+            });
+        }
+        return res;
+    } catch (e) {
+        return undefined; // Safe fallback if iteration fails
     }
-
-    // Note: WeakSet doesn't need explicit delete/remove, but for recursion logic in a single pass it helps to track path. 
-    // However, WeakSet tracks object identity globally. 
-    // For pure cycle detection in a tree, we typically use a Set of objects in the current path.
-    // But modifying the function signature to pass 'stack' allows us to use WeakSet correctly for the current traversal.
-    // We don't need to remove from WeakSet because we are creating a copy.
-    
-    return res;
 };
 
 export const sanitizeData = (data: any): any => {
