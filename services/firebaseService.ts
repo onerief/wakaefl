@@ -63,6 +63,7 @@ try {
 const TOURNAMENT_COLLECTION = 'tournament';
 const SETTINGS_DOC = 'global_settings';
 const CHAT_COLLECTION = 'global_chat';
+const MATCH_COMMENTS_COLLECTION = 'match_comments';
 const REGISTRATIONS_COLLECTION = 'registrations';
 const NOTIFICATIONS_COLLECTION = 'notifications';
 
@@ -165,7 +166,8 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
         ...m,
         teamA: dehydrateTeam(m.teamA),
         teamB: dehydrateTeam(m.teamB),
-        playerStats: m.playerStats || null
+        playerStats: m.playerStats || null,
+        comments: [] // Don't save comments to main structure, they are in subcollection
     }));
 
     const cleanGroups = (state.groups || []).map(g => ({
@@ -435,28 +437,27 @@ export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: strin
 // --- MATCH MANAGEMENT ---
 export const addMatchCommentToFirestore = async (mode: TournamentMode, matchId: string, comment: MatchComment) => {
   if(!firestore) throw new Error("No service");
-  const modeRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+  // Write to a separate collection to allow public writes even if main doc is locked
+  return addDoc(collection(firestore, MATCH_COMMENTS_COLLECTION), {
+      ...comment,
+      matchId,
+      tournamentMode: mode
+  });
+};
+
+export const subscribeToMatchComments = (mode: TournamentMode, callback: (commentsMap: Record<string, MatchComment[]>) => void) => {
+  if (!firestore) return () => {};
+  const q = query(collection(firestore, MATCH_COMMENTS_COLLECTION), where("tournamentMode", "==", mode), orderBy('timestamp', 'asc'));
   
-  await runTransaction(firestore, async (transaction) => {
-    const snap = await transaction.get(modeRef);
-    if (!snap.exists()) throw new Error("Tournament data not found");
-    
-    const data = snap.data();
-    const matches = (data.matches || []) as Match[];
-    const matchIndex = matches.findIndex(m => m.id === matchId);
-    
-    if (matchIndex === -1) throw new Error("Match not found");
-    
-    // Use spread to avoid mutating read-only data from snapshot directly in some environments
-    const updatedMatches = [...matches];
-    const targetMatch = { ...updatedMatches[matchIndex] };
-    const currentComments = targetMatch.comments || [];
-    
-    // Append new comment
-    targetMatch.comments = [...currentComments, comment];
-    updatedMatches[matchIndex] = targetMatch;
-    
-    transaction.update(modeRef, { matches: updatedMatches });
+  return onSnapshot(q, (snap) => {
+    const commentsMap: Record<string, MatchComment[]> = {};
+    snap.docs.forEach(doc => {
+        const data = doc.data();
+        const mId = data.matchId;
+        if (!commentsMap[mId]) commentsMap[mId] = [];
+        commentsMap[mId].push({ id: doc.id, ...data } as MatchComment);
+    });
+    callback(commentsMap);
   });
 };
 

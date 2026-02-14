@@ -188,6 +188,7 @@ export interface TournamentState {
   marqueeMessages?: string[];
   visibleModes?: TournamentMode[];
   scheduleSettings: ScheduleSettings; // NEW FIELD
+  matchComments?: Record<string, MatchComment[]>; // External comments map
 }
 
 export type View = 'home' | 'league' | 'wakacl' | 'two_leagues' | 'admin' | 'hall_of_fame' | 'news' | 'privacy' | 'about' | 'terms' | 'shop';

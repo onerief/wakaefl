@@ -1,8 +1,7 @@
-
 import { useReducer, useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment, SeasonHistory, NewsItem, Product, PlayerStat, MatchPlayerStats, ScheduleSettings } from '../types';
 import { generateSummary } from '../services/geminiService';
-import { subscribeToTournamentData, saveTournamentData, sanitizeData } from '../services/firebaseService';
+import { subscribeToTournamentData, subscribeToMatchComments, saveTournamentData, sanitizeData } from '../services/firebaseService';
 import { useToast } from '../components/shared/Toast';
 
 export const SPECIAL_TEAM_ID = 't13';
@@ -40,7 +39,8 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
       matchdayStartTime: null,
       matchdayDurationHours: 24,
       autoProcessEnabled: false
-  }
+  },
+  matchComments: {}
 });
 
 const calculateStandings = (teams: Team[], matches: Match[], groupId: string, groupName: string): Standing[] => {
@@ -145,12 +145,46 @@ type Action =
   | { type: 'UPDATE_VISIBLE_MODES'; payload: TournamentMode[] }
   | { type: 'ADD_MATCH_COMMENT'; payload: { matchId: string, comment: MatchComment } }
   | { type: 'UPDATE_SCHEDULE_SETTINGS'; payload: Partial<ScheduleSettings> }
-  | { type: 'PROCESS_AUTO_WO'; payload: Match[] }; // Bulk update matches
+  | { type: 'PROCESS_AUTO_WO'; payload: Match[] }
+  | { type: 'SET_COMMENTS'; payload: Record<string, MatchComment[]> };
 
 const tournamentReducer = (state: FullTournamentState, action: Action): FullTournamentState => {
   let newState: FullTournamentState;
+  
+  const mergeCommentsIntoMatches = (matches: Match[], commentsMap: Record<string, MatchComment[]>) => {
+      return matches.map(m => ({
+          ...m,
+          comments: commentsMap[m.id] || []
+      }));
+  };
+
+  const mergeCommentsIntoKnockout = (stage: KnockoutStageRounds | null, commentsMap: Record<string, MatchComment[]>) => {
+      if (!stage) return null;
+      const newStage = { ...stage };
+      (Object.keys(newStage) as Array<keyof KnockoutStageRounds>).forEach(key => {
+          newStage[key] = newStage[key].map(m => ({ ...m, comments: commentsMap[m.id] || [] }));
+      });
+      return newStage;
+  };
+
   switch (action.type) {
-    case 'SET_STATE': newState = { ...state, ...action.payload }; break;
+    case 'SET_STATE': {
+        const rawState = action.payload;
+        const currentComments = state.matchComments || {};
+        // Preserve comments from separate collection
+        const matchesWithComments = mergeCommentsIntoMatches(rawState.matches || [], currentComments);
+        const knockoutWithComments = mergeCommentsIntoKnockout(rawState.knockoutStage, currentComments);
+        
+        newState = { ...state, ...rawState, matches: matchesWithComments, knockoutStage: knockoutWithComments, matchComments: currentComments };
+        break;
+    }
+    case 'SET_COMMENTS': {
+        const commentsMap = action.payload;
+        const updatedMatches = mergeCommentsIntoMatches(state.matches, commentsMap);
+        const updatedKnockout = mergeCommentsIntoKnockout(state.knockoutStage, commentsMap);
+        newState = { ...state, matchComments: commentsMap, matches: updatedMatches, knockoutStage: updatedKnockout };
+        break;
+    }
     case 'SET_MODE': newState = { ...state, mode: action.payload }; break;
     case 'ADD_TEAM': newState = { ...state, teams: [...state.teams, action.payload] }; break;
     case 'UPDATE_TEAM': newState = { ...state, teams: state.teams.map(t => t.id === action.payload.id ? action.payload : t) }; break;
@@ -194,10 +228,20 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'ADD_HISTORY_ENTRY': newState = { ...state, history: [action.payload, ...state.history] }; break;
     case 'DELETE_HISTORY_ENTRY': newState = { ...state, history: state.history.filter(h => h.seasonId !== action.payload) }; break;
     case 'UPDATE_VISIBLE_MODES': newState = { ...state, visibleModes: action.payload }; break;
-    case 'ADD_MATCH_COMMENT': newState = { ...state, matches: state.matches.map(m => m.id === action.payload.matchId ? { ...m, comments: [...(m.comments || []), action.payload.comment] } : m) }; break;
+    case 'ADD_MATCH_COMMENT': {
+        const { matchId, comment } = action.payload;
+        // Optimistic update for both matches and knockout
+        const newCommentsMap = { ...(state.matchComments || {}) };
+        newCommentsMap[matchId] = [...(newCommentsMap[matchId] || []), comment];
+        
+        const newMatches = mergeCommentsIntoMatches(state.matches, newCommentsMap);
+        const newKnockout = mergeCommentsIntoKnockout(state.knockoutStage, newCommentsMap);
+        
+        newState = { ...state, matches: newMatches, knockoutStage: newKnockout, matchComments: newCommentsMap };
+        break;
+    }
     case 'UPDATE_SCHEDULE_SETTINGS': newState = { ...state, scheduleSettings: { ...state.scheduleSettings, ...action.payload } }; break;
     case 'PROCESS_AUTO_WO': {
-        // Bulk update matches with WO results
         const updatedMatchIds = new Set(action.payload.map(m => m.id));
         const newMatches = state.matches.map(m => updatedMatchIds.has(m.id) ? (action.payload.find(up => up.id === m.id) || m) : m);
         newState = { ...state, matches: newMatches };
@@ -206,9 +250,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'RESET': {
         newState = { 
             ...createInitialState(state.mode),
-            // Only preserve History and the current Mode
             history: state.history,
-            // EVERYTHING ELSE (Teams, News, Config, Banners, Rules, etc) reverts to defaults from createInitialState
         }; 
         break;
     }
@@ -221,8 +263,9 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
             groups: [],
             knockoutStage: null,
             status: 'active',
-            scheduleSettings: createInitialState(state.mode).scheduleSettings, // Reset schedule
-            teams: keepTeams ? state.teams : []
+            scheduleSettings: createInitialState(state.mode).scheduleSettings, 
+            teams: keepTeams ? state.teams : [],
+            matchComments: {} // Clear comments for new season
         };
         break;
     }
@@ -251,7 +294,8 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
 
   useEffect(() => {
     setIsLoading(true);
-    const unsubscribe = subscribeToTournamentData(activeMode, (serverData) => {
+    // Subscribe to Main Data
+    const unsubscribeTournament = subscribeToTournamentData(activeMode, (serverData) => {
         isUpdatingFromServer.current = true;
         dispatch({ type: 'SET_STATE', payload: serverData });
         hasPendingChanges.current = false;
@@ -262,7 +306,18 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
             setIsLoading(false); 
         }, 100);
     });
-    return () => unsubscribe();
+
+    // Subscribe to Comments
+    const unsubscribeComments = subscribeToMatchComments(activeMode, (commentsMap) => {
+        isUpdatingFromServer.current = true;
+        dispatch({ type: 'SET_COMMENTS', payload: commentsMap });
+        
+        setTimeout(() => { 
+            isUpdatingFromServer.current = false; 
+        }, 100);
+    });
+
+    return () => { unsubscribeTournament(); unsubscribeComments(); };
   }, [activeMode]);
 
   const forceSave = useCallback(async () => {
@@ -298,7 +353,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       const now = Date.now();
       const deadline = settings.matchdayStartTime + (settings.matchdayDurationHours * 3600000);
       
-      // Only process if time is up OR forced
       if (now < deadline) return { processedCount: 0, message: 'Waktu matchday belum habis.' };
 
       const currentMatches = state.matches.filter(m => 
@@ -310,47 +364,28 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       currentMatches.forEach(match => {
           const comments = match.comments || [];
           
-          // Identify activity based on owner email matching
           const teamAEmail = match.teamA.ownerEmail?.toLowerCase();
           const teamBEmail = match.teamB.ownerEmail?.toLowerCase();
 
           const teamAActive = comments.some(c => c.userEmail.toLowerCase() === teamAEmail);
           const teamBActive = comments.some(c => c.userEmail.toLowerCase() === teamBEmail);
 
-          // Logic Penentuan WO
           let newMatch = { ...match };
           let changed = false;
 
           if (teamAActive && !teamBActive) {
-              // A wins via WO
-              newMatch.scoreA = 3;
-              newMatch.scoreB = 0;
-              newMatch.status = 'finished';
-              newMatch.summary = 'Menang WO (Otomatis oleh Sistem)';
-              changed = true;
+              newMatch.scoreA = 3; newMatch.scoreB = 0; newMatch.status = 'finished'; newMatch.summary = 'Menang WO (Otomatis oleh Sistem)'; changed = true;
           } else if (!teamAActive && teamBActive) {
-              // B wins via WO
-              newMatch.scoreA = 0;
-              newMatch.scoreB = 3;
-              newMatch.status = 'finished';
-              newMatch.summary = 'Menang WO (Otomatis oleh Sistem)';
-              changed = true;
+              newMatch.scoreA = 0; newMatch.scoreB = 3; newMatch.status = 'finished'; newMatch.summary = 'Menang WO (Otomatis oleh Sistem)'; changed = true;
           } else if (!teamAActive && !teamBActive) {
-              // Both inactive -> Draw 0-0
-              newMatch.scoreA = 0;
-              newMatch.scoreB = 0;
-              newMatch.status = 'finished';
-              newMatch.summary = 'Imbang WO (Tidak ada aktivitas)';
-              changed = true;
+              newMatch.scoreA = 0; newMatch.scoreB = 0; newMatch.status = 'finished'; newMatch.summary = 'Imbang WO (Tidak ada aktivitas)'; changed = true;
           }
-          // If both active -> Leave as is (Status Quo), admin must resolve or players must input score
 
           if (changed) updatedMatches.push(newMatch);
       });
 
       if (updatedMatches.length > 0) {
           dispatch({ type: 'PROCESS_AUTO_WO', payload: updatedMatches });
-          // Stop the timer after processing to avoid repeated processing
           dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { isActive: false } }); 
           return { processedCount: updatedMatches.length, message: `${updatedMatches.length} pertandingan diproses WO otomatis.` };
       }
@@ -359,15 +394,10 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
 
   }, [state.scheduleSettings, state.matches]);
 
-  // Public Actions for Schedule
   const startMatchday = (duration: number) => {
       dispatch({ 
           type: 'UPDATE_SCHEDULE_SETTINGS', 
-          payload: { 
-              isActive: true, 
-              matchdayStartTime: Date.now(),
-              matchdayDurationHours: duration
-          } 
+          payload: { isActive: true, matchdayStartTime: Date.now(), matchdayDurationHours: duration } 
       });
   };
 
@@ -382,54 +412,28 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   const generateKnockoutBracket = useCallback(() => {
     const topTeamsByGroup: { winner: Team | null, runnerUp: Team | null }[] = state.groups.map(group => {
         const sorted = [...group.standings].sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference);
-        return {
-            winner: sorted[0]?.team || null,
-            runnerUp: sorted[1]?.team || null
-        };
+        return { winner: sorted[0]?.team || null, runnerUp: sorted[1]?.team || null };
     });
 
-    if (topTeamsByGroup.some(g => !g.winner)) {
-        return { success: false, message: "Pastikan semua grup memiliki pemenang sebelum membuat bracket." };
-    }
+    if (topTeamsByGroup.some(g => !g.winner)) return { success: false, message: "Pastikan semua grup memiliki pemenang." };
 
-    const newKnockout: KnockoutStageRounds = {
-        'Play-offs': [], 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': []
-    };
+    const newKnockout: KnockoutStageRounds = { 'Play-offs': [], 'Round of 16': [], 'Quarter-finals': [], 'Semi-finals': [], 'Final': [] };
 
     if (state.groups.length === 2) {
         const gA = topTeamsByGroup[0];
         const gB = topTeamsByGroup[1];
-        newKnockout['Semi-finals'].push({
-            id: `ko-sf-1`, round: 'Semi-finals', matchNumber: 1,
-            teamA: gA.winner, teamB: gB.runnerUp, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
-            winnerId: null, nextMatchId: 'ko-final-1', placeholderA: 'Winner A', placeholderB: 'Runner B'
-        });
-        newKnockout['Semi-finals'].push({
-            id: `ko-sf-2`, round: 'Semi-finals', matchNumber: 2,
-            teamA: gB.winner, teamB: gA.runnerUp, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
-            winnerId: null, nextMatchId: 'ko-final-1', placeholderA: 'Winner B', placeholderB: 'Runner A'
-        });
-        newKnockout['Final'].push({
-            id: `ko-final-1`, round: 'Final', matchNumber: 1,
-            teamA: null, teamB: null, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
-            winnerId: null, nextMatchId: null, placeholderA: 'Winner SF1', placeholderB: 'Winner SF2'
-        });
+        newKnockout['Semi-finals'].push({ id: `ko-sf-1`, round: 'Semi-finals', matchNumber: 1, teamA: gA.winner, teamB: gB.runnerUp, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'ko-final-1', placeholderA: 'Winner A', placeholderB: 'Runner B' });
+        newKnockout['Semi-finals'].push({ id: `ko-sf-2`, round: 'Semi-finals', matchNumber: 2, teamA: gB.winner, teamB: gA.runnerUp, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: 'ko-final-1', placeholderA: 'Winner B', placeholderB: 'Runner A' });
+        newKnockout['Final'].push({ id: `ko-final-1`, round: 'Final', matchNumber: 1, teamA: null, teamB: null, scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null, placeholderA: 'Winner SF1', placeholderB: 'Winner SF2' });
     } 
     else {
         const topTeams: Team[] = [];
-        topTeamsByGroup.forEach(g => {
-            if (g.winner) topTeams.push(g.winner);
-            if (g.runnerUp) topTeams.push(g.runnerUp);
-        });
-        if (topTeams.length < 2) return { success: false, message: "Minimal butuh 2 tim untuk membuat bracket." };
+        topTeamsByGroup.forEach(g => { if (g.winner) topTeams.push(g.winner); if (g.runnerUp) topTeams.push(g.runnerUp); });
+        if (topTeams.length < 2) return { success: false, message: "Minimal butuh 2 tim." };
         const roundName = topTeams.length <= 4 ? 'Semi-finals' : topTeams.length <= 8 ? 'Quarter-finals' : 'Round of 16';
         for (let i = 0; i < topTeams.length; i += 2) {
             if (topTeams[i+1]) {
-                newKnockout[roundName].push({
-                    id: `ko-${Date.now()}-${i}`, round: roundName, matchNumber: (i/2) + 1,
-                    teamA: topTeams[i], teamB: topTeams[i+1], scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null,
-                    winnerId: null, nextMatchId: null, placeholderA: '', placeholderB: ''
-                });
+                newKnockout[roundName].push({ id: `ko-${Date.now()}-${i}`, round: roundName, matchNumber: (i/2) + 1, teamA: topTeams[i], teamB: topTeams[i+1], scoreA1: null, scoreB1: null, scoreA2: null, scoreB2: null, winnerId: null, nextMatchId: null, placeholderA: '', placeholderB: '' });
             }
         }
     }
@@ -441,93 +445,34 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       const shuffled = [...state.teams].sort(() => Math.random() - 0.5);
       const newGroups: Group[] = [];
       const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-      
       for (let i = 0; i < numberOfGroups; i++) {
-          newGroups.push({
-              id: `g-${Date.now()}-${i}`,
-              name: `Group ${alphabet[i] || (i + 1)}`,
-              teams: [],
-              standings: []
-          });
+          newGroups.push({ id: `g-${Date.now()}-${i}`, name: `Group ${alphabet[i] || (i + 1)}`, teams: [], standings: [] });
       }
-
-      shuffled.forEach((team, index) => {
-          newGroups[index % numberOfGroups].teams.push(team);
-      });
-
-      dispatch({ 
-          type: 'GENERATE_GROUPS', 
-          payload: { 
-              groups: newGroups, 
-              matches: [], 
-              knockoutStage: null 
-          } 
-      });
+      shuffled.forEach((team, index) => { newGroups[index % numberOfGroups].teams.push(team); });
+      dispatch({ type: 'GENERATE_GROUPS', payload: { groups: newGroups, matches: [], knockoutStage: null } });
   }, [state.teams]);
 
   const initializeLeague = useCallback(() => {
-      const leagueGroup: Group = {
-          id: 'league-season',
-          name: 'Regular Season',
-          teams: [...state.teams],
-          standings: []
-      };
-
+      const leagueGroup: Group = { id: 'league-season', name: 'Regular Season', teams: [...state.teams], standings: [] };
       const newMatches: Match[] = [];
       const teams = [...leagueGroup.teams];
-      
-      if (teams.length < 2) {
-           dispatch({ 
-              type: 'GENERATE_GROUPS', 
-              payload: { groups: [leagueGroup], matches: [], knockoutStage: null } 
-          });
-          return;
-      }
-
-      // Round Robin Algorithm
+      if (teams.length < 2) { dispatch({ type: 'GENERATE_GROUPS', payload: { groups: [leagueGroup], matches: [], knockoutStage: null } }); return; }
       const dummyTeam: Team = { id: 'bye', name: 'BYE' } as Team;
-      if (teams.length % 2 !== 0) {
-          teams.push(dummyTeam); 
-      }
-
-      const numRounds = (teams.length - 1) * 2; // Double round robin
+      if (teams.length % 2 !== 0) teams.push(dummyTeam); 
+      const numRounds = (teams.length - 1) * 2; 
       const numMatchesPerRound = teams.length / 2;
-
       for (let round = 0; round < numRounds; round++) {
           for (let i = 0; i < numMatchesPerRound; i++) {
-              const home = teams[i];
-              const away = teams[teams.length - 1 - i];
-
+              const home = teams[i]; const away = teams[teams.length - 1 - i];
               if (home.id !== 'bye' && away.id !== 'bye') {
                   const isSecondLeg = round >= (numRounds / 2);
-                  const teamA = isSecondLeg ? away : home;
-                  const teamB = isSecondLeg ? home : away;
-
-                  newMatches.push({
-                      id: `m-league-${round + 1}-${i}`,
-                      teamA,
-                      teamB,
-                      scoreA: null,
-                      scoreB: null,
-                      status: 'scheduled',
-                      group: 'league-season',
-                      leg: isSecondLeg ? 2 : 1,
-                      matchday: round + 1
-                  });
+                  const teamA = isSecondLeg ? away : home; const teamB = isSecondLeg ? home : away;
+                  newMatches.push({ id: `m-league-${round + 1}-${i}`, teamA, teamB, scoreA: null, scoreB: null, status: 'scheduled', group: 'league-season', leg: isSecondLeg ? 2 : 1, matchday: round + 1 });
               }
           }
-          // Rotate array
           teams.splice(1, 0, teams.pop()!);
       }
-
-      dispatch({ 
-          type: 'GENERATE_GROUPS', 
-          payload: { 
-              groups: [leagueGroup], 
-              matches: newMatches, 
-              knockoutStage: null 
-          } 
-      });
+      dispatch({ type: 'GENERATE_GROUPS', payload: { groups: [leagueGroup], matches: newMatches, knockoutStage: null } });
   }, [state.teams]);
 
   const clubStats = useMemo(() => {
@@ -539,28 +484,18 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
               if (m.status !== 'finished') return;
               if (m.teamA?.id && stats[m.teamA.id]) stats[m.teamA.id].goals += (m.scoreA || 0);
               if (m.teamB?.id && stats[m.teamB.id]) stats[m.teamB.id].goals += (m.scoreB || 0);
-          } 
-          else {
+          } else {
               if (m.scoreA1 === null) return;
               if (m.teamA?.id && stats[m.teamA.id]) stats[m.teamA.id].goals += (m.scoreA1 || 0) + (m.scoreA2 || 0);
               if (m.teamB?.id && stats[m.teamB.id]) stats[m.teamB.id].goals += (m.scoreB1 || 0) + (m.scoreB2 || 0);
           }
       };
       state.matches.forEach(processMatch);
-      if (state.knockoutStage) { 
-        (Object.values(state.knockoutStage).flat() as KnockoutMatch[]).forEach(m => {
-            if (m) processMatch(m);
-        }); 
-      }
+      if (state.knockoutStage) { (Object.values(state.knockoutStage).flat() as KnockoutMatch[]).forEach(m => { if (m) processMatch(m); }); }
       return Object.values(stats).sort((a, b) => b.goals - a.goals).filter(s => s.goals > 0);
   }, [state.matches, state.knockoutStage, state.teams]);
 
-  const playerStats = useMemo(() => {
-      return {
-          topScorers: [],
-          topAssists: [] 
-      };
-  }, []);
+  const playerStats = useMemo(() => { return { topScorers: [], topAssists: [] }; }, []);
 
   return { 
       ...state, 
@@ -616,64 +551,28 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           const newMatches: Match[] = [];
           state.groups.forEach(g => {
               const teamsForScheduling = [...g.teams];
-              
               if (teamsForScheduling.length < 2) return;
-              
-              // Handle odd number of teams with a dummy "BYE" team
-              if (teamsForScheduling.length % 2 !== 0) {
-                  teamsForScheduling.push({ id: 'bye', name: 'BYE' } as Team);
-              }
-              
+              if (teamsForScheduling.length % 2 !== 0) teamsForScheduling.push({ id: 'bye', name: 'BYE' } as Team);
               const n = teamsForScheduling.length;
               const roundsPerLeg = n - 1;
               const matchesPerRound = n / 2;
-
-              // Generate First Leg (Normal Round Robin)
               for (let round = 0; round < roundsPerLeg; round++) {
                   for (let i = 0; i < matchesPerRound; i++) {
-                      const tA = teamsForScheduling[i]; 
-                      const tB = teamsForScheduling[n - 1 - i];
-                      
+                      const tA = teamsForScheduling[i]; const tB = teamsForScheduling[n - 1 - i];
                       if (tA.id !== 'bye' && tB.id !== 'bye') {
-                          // Alternate home/away for fair distribution in single leg
-                          const isHome = round % 2 === 0 ? i === 0 : i !== 0; 
-                          const home = isHome ? tA : tB;
-                          const away = isHome ? tB : tA;
-
-                          newMatches.push({ 
-                              id: `m-${g.id}-L1-R${round + 1}-${i}`, 
-                              teamA: home, 
-                              teamB: away, 
-                              scoreA: null, scoreB: null, status: 'scheduled', 
-                              group: g.id, leg: 1, matchday: round + 1 
-                          });
+                          const isHome = round % 2 === 0 ? i === 0 : i !== 0; const home = isHome ? tA : tB; const away = isHome ? tB : tA;
+                          newMatches.push({ id: `m-${g.id}-L1-R${round + 1}-${i}`, teamA: home, teamB: away, scoreA: null, scoreB: null, status: 'scheduled', group: g.id, leg: 1, matchday: round + 1 });
                       }
                   }
-                  // Rotate teams (keep index 0 fixed, rotate the rest)
                   teamsForScheduling.splice(1, 0, teamsForScheduling.pop()!);
               }
-
-              // Generate Second Leg (Double Round Robin) - If requested
               if (roundRobinType === 'double') {
-                  // Reset rotation for 2nd leg logic or just invert the 1st leg matches?
-                  // Easier strategy: Loop through existing leg 1 matches and create reverse fixtures
-                  // But we need them to be in subsequent matchdays.
-                  
                   const leg1Matches = newMatches.filter(m => m.group === g.id && m.leg === 1);
-                  
                   leg1Matches.forEach(m => {
-                      newMatches.push({
-                          id: `m-${g.id}-L2-R${(m.matchday || 0) + roundsPerLeg}-${m.id.split('-').pop()}`,
-                          teamA: m.teamB, // Swap Home/Away
-                          teamB: m.teamA,
-                          scoreA: null, scoreB: null, status: 'scheduled',
-                          group: g.id, leg: 2, 
-                          matchday: (m.matchday || 0) + roundsPerLeg // Offset matchday
-                      });
+                      newMatches.push({ id: `m-${g.id}-L2-R${(m.matchday || 0) + roundsPerLeg}-${m.id.split('-').pop()}`, teamA: m.teamB, teamB: m.teamA, scoreA: null, scoreB: null, status: 'scheduled', group: g.id, leg: 2, matchday: (m.matchday || 0) + roundsPerLeg });
                   });
               }
           });
-          
           dispatch({ type: 'GENERATE_GROUPS', payload: { groups: state.groups, matches: newMatches, knockoutStage: state.knockoutStage } });
       },
       addMatchComment: (matchId: string, userId: string, userName: string, userEmail: string, text: string, isAdmin: boolean = false) =>
@@ -681,8 +580,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       autoGenerateGroups,
       initializeLeague,
       generateSummary,
-      
-      // Schedule Control Exports
       startMatchday,
       pauseSchedule,
       setMatchday,
