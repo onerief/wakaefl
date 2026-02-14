@@ -206,19 +206,9 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'RESET': {
         newState = { 
             ...createInitialState(state.mode),
+            // Only preserve History and the current Mode
             history: state.history,
-            news: state.news,
-            products: state.products,
-            banners: state.banners,
-            partners: state.partners,
-            rules: state.rules,
-            headerLogoUrl: state.headerLogoUrl,
-            pwaIconUrl: state.pwaIconUrl, 
-            newsCategories: state.newsCategories,
-            shopCategories: state.shopCategories,
-            marqueeMessages: state.marqueeMessages,
-            visibleModes: state.visibleModes,
-            teams: [] 
+            // EVERYTHING ELSE (Teams, News, Config, Banners, Rules, etc) reverts to defaults from createInitialState
         }; 
         break;
     }

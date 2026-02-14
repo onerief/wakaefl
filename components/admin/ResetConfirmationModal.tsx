@@ -26,7 +26,9 @@ export const ResetConfirmationModal: React.FC<ResetConfirmationModalProps> = ({ 
                 <div className="space-y-1">
                     <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">Tindakan Irreversibel</p>
                     <p className="text-[10px] text-brand-light leading-relaxed">
-                        Anda akan menghapus <strong>SEMUA</strong> data: Tim, Jadwal, Skor, dan Knockout untuk mode ini. Data tidak dapat dikembalikan.
+                        Anda akan menghapus <strong>SEMUA KONFIGURASI DAN DATA</strong>: Tim, Jadwal, Skor, Banner, Berita, dan Pengaturan lainnya. 
+                        <br/><br/>
+                        Hanya <strong>Hall of Fame (History)</strong> yang akan tersimpan.
                     </p>
                 </div>
             </div>

@@ -6,8 +6,9 @@ import { MatchCard } from './MatchList';
 import { KnockoutStageView } from './KnockoutStageView';
 import { RulesModal } from './RulesModal'; // Updated import
 import { StatsStandings } from './StatsStandings';
-import { Users, ListChecks, Trophy, BookOpen, Crown, ChevronDown, Zap, ShieldCheck, Star, Lock, Calendar, Info, BarChart3, Layout } from 'lucide-react';
+import { Users, ListChecks, Trophy, BookOpen, Crown, ChevronDown, Zap, ShieldCheck, Star, Lock, Calendar, Info, BarChart3, Layout, Coffee } from 'lucide-react';
 import type { User } from 'firebase/auth';
+import { TeamLogo } from '../shared/TeamLogo';
 
 interface PublicViewProps {
   mode: TournamentMode;
@@ -135,6 +136,16 @@ export const PublicView: React.FC<PublicViewProps> = ({
                 const leg1Days = Array.from(new Set(groupMatches.filter(m => m.leg === 1).map(m => m.matchday))).filter((d): d is number => d !== undefined).sort((a, b) => a - b);
                 const leg2Days = Array.from(new Set(groupMatches.filter(m => m.leg === 2).map(m => m.matchday))).filter((d): d is number => d !== undefined).sort((a, b) => a - b);
                 const activeScheduleKey = selectedMatchdays[group.id] || (leg1Days.length > 0 ? `L1-D${leg1Days[0]}` : '');
+                
+                const currentMatches = schedule[activeScheduleKey] || [];
+                
+                // Calculate BYE Teams
+                const playingTeamIds = new Set<string>();
+                currentMatches.forEach(m => {
+                    playingTeamIds.add(m.teamA.id);
+                    playingTeamIds.add(m.teamB.id);
+                });
+                const byeTeams = group.teams.filter(t => !playingTeamIds.has(t.id));
 
                 return (
                     <div key={`${group.id}-fixtures`} className="flex flex-col bg-brand-secondary/30 border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl relative group/card min-h-[300px]">
@@ -154,14 +165,32 @@ export const PublicView: React.FC<PublicViewProps> = ({
                             </div>
                         </div>
                         <div className="p-3 sm:p-4 flex-grow relative overflow-y-auto custom-scrollbar">
-                            {schedule[activeScheduleKey] ? (
+                            {currentMatches.length > 0 ? (
                                 <div className="space-y-3 animate-in slide-in-from-bottom-3 duration-500">
-                                    {schedule[activeScheduleKey].map(match => (
+                                    {currentMatches.map(match => (
                                         <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateMatchScore} currentUser={currentUser} onAddComment={onAddMatchComment} isAdmin={isAdmin} userOwnedTeamIds={userOwnedTeamIds} />
                                     ))}
                                 </div>
                             ) : (
                                 <div className="text-center py-10 opacity-20 italic font-black uppercase tracking-widest text-[10px]">Belum ada jadwal</div>
+                            )}
+
+                            {/* BYE TEAMS INDICATOR */}
+                            {byeTeams.length > 0 && (
+                                <div className="mt-6 pt-4 border-t border-white/5">
+                                    <div className="flex items-center gap-2 mb-2 px-1">
+                                        <Coffee size={12} className="text-brand-light opacity-60" />
+                                        <span className="text-[10px] font-black text-brand-light uppercase tracking-widest opacity-60">Sedang Istirahat (BYE)</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {byeTeams.map(team => (
+                                            <div key={team.id} className="flex items-center gap-3 bg-white/5 p-2 rounded-xl border border-white/5 opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
+                                                 <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-6 h-6" />
+                                                 <span className="text-[10px] font-black text-white uppercase italic tracking-tight">{team.name}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
                         </div>
                     </div>

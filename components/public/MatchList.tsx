@@ -183,7 +183,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     <div key={comment.id} className="flex gap-1.5">
                                         <div className="min-w-0 flex-1">
                                             <span className={`text-[6px] sm:text-[8px] font-black uppercase truncate ${comment.isAdmin ? 'text-brand-special' : 'text-brand-light'}`}>{comment.userName}:</span>
-                                            <span className="text-[8px] sm:text-[10px] text-brand-text leading-tight ml-1">{comment.text}</span>
+                                            <span className="text-[8px] sm:text-[10px] text-white leading-tight ml-1">{comment.text}</span>
                                         </div>
                                     </div>
                                 ))
