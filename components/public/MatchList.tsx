@@ -89,15 +89,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     return (
         <>
-            <Card className={`!p-0 group transition-all duration-300 relative border border-white/5 overflow-hidden ${isAdminMode ? 'ring-1 ring-brand-special/50' : isMyMatch ? 'ring-1 ring-brand-vibrant/30' : ''}`}>
+            <Card className={`!p-0 group transition-all duration-300 relative border overflow-hidden ${isAdminMode ? 'ring-1 ring-brand-special/50 border-brand-special/30' : isMyMatch ? 'border-brand-special/50 bg-brand-special/[0.03] shadow-[0_0_20px_rgba(253,224,71,0.15)] border-l-4 border-l-brand-special' : 'border-white/5'}`}>
                 <div className="flex items-center justify-between px-3 py-1 bg-black/40 text-[7px] sm:text-[9px] border-b border-white/5 backdrop-blur-md">
                     <div className="flex items-center gap-1.5 overflow-hidden">
                         <span className="font-black uppercase tracking-widest text-brand-light opacity-60 truncate">
                             M{match.matchday} • {match.leg === 1 ? 'L1' : 'L2'}
                         </span>
                         {isMyMatch && (
-                            <span className="flex items-center gap-1 px-1 py-0.5 bg-brand-vibrant text-white font-black rounded-md uppercase animate-pulse scale-[0.8] sm:scale-100 origin-left">
-                                <Star size={8} className="fill-white" /> My Match
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-brand-special text-brand-primary font-black rounded uppercase animate-pulse scale-[0.8] sm:scale-100 origin-left">
+                                <Star size={8} className="fill-brand-primary" /> YOUR MATCH
                             </span>
                         )}
                         {match.summary && match.summary.includes('WO') && (

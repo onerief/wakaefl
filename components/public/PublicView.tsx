@@ -73,25 +73,48 @@ export const PublicView: React.FC<PublicViewProps> = ({
   const hasMyTeam = userOwnedTeamIds.length > 0;
   const supportsKnockout = mode === 'two_leagues' || mode === 'wakacl';
 
+  // Logic to auto-select the current active matchday
   useEffect(() => {
     if (groups.length === 0 || matches.length === 0) return;
     const newSelections = { ...selectedMatchdays };
     let hasChanged = false;
 
     groups.forEach(g => {
+        // If user manually selected a day, don't overwrite it immediately unless it's invalid
         if (newSelections[g.id]) return;
+
         const groupLetter = g.name.replace('Group ', '').trim();
         const groupMatches = matches.filter(m => m.group === g.id || m.group === groupLetter || m.group === g.name);
+        
         if (groupMatches.length === 0) return;
-        const nextMatch = groupMatches.sort((a, b) => {
-                if (a.leg !== b.leg) return (a.leg || 1) - (b.leg || 1);
-                return (a.matchday || 1) - (b.matchday || 1);
-            }).find(m => m.status !== 'finished');
-        const defaultLeg = nextMatch?.leg || 1;
-        const defaultDay = nextMatch?.matchday || 1;
-        newSelections[g.id] = `L${defaultLeg}-D${defaultDay}`;
-        hasChanged = true;
+
+        // Sort matches by Leg then Matchday
+        const sortedMatches = groupMatches.sort((a, b) => {
+            if ((a.leg || 1) !== (b.leg || 1)) return (a.leg || 1) - (b.leg || 1);
+            return (a.matchday || 1) - (b.matchday || 1);
+        });
+
+        // Find the first match that is NOT finished (scheduled or live)
+        const nextActiveMatch = sortedMatches.find(m => m.status !== 'finished');
+        
+        let targetKey = '';
+        if (nextActiveMatch) {
+            // Set to the upcoming matchday
+            targetKey = `L${nextActiveMatch.leg || 1}-D${nextActiveMatch.matchday || 1}`;
+        } else {
+            // If all matches finished, set to the very last matchday
+            const lastMatch = sortedMatches[sortedMatches.length - 1];
+            if (lastMatch) {
+                targetKey = `L${lastMatch.leg || 1}-D${lastMatch.matchday || 1}`;
+            }
+        }
+
+        if (targetKey) {
+            newSelections[g.id] = targetKey;
+            hasChanged = true;
+        }
     });
+
     if (hasChanged) setSelectedMatchdays(newSelections);
   }, [matches, groups, mode]);
 
