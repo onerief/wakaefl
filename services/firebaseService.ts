@@ -372,10 +372,8 @@ export const subscribeToMatchComments = (mode: TournamentMode, callback: (commen
             });
             callback(commentsMap);
         }, (err: any) => {
-            // SANGAT PENTING: Cek link di console Anda
             if (err.message && err.message.includes('index')) {
-                console.error("PENTING: KLIK LINK INI UNTUK AKTIFKAN FITUR CHAT:");
-                console.error(err.message.split('here: ')[1]);
+                console.error("PENTING: KLIK LINK INI UNTUK AKTIFKAN FITUR CHAT:", err.message);
             } else {
                 console.error("subscribeToMatchComments error:", err);
             }
@@ -453,6 +451,51 @@ export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: strin
         if (teams[index].ownerEmail) throw new Error("Team already has an owner");
         teams[index].requestedOwnerEmail = email;
         transaction.update(docRef, { teams });
+    });
+};
+
+// NEW: Function to handle approval/rejection of team claims
+export const resolveTeamClaimInFirestore = async (mode: TournamentMode, teamId: string, approved: boolean) => {
+    if (!firestore || !mode) return;
+    const docRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+    
+    await runTransaction(firestore, async (transaction) => {
+        const snap = await transaction.get(docRef);
+        if (!snap.exists()) throw new Error("Document not found");
+        
+        const data = snap.data();
+        const teams = data.teams || [];
+        const teamIndex = teams.findIndex((t: any) => t.id === teamId);
+        
+        if (teamIndex === -1) throw new Error("Team not found");
+        
+        const team = teams[teamIndex];
+        const requesterEmail = team.requestedOwnerEmail;
+        
+        if (!requesterEmail) return; // Already processed or cancelled
+        
+        // Logic
+        if (approved) {
+            team.ownerEmail = requesterEmail;
+        }
+        delete team.requestedOwnerEmail; // Clear request in both cases
+        
+        teams[teamIndex] = team;
+        transaction.update(docRef, { teams });
+
+        // Notification
+        const notifRef = collection(firestore, NOTIFICATIONS_COLLECTION);
+        const newNotifDoc = doc(notifRef);
+        transaction.set(newNotifDoc, {
+            email: requesterEmail,
+            title: approved ? 'Permintaan Klaim Diterima' : 'Permintaan Klaim Ditolak',
+            message: approved 
+                ? `Selamat! Anda resmi menjadi manager tim ${team.name}.` 
+                : `Maaf, permintaan klaim Anda untuk tim ${team.name} ditolak.`,
+            type: approved ? 'success' : 'warning',
+            timestamp: Date.now(),
+            read: false
+        });
     });
 };
 

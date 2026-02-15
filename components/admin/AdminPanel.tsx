@@ -83,6 +83,7 @@ interface AdminPanelProps {
   setRegistrationOpen: (open: boolean) => void;
   setTournamentStatus: (status: 'active' | 'completed') => void;
   updateVisibleModes: (modes: TournamentMode[]) => void;
+  resolveTeamClaim?: (teamId: string, approved: boolean) => void;
   // Schedule Control Actions
   startMatchday?: (duration: number) => void;
   pauseSchedule?: () => void;

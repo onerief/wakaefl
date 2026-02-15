@@ -134,7 +134,12 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
           ));
           setSelectedClaimTeamId('');
       } catch (error: any) {
-          addToast(error.message || 'Gagal mengirim permintaan.', 'error');
+          console.error("Claim Error:", error);
+          if (error.code === 'permission-denied') {
+             addToast('Akses Ditolak: Izin database belum diatur oleh Admin.', 'error');
+          } else {
+             addToast(error.message || 'Gagal mengirim permintaan.', 'error');
+          }
       }
   };
 

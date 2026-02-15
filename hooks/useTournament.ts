@@ -2,7 +2,7 @@
 import { useReducer, useCallback, useState, useEffect, useRef, useMemo } from 'react';
 import type { Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment, SeasonHistory, NewsItem, Product, PlayerStat, MatchPlayerStats, ScheduleSettings } from '../types';
 import { generateSummary } from '../services/geminiService';
-import { subscribeToTournamentData, subscribeToMatchComments, saveTournamentData, sanitizeData } from '../services/firebaseService';
+import { subscribeToTournamentData, subscribeToMatchComments, saveTournamentData, sanitizeData, resolveTeamClaimInFirestore } from '../services/firebaseService';
 import { useToast } from '../components/shared/Toast';
 
 export const SPECIAL_TEAM_ID = 't13';
@@ -268,6 +268,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const { addToast } = useToast();
   
   const isUpdatingFromServer = useRef(false);
   const hasPendingChanges = useRef(false);
@@ -365,6 +366,20 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   };
   const pauseSchedule = () => dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { isActive: false } });
   const setMatchday = (day: number) => dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { currentMatchday: day, isActive: false, matchdayStartTime: null } });
+
+  const resolveTeamClaim = useCallback(async (teamId: string, approved: boolean) => {
+      if (!isAdmin) {
+          addToast('Hanya admin yang bisa memproses klaim.', 'error');
+          return;
+      }
+      try {
+          await resolveTeamClaimInFirestore(state.mode, teamId, approved);
+          addToast(approved ? 'Klaim diterima.' : 'Klaim ditolak.', 'success');
+      } catch (e) {
+          console.error(e);
+          addToast('Gagal memproses klaim.', 'error');
+      }
+  }, [state.mode, isAdmin, addToast]);
 
   const generateKnockoutBracket = useCallback(() => {
     const topTeamsByGroup: { winner: Team | null, runnerUp: Team | null }[] = state.groups.map(group => {
@@ -533,6 +548,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       startMatchday,
       pauseSchedule,
       setMatchday,
-      processMatchdayTimeouts
+      processMatchdayTimeouts,
+      resolveTeamClaim
   };
 };
