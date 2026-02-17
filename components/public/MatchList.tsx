@@ -2,7 +2,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import type { Match, Team, MatchComment } from '../../types';
 import { Card } from '../shared/Card';
-import { MonitorPlay, MessageSquare, Send, UserCircle, Save, Plus, Minus, Camera, Loader, Shield, Lock, Star, Layout, MapPin, Clock, Upload } from 'lucide-react';
+import { MonitorPlay, MessageSquare, Send, UserCircle, Save, Plus, Minus, Camera, Loader, Shield, Lock, Star, Layout, MapPin, Clock, Upload, MessageCircle } from 'lucide-react';
 import { ProofModal } from './ProofModal';
 import { TeamLogo } from '../shared/TeamLogo';
 import type { User } from 'firebase/auth';
@@ -122,79 +122,74 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         ? 'border-brand-special/50 bg-brand-special/[0.03] shadow-[0_0_20px_rgba(253,224,71,0.15)] border-l-4 border-l-brand-special' 
                         : 'border-white/5'
             }`}>
-                <div className="flex items-center justify-between px-3 py-1 bg-black/40 text-[7px] sm:text-[9px] border-b border-white/5 backdrop-blur-md">
-                    <div className="flex items-center gap-1.5 overflow-hidden">
-                        <span className="font-black uppercase tracking-widest text-brand-light opacity-60 truncate">
-                            M{match.matchday} • {match.leg === 1 ? 'L1' : 'L2'}
-                        </span>
-                        {/* Highlight Tag for User's Match */}
-                        {isMyMatch && (
-                            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-brand-special text-brand-primary font-black rounded uppercase animate-pulse scale-[0.8] sm:scale-100 origin-left">
-                                <Star size={8} className="fill-brand-primary" /> YOUR MATCH
-                            </span>
-                        )}
-                        {match.summary && match.summary.includes('WO') && (
-                            <span className="text-red-400 font-bold ml-1 flex items-center gap-1"><Clock size={8}/> WO SYSTEM</span>
+                {/* Header with improved status badges */}
+                <div className="flex items-center justify-between px-3 py-2 bg-black/40 border-b border-white/5 backdrop-blur-md">
+                    <div className="flex items-center gap-2">
+                         <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${
+                             match.status === 'finished' ? 'bg-white/5 text-brand-light/70 border-white/10' : 
+                             match.status === 'live' ? 'bg-red-500/20 text-red-500 border-red-500/30 animate-pulse' : 
+                             'bg-brand-vibrant/10 text-brand-vibrant border-brand-vibrant/20'
+                         }`}>
+                             {match.status === 'scheduled' ? 'Jadwal' : match.status === 'live' ? 'Live' : 'Selesai'}
+                         </span>
+                         {isMyMatch && <span className="text-[8px] text-brand-special font-bold flex items-center gap-1 uppercase tracking-wider animate-pulse"><Star size={8} fill="currentColor"/> Match Anda</span>}
+                         {match.summary && match.summary.includes('WO') && (
+                            <span className="text-[8px] text-red-400 font-bold uppercase tracking-wider flex items-center gap-1 border border-red-500/20 px-1.5 py-0.5 rounded bg-red-500/10">WO</span>
                         )}
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                        <span className={`px-1 py-0.5 font-black rounded uppercase border text-[6px] sm:text-[8px] ${match.status === 'finished' ? 'bg-white/5 text-brand-light/60 border-white/10' : match.status === 'live' ? 'bg-red-500/20 text-red-500 border-red-500/30' : 'bg-brand-vibrant/10 text-brand-vibrant border-brand-vibrant/30'}`}>
-                            {match.status}
-                        </span>
-                    </div>
+                    <span className="text-[9px] font-bold text-brand-light/30 font-mono tracking-widest">
+                        #{match.id.slice(-4)}
+                    </span>
                 </div>
 
-                <div className="p-2 sm:p-5 flex items-center justify-between gap-1 relative bg-gradient-to-br from-brand-secondary/20 to-transparent">
-                    <button onClick={() => onSelectTeam(match.teamA)} className="flex flex-col items-center gap-1 flex-1 min-w-0 z-10 transition-all active:scale-95 group/team">
+                <div className="p-4 sm:p-6 flex items-center justify-between gap-2 relative bg-gradient-to-br from-brand-secondary/20 to-transparent">
+                    
+                    {/* Team A */}
+                    <button onClick={() => onSelectTeam(match.teamA)} className="flex-1 flex flex-col items-center gap-3 group/team transition-all active:scale-95">
                         <div className="relative">
-                            <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-9 h-9 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-brand-vibrant/20 group-hover/team:ring-brand-vibrant transition-all" />
-                            <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 sm:w-5 sm:h-5 bg-brand-vibrant rounded-full flex items-center justify-center border-2 border-brand-primary shadow-lg">
-                                <span className="text-[6px] sm:text-[8px] font-black text-white">H</span>
-                            </div>
+                            <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-12 h-12 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-transparent group-hover/team:ring-brand-vibrant/50 transition-all" />
+                            {match.status === 'scheduled' && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-brand-vibrant rounded-full flex items-center justify-center text-[7px] font-black text-white shadow-lg border border-black">H</div>}
                         </div>
-                        <span className="text-[8px] sm:text-xs font-black text-white uppercase truncate w-full text-center px-0.5 italic">{match.teamA.name}</span>
+                        <span className="text-[10px] sm:text-xs font-black text-white uppercase leading-tight line-clamp-2 text-center group-hover/team:text-brand-vibrant transition-colors px-1">{match.teamA.name}</span>
                         {isAdminMode && <QuickScoreControl val={editScoreA} setVal={setEditScoreA} label="A" />}
                     </button>
 
-                    <div className="flex flex-col items-center justify-center px-1 sm:px-4 shrink-0 z-20 min-w-[40px] sm:min-w-[60px]">
+                    {/* Score Board / VS */}
+                    <div className="shrink-0 px-2 flex flex-col items-center justify-center min-w-[60px]">
                         {isAdminMode ? (
-                            <button onClick={handleQuickUpdate} disabled={isSaving} className="w-8 h-8 sm:w-12 sm:h-12 bg-brand-special rounded-lg sm:rounded-xl text-brand-primary active:scale-90 transition-all flex items-center justify-center shadow-xl">
-                                {isSaving ? <Loader className="animate-spin" size={14} /> : <Save size={14} />}
+                            <button onClick={handleQuickUpdate} disabled={isSaving} className="w-10 h-10 rounded-full bg-brand-special text-brand-primary flex items-center justify-center shadow-lg hover:scale-110 transition-transform active:scale-90">
+                                {isSaving ? <Loader className="animate-spin" size={16} /> : <Save size={16} />}
                             </button>
                         ) : isFinished ? (
-                            <div className="flex flex-col items-center gap-0.5">
-                                <div className="flex items-center gap-1 sm:gap-2 text-base sm:text-4xl font-black text-white bg-black/60 px-2 sm:px-6 py-1 sm:py-2 rounded-lg sm:rounded-2xl border border-white/10 italic shadow-inner">
-                                    <span className={match.scoreA! > match.scoreB! ? 'text-brand-vibrant' : ''}>{match.scoreA}</span>
-                                    <span className="opacity-10 text-xs sm:text-xl">-</span>
-                                    <span className={match.scoreB! > match.scoreA! ? 'text-brand-vibrant' : ''}>{match.scoreB}</span>
-                                </div>
-                            </div>
+                             <div className="flex items-center gap-3 text-2xl sm:text-4xl font-black italic text-white">
+                                 <span className={match.scoreA! > match.scoreB! ? 'text-brand-vibrant drop-shadow-[0_0_15px_rgba(37,99,235,0.6)]' : 'text-white/80'}>{match.scoreA}</span>
+                                 <span className="text-brand-light/20 text-xl font-light">-</span>
+                                 <span className={match.scoreB! > match.scoreA! ? 'text-brand-vibrant drop-shadow-[0_0_15px_rgba(37,99,235,0.6)]' : 'text-white/80'}>{match.scoreB}</span>
+                             </div>
                         ) : (
-                            <div className="flex flex-col items-center">
-                                <div className="bg-brand-vibrant/10 border border-brand-vibrant/20 px-2 py-0.5 sm:py-1.5 rounded-md sm:rounded-xl">
-                                    <span className="text-[10px] sm:text-xl font-black text-brand-vibrant italic">VS</span>
-                                </div>
-                            </div>
+                             <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-[10px] font-black text-brand-light/50 border border-white/5 italic">
+                                 VS
+                             </div>
                         )}
                     </div>
 
-                    <button onClick={() => onSelectTeam(match.teamB)} className="flex flex-col items-center gap-1 flex-1 min-w-0 z-10 transition-all active:scale-95 group/team">
+                    {/* Team B */}
+                    <button onClick={() => onSelectTeam(match.teamB)} className="flex-1 flex flex-col items-center gap-3 group/team transition-all active:scale-95">
                         <div className="relative">
-                            <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-9 h-9 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-white/5 group-hover/team:ring-brand-light transition-all" />
-                            <div className="absolute -bottom-1 -left-1 w-3.5 h-3.5 sm:w-5 sm:h-5 bg-brand-accent rounded-full flex items-center justify-center border-2 border-brand-primary shadow-lg">
-                                <span className="text-[6px] sm:text-[8px] font-black text-brand-light">A</span>
-                            </div>
+                            <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-12 h-12 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-transparent group-hover/team:ring-brand-vibrant/50 transition-all" />
+                            {match.status === 'scheduled' && <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-brand-secondary rounded-full flex items-center justify-center text-[7px] font-black text-white shadow-lg border border-black">A</div>}
                         </div>
-                        <span className="text-[8px] sm:text-xs font-black text-white uppercase truncate w-full text-center px-0.5 italic">{match.teamB.name}</span>
+                        <span className="text-[10px] sm:text-xs font-black text-white uppercase leading-tight line-clamp-2 text-center group-hover/team:text-brand-vibrant transition-colors px-1">{match.teamB.name}</span>
                         {isAdminMode && <QuickScoreControl val={editScoreB} setVal={setEditScoreB} label="B" />}
                     </button>
                 </div>
 
-                <div className="flex items-center justify-between px-3 py-1 sm:py-2 bg-black/50 border-t border-white/5">
-                    <div className="flex gap-2 sm:gap-4">
+                {/* Footer Actions */}
+                <div className="flex items-center justify-between px-3 py-2 bg-black/30 border-t border-white/5">
+                    <div className="flex gap-3">
                         {match.proofUrl ? (
-                            <button onClick={() => setShowProof(true)} className="flex items-center gap-1 text-[7px] sm:text-[9px] font-black text-brand-vibrant uppercase hover:text-white transition-all">
-                                <MonitorPlay size={10} className="sm:w-3.5 sm:h-3.5" /> <span>Lihat Bukti</span>
+                            <button onClick={() => setShowProof(true)} className="flex items-center gap-1.5 text-[9px] font-bold text-brand-vibrant uppercase hover:text-white transition-all">
+                                <MonitorPlay size={12} /> <span>Lihat Bukti</span>
                             </button>
                         ) : (
                             isMyMatch && !isFinished && (
@@ -209,35 +204,36 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     <button 
                                         onClick={() => fileInputRef.current?.click()} 
                                         disabled={isUploading}
-                                        className="flex items-center gap-1 text-[7px] sm:text-[9px] font-black text-brand-light uppercase hover:text-white transition-all disabled:opacity-50"
+                                        className="flex items-center gap-1.5 text-[9px] font-bold text-brand-light uppercase hover:text-white transition-all disabled:opacity-50"
                                     >
-                                        {isUploading ? <Loader className="animate-spin" size={10} /> : <Camera size={10} className="sm:w-3.5 sm:h-3.5" />}
-                                        <span>Upload Bukti</span>
+                                        {isUploading ? <Loader className="animate-spin" size={12} /> : <Camera size={12} />}
+                                        <span>Upload SS</span>
                                     </button>
                                 </>
                             )
                         )}
                         {hasComments && (
-                            <span className="text-[6px] sm:text-[8px] font-black text-brand-light/40 uppercase self-center">{match.comments?.length} CHATS</span>
+                            <span className="text-[9px] font-bold text-brand-light/40 uppercase self-center flex items-center gap-1">
+                                <MessageCircle size={10} /> {match.comments?.length}
+                            </span>
                         )}
                     </div>
                     
-                    <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1 text-[7px] sm:text-[9px] font-black uppercase transition-all py-1 px-2 rounded-md border ${showComments ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-white/5 text-brand-light border-white/5'}`}>
-                        <MessageSquare size={10} className="sm:w-3 sm:h-3" />
-                        <span>Chat</span>
+                    <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1 text-[9px] font-bold uppercase transition-all py-1 px-2.5 rounded-lg border ${showComments ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-white/5 text-brand-light border-white/5 hover:bg-white/10'}`}>
+                        <span>Chat Room</span>
                     </button>
                 </div>
 
                 {showComments && (
                     <div className="bg-neutral-900 border-t border-white/10 animate-in slide-in-from-top-2 duration-300">
-                        <div className="max-h-36 sm:max-h-56 overflow-y-auto p-3 space-y-2 custom-scrollbar">
+                        <div className="max-h-40 overflow-y-auto p-3 space-y-2 custom-scrollbar">
                             {hasComments ? (
                                 match.comments?.map((comment) => (
                                     <div key={comment.id} className={`flex flex-col gap-0.5 ${comment.userId === currentUser?.uid ? 'items-end' : 'items-start'}`}>
-                                        <span className={`text-[9px] font-black uppercase ${comment.userId === currentUser?.uid ? 'text-brand-vibrant' : comment.isAdmin ? 'text-brand-special' : 'text-brand-light/70'}`}>
+                                        <span className={`text-[8px] font-black uppercase tracking-wider ${comment.userId === currentUser?.uid ? 'text-brand-vibrant' : comment.isAdmin ? 'text-brand-special' : 'text-brand-light/70'}`}>
                                             {comment.userName}{comment.isAdmin ? ' (Admin)' : ''}
                                         </span>
-                                        <div className={`px-2.5 py-1.5 rounded-lg text-[10px] sm:text-xs leading-relaxed break-words max-w-[90%] font-medium ${
+                                        <div className={`px-2.5 py-1.5 rounded-lg text-[10px] leading-relaxed break-words max-w-[90%] font-medium ${
                                             comment.userId === currentUser?.uid 
                                             ? 'bg-brand-vibrant/20 text-white border border-brand-vibrant/30 rounded-tr-none' 
                                             : 'bg-white/10 text-brand-text border border-white/5 rounded-tl-none'
@@ -254,7 +250,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         <div className="p-2 bg-black/60 border-t border-white/5">
                             {chatPermissions.canChat ? (
                                 <form onSubmit={handleSubmitComment} className="flex gap-2">
-                                    <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Tulis komentar..." className="flex-grow bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[10px] sm:text-xs text-white focus:border-brand-vibrant outline-none placeholder:text-brand-light/30 focus:bg-black transition-colors" />
+                                    <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Tulis komentar..." className="flex-grow bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[10px] text-white focus:border-brand-vibrant outline-none placeholder:text-brand-light/30 focus:bg-black transition-colors" />
                                     <button type="submit" disabled={!newComment.trim()} className="p-2 bg-brand-vibrant text-white rounded-lg transition-all active:scale-95 disabled:opacity-50"><Send size={14} /></button>
                                 </form>
                             ) : (

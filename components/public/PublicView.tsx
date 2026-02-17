@@ -232,13 +232,21 @@ export const PublicView: React.FC<PublicViewProps> = ({
                         const groupMatches = matches.filter(m => 
                             m.group === group.id || m.group === groupLetter || m.group === group.name
                         );
+                        
                         const schedule = groupMatches.reduce((acc, match) => {
                             const key = `L${match.leg || 1}-D${match.matchday || 1}`;
                             if (!acc[key]) acc[key] = []; acc[key].push(match); return acc;
                         }, {} as Record<string, Match[]>);
-                        const leg1Days = Array.from(new Set(groupMatches.filter(m => m.leg === 1).map(m => m.matchday))).filter((d): d is number => d !== undefined).sort((a, b) => a - b);
-                        const leg2Days = Array.from(new Set(groupMatches.filter(m => m.leg === 2).map(m => m.matchday))).filter((d): d is number => d !== undefined).sort((a, b) => a - b);
-                        const activeScheduleKey = selectedMatchdays[group.id] || (leg1Days.length > 0 ? `L1-D${leg1Days[0]}` : '');
+
+                        // Sort keys clearly: L1-D1, L1-D2 ... L2-D1, L2-D2
+                        const sortedKeys = Object.keys(schedule).sort((a, b) => {
+                            const [la, da] = a.replace('L','').split('-D').map(Number);
+                            const [lb, db] = b.replace('L','').split('-D').map(Number);
+                            if (la !== lb) return la - lb;
+                            return da - db;
+                        });
+
+                        const activeScheduleKey = selectedMatchdays[group.id] || (sortedKeys.length > 0 ? sortedKeys[0] : '');
                         
                         const currentMatches = schedule[activeScheduleKey] || [];
                         
@@ -252,22 +260,45 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
                         return (
                             <div key={`${group.id}-fixtures`} className="flex flex-col bg-brand-secondary/30 border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl relative group/card min-h-[300px]">
-                                <div className="p-4 sm:p-5 bg-black/40 border-b border-white/5 flex justify-between items-center gap-4">
-                                    <div className="flex items-center gap-2 sm:gap-3">
-                                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-brand-vibrant/10 flex items-center justify-center text-brand-vibrant border border-brand-vibrant/20 shadow-inner">
-                                            <Calendar size={18} />
+                                <div className="p-4 sm:p-5 bg-black/40 border-b border-white/5 flex flex-col gap-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 sm:gap-3">
+                                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-brand-vibrant/10 flex items-center justify-center text-brand-vibrant border border-brand-vibrant/20 shadow-inner">
+                                                <Calendar size={18} />
+                                            </div>
+                                            <h4 className="text-base sm:text-xl font-black text-white uppercase italic tracking-tighter leading-none">{group.name}</h4>
                                         </div>
-                                        <h4 className="text-base sm:text-xl font-black text-white uppercase italic tracking-tighter leading-none">{group.name}</h4>
                                     </div>
-                                    <div className="relative">
-                                        <select value={activeScheduleKey} onChange={(e) => setSelectedMatchdays(prev => ({...prev, [group.id]: e.target.value}))} className="appearance-none pl-3 pr-8 py-2 bg-brand-primary border border-white/10 rounded-xl text-white text-[9px] font-black uppercase tracking-widest outline-none focus:border-brand-vibrant transition-all cursor-pointer shadow-lg">
-                                            {leg1Days.length > 0 && (<optgroup label="PUTARAN 1 (LEG 1)" className="bg-brand-primary text-brand-vibrant">{leg1Days.map(d => <option key={`L1-D${d}`} value={`L1-D${d}`}>Matchday {d}</option>)}</optgroup>)}
-                                            {leg2Days.length > 0 && (<optgroup label="PUTARAN 2 (LEG 2)" className="bg-brand-primary text-brand-special">{leg2Days.map(d => <option key={`L2-D${d}`} value={`L2-D${d}`}>Matchday {d} (Leg 2)</option>)}</optgroup>)}
-                                        </select>
-                                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-brand-light pointer-events-none" />
+                                    
+                                    {/* Horizontal Matchday Selector */}
+                                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
+                                        {sortedKeys.map(key => {
+                                            const [leg, day] = key.replace('L','').split('-D').map(Number);
+                                            const isActive = activeScheduleKey === key;
+                                            return (
+                                                <button
+                                                    key={key}
+                                                    onClick={() => setSelectedMatchdays(prev => ({...prev, [group.id]: key}))}
+                                                    className={`
+                                                        flex-shrink-0 flex flex-col items-center justify-center px-4 py-2 rounded-xl transition-all border
+                                                        ${isActive 
+                                                            ? 'bg-brand-vibrant text-white border-brand-vibrant shadow-[0_4px_12px_rgba(37,99,235,0.3)] scale-105' 
+                                                            : 'bg-white/5 text-brand-light border-white/5 hover:bg-white/10 hover:border-white/10'}
+                                                    `}
+                                                >
+                                                    <span className={`text-[8px] font-bold uppercase tracking-widest ${isActive ? 'text-white/80' : 'text-brand-light/50'}`}>
+                                                        {leg === 1 ? 'Leg 1' : 'Leg 2'}
+                                                    </span>
+                                                    <span className="text-[10px] font-black uppercase whitespace-nowrap">
+                                                        Day {day}
+                                                    </span>
+                                                </button>
+                                            )
+                                        })}
                                     </div>
                                 </div>
-                                <div className="p-3 sm:p-4 flex-grow relative overflow-y-auto custom-scrollbar">
+                                
+                                <div className="p-3 sm:p-4 flex-grow relative overflow-y-auto custom-scrollbar bg-black/20">
                                     {currentMatches.length > 0 ? (
                                         <div className="space-y-3 animate-in slide-in-from-bottom-3 duration-500">
                                             {currentMatches.map(match => (
