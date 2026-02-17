@@ -96,30 +96,35 @@ const MatchdayTimer: React.FC<{ settings: ScheduleSettings }> = ({ settings }) =
     if (!timeLeft) return null;
 
     return (
-        <div className={`
-            flex items-center justify-between px-4 py-3 rounded-2xl mb-4 shadow-2xl border
-            ${isUrgent 
-                ? 'bg-red-500/10 border-red-500/30 animate-pulse' 
-                : 'bg-gradient-to-r from-blue-900/40 to-brand-primary border-brand-vibrant/30'}
-        `}>
-            <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl ${isUrgent ? 'bg-red-500/20 text-red-500' : 'bg-brand-vibrant/20 text-brand-vibrant'}`}>
-                    <Clock size={20} className={isUrgent ? "animate-bounce" : ""} />
+        <div className="mb-4">
+            <div className={`
+                flex items-center justify-between px-4 py-3 rounded-2xl shadow-2xl border
+                ${isUrgent 
+                    ? 'bg-red-500/10 border-red-500/30 animate-pulse' 
+                    : 'bg-gradient-to-r from-blue-900/40 to-brand-primary border-brand-vibrant/30'}
+            `}>
+                <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl ${isUrgent ? 'bg-red-500/20 text-red-500' : 'bg-brand-vibrant/20 text-brand-vibrant'}`}>
+                        <Clock size={20} className={isUrgent ? "animate-bounce" : ""} />
+                    </div>
+                    <div>
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${isUrgent ? 'text-red-400' : 'text-brand-light'}`}>
+                            Batas Waktu Matchday {settings.currentMatchday}
+                        </p>
+                        <p className={`text-lg font-black italic tracking-tight ${isUrgent ? 'text-red-500' : 'text-white'}`}>
+                            {timeLeft}
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <p className={`text-[10px] font-black uppercase tracking-widest ${isUrgent ? 'text-red-400' : 'text-brand-light'}`}>
-                        Batas Waktu Matchday {settings.currentMatchday}
-                    </p>
-                    <p className={`text-lg font-black italic tracking-tight ${isUrgent ? 'text-red-500' : 'text-white'}`}>
-                        {timeLeft}
-                    </p>
-                </div>
+                {isUrgent && (
+                    <div className="hidden sm:block text-[9px] font-bold text-red-400 uppercase tracking-widest px-3 py-1 bg-red-500/10 rounded-lg border border-red-500/20">
+                        Segera Mainkan!
+                    </div>
+                )}
             </div>
-            {isUrgent && (
-                <div className="hidden sm:block text-[9px] font-bold text-red-400 uppercase tracking-widest px-3 py-1 bg-red-500/10 rounded-lg border border-red-500/20">
-                    Segera Mainkan!
-                </div>
-            )}
+            <div className="text-center text-[10px] text-brand-light/60 mt-2 italic font-medium px-2">
+                *Untuk input score silakan kirim di Chat Jadwal beserta Screenshot Bukti Pertandingan.
+            </div>
         </div>
     );
 };
@@ -138,6 +143,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
   const hasMyTeam = userOwnedTeamIds.length > 0;
   const supportsKnockout = mode === 'two_leagues' || mode === 'wakacl';
+  const isChampionsMode = mode === 'wakacl';
 
   // Logic to auto-select the current active matchday based on unfinished matches
   useEffect(() => {
@@ -311,6 +317,19 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
   return (
     <div className="space-y-6">
+        {/* UCL STAR PATTERN BACKGROUND */}
+        {isChampionsMode && (
+            <div className="fixed inset-0 pointer-events-none z-[-1] opacity-20">
+                <div className="absolute top-[-20%] right-[-20%] w-[80%] h-[80%] bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.3),transparent)] blur-3xl rounded-full"></div>
+                <div className="absolute bottom-[-10%] left-[-10%] w-[60%] h-[60%] bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.2),transparent)] blur-3xl rounded-full"></div>
+                {/* Simulated Star Pattern using simple repeated elements or just suggestive gradients above */}
+                <div className="absolute inset-0" style={{
+                    backgroundImage: `radial-gradient(circle at center, rgba(255,255,255,0.03) 1px, transparent 1px)`,
+                    backgroundSize: '30px 30px'
+                }}></div>
+            </div>
+        )}
+
         {/* SUB NAVIGATION - FIXED GRID LAYOUT - ALL ITEMS VISIBLE (NO SCROLL) */}
         <div className="sticky top-[56px] sm:top-[128px] z-[30] -mx-4 bg-brand-primary/95 backdrop-blur-xl border-b border-white/5 shadow-2xl">
             <div className="px-2 sm:px-4 py-2 sm:py-3 max-w-5xl mx-auto">

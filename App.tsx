@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Header } from './components/Header';
 import { NavigationMenu } from './components/NavigationMenu';
@@ -48,7 +47,8 @@ const VIEW_PATHS: Record<View, string> = {
 
 function AppContent() {
   const [view, setView] = useState<View>('home');
-  const [activeMode, setActiveMode] = useState<TournamentMode>('league');
+  // Default to 'wakacl' to satisfy "format sperti ucl" request
+  const [activeMode, setActiveMode] = useState<TournamentMode>('wakacl');
   const [deepLinkNewsId, setDeepLinkNewsId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);

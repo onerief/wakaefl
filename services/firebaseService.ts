@@ -142,6 +142,13 @@ export const uploadTeamLogo = async (file: File): Promise<string> => {
   return getDownloadURL(storageRef);
 };
 
+export const uploadMatchProof = async (file: File): Promise<string> => {
+  if (!storage) throw new Error("Storage not initialized");
+  const storageRef = ref(storage, `match-proofs/${Date.now()}-${file.name}`);
+  await uploadBytes(storageRef, file);
+  return getDownloadURL(storageRef);
+};
+
 // --- DATA FETCHING ---
 export const getTournamentData = async (mode: TournamentMode): Promise<TournamentState | null> => {
   if (!firestore || !mode) return null;

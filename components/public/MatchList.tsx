@@ -2,11 +2,12 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import type { Match, Team, MatchComment } from '../../types';
 import { Card } from '../shared/Card';
-import { MonitorPlay, MessageSquare, Send, UserCircle, Save, Plus, Minus, Camera, Loader, Shield, Lock, Star, Layout, MapPin, Clock } from 'lucide-react';
+import { MonitorPlay, MessageSquare, Send, UserCircle, Save, Plus, Minus, Camera, Loader, Shield, Lock, Star, Layout, MapPin, Clock, Upload } from 'lucide-react';
 import { ProofModal } from './ProofModal';
 import { TeamLogo } from '../shared/TeamLogo';
 import type { User } from 'firebase/auth';
 import { useToast } from '../shared/Toast';
+import { uploadMatchProof } from '../../services/firebaseService';
 
 interface MatchCardProps {
     match: Match;
@@ -31,6 +32,8 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const [editScoreB, setEditScoreB] = useState(match.scoreB ?? 0);
     const [editProofUrl, setEditProofUrl] = useState(match.proofUrl ?? '');
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const { addToast } = useToast();
 
     const isFinished = match.status === 'finished' && match.scoreA !== null && match.scoreB !== null;
@@ -75,6 +78,28 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             addToast('Gagal update.', 'error');
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !onUpdateScore) return;
+
+        if (file.size > 2 * 1024 * 1024) {
+            addToast('Ukuran file maksimal 2MB', 'error');
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const url = await uploadMatchProof(file);
+            // Just update the proof URL, keep existing scores
+            await onUpdateScore(match.id, match.scoreA ?? 0, match.scoreB ?? 0, url);
+            addToast('Bukti berhasil diupload!', 'success');
+        } catch (e: any) {
+            addToast(e.message || 'Gagal mengupload bukti.', 'error');
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -167,10 +192,30 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
                 <div className="flex items-center justify-between px-3 py-1 sm:py-2 bg-black/50 border-t border-white/5">
                     <div className="flex gap-2 sm:gap-4">
-                        {match.proofUrl && (
+                        {match.proofUrl ? (
                             <button onClick={() => setShowProof(true)} className="flex items-center gap-1 text-[7px] sm:text-[9px] font-black text-brand-vibrant uppercase hover:text-white transition-all">
-                                <MonitorPlay size={10} className="sm:w-3.5 sm:h-3.5" /> <span>Video/SS Pertandingan</span>
+                                <MonitorPlay size={10} className="sm:w-3.5 sm:h-3.5" /> <span>Lihat Bukti</span>
                             </button>
+                        ) : (
+                            isMyMatch && !isFinished && (
+                                <>
+                                    <input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        className="hidden" 
+                                        accept="image/*" 
+                                        onChange={handleFileUpload}
+                                    />
+                                    <button 
+                                        onClick={() => fileInputRef.current?.click()} 
+                                        disabled={isUploading}
+                                        className="flex items-center gap-1 text-[7px] sm:text-[9px] font-black text-brand-light uppercase hover:text-white transition-all disabled:opacity-50"
+                                    >
+                                        {isUploading ? <Loader className="animate-spin" size={10} /> : <Camera size={10} className="sm:w-3.5 sm:h-3.5" />}
+                                        <span>Upload Bukti</span>
+                                    </button>
+                                </>
+                            )
                         )}
                         {hasComments && (
                             <span className="text-[6px] sm:text-[8px] font-black text-brand-light/40 uppercase self-center">{match.comments?.length} CHATS</span>
