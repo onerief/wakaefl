@@ -52,7 +52,11 @@ const calculateStandings = (teams: Team[], matches: Match[], groupId: string, gr
       }
   });
   const groupLetter = (groupName || '').replace('Group ', '').trim();
-  matches.forEach(match => {
+  
+  // Sort matches by matchday to ensure chronological form
+  const sortedMatches = [...matches].sort((a, b) => (a.matchday || 0) - (b.matchday || 0));
+
+  sortedMatches.forEach(match => {
     if (!match || !match.teamA || !match.teamB) return;
     const isMatchInGroup = match.group === groupId || match.group === groupLetter || match.group === groupName;
     if (!isMatchInGroup || match.status !== 'finished' || match.scoreA === null || match.scoreB === null) return;
@@ -60,17 +64,23 @@ const calculateStandings = (teams: Team[], matches: Match[], groupId: string, gr
     const idB = match.teamB?.id;
     if (idA && standings[idA]) {
       const s = standings[idA]; s.played++; s.goalDifference += (match.scoreA! - match.scoreB!);
-      if (match.scoreA! > match.scoreB!) { s.wins++; s.points += 3; }
-      else if (match.scoreA! === match.scoreB!) { s.draws++; s.points += 1; }
-      else { s.losses++; }
+      if (match.scoreA! > match.scoreB!) { s.wins++; s.points += 3; s.form.push('W'); }
+      else if (match.scoreA! === match.scoreB!) { s.draws++; s.points += 1; s.form.push('D'); }
+      else { s.losses++; s.form.push('L'); }
     }
     if (idB && standings[idB]) {
       const s = standings[idB]; s.played++; s.goalDifference += (match.scoreB! - match.scoreA!);
-      if (match.scoreB! > match.scoreA!) { s.wins++; s.points += 3; }
-      else if (match.scoreB! === match.scoreA!) { s.draws++; s.points += 1; }
-      else { s.losses++; }
+      if (match.scoreB! > match.scoreA!) { s.wins++; s.points += 3; s.form.push('W'); }
+      else if (match.scoreB! === match.scoreA!) { s.draws++; s.points += 1; s.form.push('D'); }
+      else { s.losses++; s.form.push('L'); }
     }
   });
+
+  // Keep only last 5 matches for form
+  Object.values(standings).forEach(s => {
+      s.form = s.form.slice(-5);
+  });
+
   return Object.values(standings).sort((a, b) => (b.points - a.points) || (b.goalDifference - a.goalDifference));
 };
 

@@ -19,11 +19,12 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSel
         <table className="w-full text-left table-fixed border-collapse">
           <thead className="text-[8px] sm:text-[10px] text-brand-light uppercase bg-brand-secondary/95 border-b border-white/10 backdrop-blur-md sticky top-0 z-20 shadow-md">
             <tr>
-              <th scope="col" className="py-3 font-black tracking-wider text-center w-[10%] bg-brand-secondary/95">#</th>
-              <th scope="col" className="py-3 font-black tracking-wider text-left pl-1 w-[50%] bg-brand-secondary/95">Club</th>
-              <th scope="col" className="py-3 font-black tracking-wider text-center w-[12%] bg-brand-secondary/95">P</th>
-              <th scope="col" className="py-3 font-black tracking-wider text-center w-[14%] bg-brand-secondary/95">GD</th>
-              <th scope="col" className="py-3 font-black tracking-wider text-center w-[14%] bg-brand-secondary/95">Pts</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center w-[12%] sm:w-[8%] bg-brand-secondary/95">#</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-left pl-1 w-[48%] sm:w-[35%] bg-brand-secondary/95">Club</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center w-[12%] sm:w-[8%] bg-brand-secondary/95">P</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center hidden sm:table-cell w-[24%] bg-brand-secondary/95">Form</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center w-[14%] sm:w-[10%] bg-brand-secondary/95">GD</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center w-[14%] sm:w-[15%] bg-brand-secondary/95">Pts</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
@@ -75,6 +76,28 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSel
                     </button>
                   </td>
                   <td className="py-2.5 sm:py-3 text-center text-brand-light/70 text-[10px] sm:text-sm font-bold">{standing.played}</td>
+                  
+                  {/* Form Column */}
+                  <td className="py-2.5 sm:py-3 text-center hidden sm:table-cell">
+                      <div className="flex items-center justify-center gap-1">
+                          {standing.form.map((result, i) => (
+                              <div 
+                                  key={i} 
+                                  className={`
+                                      w-4 h-4 rounded flex items-center justify-center text-[8px] font-black
+                                      ${result === 'W' ? 'bg-green-500 text-white' : 
+                                        result === 'D' ? 'bg-gray-500 text-white' : 
+                                        'bg-red-500 text-white'}
+                                  `}
+                                  title={result === 'W' ? 'Win' : result === 'D' ? 'Draw' : 'Loss'}
+                              >
+                                  {result}
+                              </div>
+                          ))}
+                          {standing.form.length === 0 && <span className="text-brand-light/20 text-[9px] italic">-</span>}
+                      </div>
+                  </td>
+
                   <td className="py-2.5 sm:py-3 text-center text-[10px] sm:text-xs">
                     <span className={`font-black ${standing.goalDifference > 0 ? 'text-green-400' : standing.goalDifference < 0 ? 'text-red-400' : 'text-brand-light/30'}`}>
                         {standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}
