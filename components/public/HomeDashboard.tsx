@@ -77,17 +77,38 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const nextMatchInfo = useMemo(() => {
     if (userOwnedTeams.length === 0 || allMatches.length === 0) return null;
     const userTeamIds = userOwnedTeams.map(t => t.team.id);
-    const upcoming = allMatches.filter(m => 
-        m.status === 'scheduled' && (userTeamIds.includes(m.teamA.id) || userTeamIds.includes(m.teamB.id))
-    ).sort((a, b) => (a.matchday || 1) - (b.matchday || 1));
+    
+    // Filter matches
+    const upcoming = allMatches.filter(m => {
+        const isMyMatch = userTeamIds.includes(m.teamA.id) || userTeamIds.includes(m.teamB.id);
+        const isPending = m.status === 'scheduled' || m.status === 'live';
+
+        // STRICTER FILTER:
+        // Only show matches that belong to the currently active Matchday defined by Admin.
+        // This prevents showing MD3 if the admin is still focused on MD2, even if the user finished their MD2 game.
+        let isAllowedBySchedule = true;
+        if (scheduleSettings && scheduleSettings.currentMatchday) {
+            isAllowedBySchedule = (m.matchday || 1) <= scheduleSettings.currentMatchday;
+        }
+
+        return isMyMatch && isPending && isAllowedBySchedule;
+    }).sort((a, b) => {
+        // Sort by Matchday first
+        const dayDiff = (a.matchday || 1) - (b.matchday || 1);
+        if (dayDiff !== 0) return dayDiff;
+        // Then by ID as fallback
+        return a.id.localeCompare(b.id);
+    });
+
     if (upcoming.length === 0) return null;
+    
     const match = upcoming[0];
     const userTeamMode = userOwnedTeams.find(ut => ut.team.id === match.teamA.id || ut.team.id === match.teamB.id)?.mode;
     
     if (userTeamMode && !visibleModes.includes(userTeamMode)) return null;
     
     return { match, mode: userTeamMode };
-  }, [userOwnedTeams, allMatches, visibleModes]);
+  }, [userOwnedTeams, allMatches, visibleModes, scheduleSettings]);
 
   const CompetitionCard = ({ mode, title, desc, icon: Icon, colorClass, bgClass }: any) => {
     if (!visibleModes.includes(mode)) return null;
