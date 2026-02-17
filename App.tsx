@@ -280,6 +280,7 @@ function AppContent() {
                     allMatches={tournament.matches} 
                     news={tournament.news} 
                     visibleModes={tournament.visibleModes}
+                    scheduleSettings={tournament.scheduleSettings}
                 />
               )}
               {view === 'news' && (
@@ -308,7 +309,8 @@ function AppContent() {
                     onUpdateMatchScore={tournament.updateMatchScore} 
                     onUpdateKnockoutScore={tournament.updateKnockoutMatch} 
                     userOwnedTeamIds={userOwnedTeams.map(t => t.team.id)} 
-                    clubStats={tournament.clubStats} 
+                    clubStats={tournament.clubStats}
+                    scheduleSettings={tournament.scheduleSettings}
                 />
               )}
               {view === 'hall_of_fame' && <HallOfFame history={tournament.history} currentStatus={tournament.status} mode={activeMode} onBack={() => handleSetView('home')} />}

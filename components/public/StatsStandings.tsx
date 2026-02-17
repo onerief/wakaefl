@@ -29,9 +29,9 @@ export const StatsStandings: React.FC<StatsStandingsProps> = ({ clubStats = [] }
             </div>
 
             <Card className="!p-0 border-white/5 bg-brand-secondary/20 overflow-hidden shadow-2xl !rounded-[1.5rem]">
-                <div className="overflow-x-auto custom-scrollbar">
+                <div className="overflow-x-auto custom-scrollbar max-h-[65vh] overflow-y-auto relative">
                     <table className="w-full text-left border-collapse">
-                        <thead className="bg-brand-secondary/60 border-b border-white/5">
+                        <thead className="bg-brand-secondary/95 border-b border-white/5 sticky top-0 z-10 backdrop-blur-md shadow-md">
                             <tr>
                                 <th className="px-4 py-4 text-[9px] font-black uppercase tracking-widest text-brand-light/50 w-16 text-center">Rank</th>
                                 <th className="px-4 py-4 text-[9px] font-black uppercase tracking-widest text-brand-light/50">Club Name</th>
@@ -48,7 +48,7 @@ export const StatsStandings: React.FC<StatsStandingsProps> = ({ clubStats = [] }
                     </table>
                 </div>
 
-                <div className="bg-black/40 p-4 border-t border-white/5 text-center">
+                <div className="bg-black/40 p-4 border-t border-white/5 text-center relative z-20">
                     <p className="text-[8px] sm:text-[9px] text-brand-light/30 uppercase font-black tracking-[0.2em] italic">
                         Kalkulasi real-time mencakup seluruh pertandingan musim ini
                     </p>

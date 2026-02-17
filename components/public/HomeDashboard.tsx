@@ -1,8 +1,8 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
-import { PlusCircle, Calendar, ArrowRight, Newspaper, Clock, Zap, Star, Trophy, ChevronLeft, ChevronRight, Globe, LayoutGrid, Shield, Users, ShoppingBag } from 'lucide-react';
+import { PlusCircle, Calendar, ArrowRight, Newspaper, Clock, Zap, Star, Trophy, ChevronLeft, ChevronRight, Globe, LayoutGrid, Shield, Users, ShoppingBag, Timer } from 'lucide-react';
 import { Card } from '../shared/Card';
-import { TournamentMode, Team, Match, NewsItem } from '../../types';
+import { TournamentMode, Team, Match, NewsItem, ScheduleSettings } from '../../types';
 import { TeamLogo } from '../shared/TeamLogo';
 
 interface HomeDashboardProps {
@@ -15,6 +15,7 @@ interface HomeDashboardProps {
   allMatches?: Match[];
   news?: NewsItem[];
   visibleModes?: TournamentMode[];
+  scheduleSettings?: ScheduleSettings;
 }
 
 export const HomeDashboard: React.FC<HomeDashboardProps> = ({ 
@@ -26,10 +27,12 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     userOwnedTeams = [],
     allMatches = [],
     news = [],
-    visibleModes = ['league', 'wakacl', 'two_leagues']
+    visibleModes = ['league', 'wakacl', 'two_leagues'],
+    scheduleSettings
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<string>('');
   
   const latestNews = useMemo(() => {
       return [...news].sort((a, b) => b.date - a.date).slice(0, 5);
@@ -42,6 +45,31 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     }, 5000);
     return () => clearInterval(interval);
   }, [latestNews.length, isPaused]);
+
+  // Timer Logic
+  useEffect(() => {
+      if (!scheduleSettings || !scheduleSettings.isActive || !scheduleSettings.matchdayStartTime) {
+          setTimeLeft('');
+          return;
+      }
+
+      const interval = setInterval(() => {
+          const deadline = scheduleSettings.matchdayStartTime! + (scheduleSettings.matchdayDurationHours * 3600000);
+          const now = Date.now();
+          const diff = deadline - now;
+
+          if (diff <= 0) {
+              setTimeLeft('00:00:00');
+          } else {
+              const hours = Math.floor(diff / 3600000).toString().padStart(2, '0');
+              const minutes = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+              const seconds = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+              setTimeLeft(`${hours}:${minutes}:${seconds}`);
+          }
+      }, 1000);
+
+      return () => clearInterval(interval);
+  }, [scheduleSettings]);
 
   const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % latestNews.length);
   const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + latestNews.length) % latestNews.length);
@@ -108,6 +136,45 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               </div>
           ))}
       </div>
+
+      {/* INTELLIGENT SPOTLIGHT: Next Match (Moved Up) */}
+      {nextMatchInfo && (
+          <div className="animate-in slide-in-from-left duration-700">
+              <div className="flex items-center justify-between mb-4 px-1">
+                  <h3 className="text-[10px] font-black text-brand-light uppercase tracking-[0.3em] flex items-center gap-2">
+                      <Calendar size={14} className="text-brand-vibrant" /> Jadwal Terdekat Tim Anda
+                  </h3>
+                  {timeLeft && (
+                      <div className="flex items-center gap-2 px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-full animate-pulse">
+                          <Timer size={12} className="text-red-500" />
+                          <span className="text-[10px] font-black text-red-500 font-mono tracking-widest">{timeLeft}</span>
+                      </div>
+                  )}
+              </div>
+              <Card onClick={() => onSelectMode(nextMatchInfo.mode!)} className="!p-0 overflow-hidden !bg-black/60 border-brand-vibrant/30 group cursor-pointer hover:border-brand-vibrant transition-all">
+                  <div className="flex flex-col md:flex-row md:items-center">
+                      <div className="bg-brand-vibrant p-4 sm:p-10 flex flex-row md:flex-col items-center justify-between md:justify-center text-white shrink-0 shadow-2xl">
+                          <span className="text-[8px] font-black uppercase tracking-[0.3em] opacity-80">Matchday</span>
+                          <span className="text-3xl sm:text-5xl font-black italic">{nextMatchInfo.match.matchday || 1}</span>
+                      </div>
+                      <div className="p-6 md:p-12 flex-grow flex items-center justify-center gap-8 md:gap-24">
+                          <div className="flex flex-col items-center gap-3 text-center flex-1">
+                              <TeamLogo logoUrl={nextMatchInfo.match.teamA.logoUrl} teamName={nextMatchInfo.match.teamA.name} className="w-16 h-16 sm:w-28 sm:h-28 shadow-2xl ring-4 ring-white/5" />
+                              <span className="text-xs sm:text-xl font-black text-white uppercase italic tracking-tight">{nextMatchInfo.match.teamA.name}</span>
+                          </div>
+                          <div className="flex flex-col items-center">
+                              <div className="text-xl sm:text-3xl font-black text-brand-vibrant italic px-4 py-2 bg-brand-vibrant/10 rounded-2xl border border-brand-vibrant/30">VS</div>
+                              {timeLeft && <span className="mt-2 text-[8px] font-black text-red-400 uppercase tracking-widest">Live Limit</span>}
+                          </div>
+                          <div className="flex flex-col items-center gap-3 text-center flex-1">
+                              <TeamLogo logoUrl={nextMatchInfo.match.teamB.logoUrl} teamName={nextMatchInfo.match.teamB.name} className="w-16 h-16 sm:w-28 sm:h-28 shadow-2xl ring-4 ring-white/5" />
+                              <span className="text-xs sm:text-xl font-black text-white uppercase italic tracking-tight">{nextMatchInfo.match.teamB.name}</span>
+                          </div>
+                      </div>
+                  </div>
+              </Card>
+          </div>
+      )}
 
       {/* BERITA SLIDESHOW (Prominent UCL Style Hero) */}
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -221,36 +288,6 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                       <ArrowRight size={24} className="group-hover/btn:translate-x-2 transition-transform" />
                   </button>
               </div>
-          </div>
-      )}
-
-      {/* INTELLIGENT SPOTLIGHT: Next Match */}
-      {nextMatchInfo && (
-          <div className="animate-in slide-in-from-left duration-700">
-              <h3 className="text-[10px] font-black text-brand-light uppercase tracking-[0.3em] mb-4 flex items-center gap-2 px-1">
-                  <Calendar size={14} className="text-brand-vibrant" /> Jadwal Terdekat Tim Anda
-              </h3>
-              <Card onClick={() => onSelectMode(nextMatchInfo.mode!)} className="!p-0 overflow-hidden !bg-black/60 border-brand-vibrant/30 group cursor-pointer hover:border-brand-vibrant transition-all">
-                  <div className="flex flex-col md:flex-row md:items-center">
-                      <div className="bg-brand-vibrant p-4 sm:p-10 flex flex-row md:flex-col items-center justify-between md:justify-center text-white shrink-0 shadow-2xl">
-                          <span className="text-[8px] font-black uppercase tracking-[0.3em] opacity-80">Matchday</span>
-                          <span className="text-3xl sm:text-5xl font-black italic">{nextMatchInfo.match.matchday || 1}</span>
-                      </div>
-                      <div className="p-6 md:p-12 flex-grow flex items-center justify-center gap-8 md:gap-24">
-                          <div className="flex flex-col items-center gap-3 text-center flex-1">
-                              <TeamLogo logoUrl={nextMatchInfo.match.teamA.logoUrl} teamName={nextMatchInfo.match.teamA.name} className="w-16 h-16 sm:w-28 sm:h-28 shadow-2xl ring-4 ring-white/5" />
-                              <span className="text-xs sm:text-xl font-black text-white uppercase italic tracking-tight">{nextMatchInfo.match.teamA.name}</span>
-                          </div>
-                          <div className="flex flex-col items-center">
-                              <div className="text-xl sm:text-3xl font-black text-brand-vibrant italic px-4 py-2 bg-brand-vibrant/10 rounded-2xl border border-brand-vibrant/30">VS</div>
-                          </div>
-                          <div className="flex flex-col items-center gap-3 text-center flex-1">
-                              <TeamLogo logoUrl={nextMatchInfo.match.teamB.logoUrl} teamName={nextMatchInfo.match.teamB.name} className="w-16 h-16 sm:w-28 sm:h-28 shadow-2xl ring-4 ring-white/5" />
-                              <span className="text-xs sm:text-xl font-black text-white uppercase italic tracking-tight">{nextMatchInfo.match.teamB.name}</span>
-                          </div>
-                      </div>
-                  </div>
-              </Card>
           </div>
       )}
     </div>

@@ -36,6 +36,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const isFinished = match.status === 'finished' && match.scoreA !== null && match.scoreB !== null;
     const hasComments = match.comments && match.comments.length > 0;
     
+    // Check if this match involves the user's team
     const isMyMatch = userOwnedTeamIds.includes(match.teamA.id) || userOwnedTeamIds.includes(match.teamB.id);
 
     // Auto-scroll comments
@@ -89,12 +90,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     return (
         <>
-            <Card className={`!p-0 group transition-all duration-300 relative border overflow-hidden ${isAdminMode ? 'ring-1 ring-brand-special/50 border-brand-special/30' : isMyMatch ? 'border-brand-special/50 bg-brand-special/[0.03] shadow-[0_0_20px_rgba(253,224,71,0.15)] border-l-4 border-l-brand-special' : 'border-white/5'}`}>
+            <Card className={`!p-0 group transition-all duration-300 relative border overflow-hidden ${
+                isAdminMode 
+                    ? 'ring-1 ring-brand-special/50 border-brand-special/30' 
+                    : isMyMatch 
+                        ? 'border-brand-special/50 bg-brand-special/[0.03] shadow-[0_0_20px_rgba(253,224,71,0.15)] border-l-4 border-l-brand-special' 
+                        : 'border-white/5'
+            }`}>
                 <div className="flex items-center justify-between px-3 py-1 bg-black/40 text-[7px] sm:text-[9px] border-b border-white/5 backdrop-blur-md">
                     <div className="flex items-center gap-1.5 overflow-hidden">
                         <span className="font-black uppercase tracking-widest text-brand-light opacity-60 truncate">
                             M{match.matchday} • {match.leg === 1 ? 'L1' : 'L2'}
                         </span>
+                        {/* Highlight Tag for User's Match */}
                         {isMyMatch && (
                             <span className="flex items-center gap-1 px-1.5 py-0.5 bg-brand-special text-brand-primary font-black rounded uppercase animate-pulse scale-[0.8] sm:scale-100 origin-left">
                                 <Star size={8} className="fill-brand-primary" /> YOUR MATCH

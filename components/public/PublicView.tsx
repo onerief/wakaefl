@@ -1,12 +1,12 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import type { Group, Match, KnockoutStageRounds, Team, KnockoutMatch, TournamentMode, SeasonHistory } from '../../types';
+import type { Group, Match, KnockoutStageRounds, Team, KnockoutMatch, TournamentMode, SeasonHistory, ScheduleSettings } from '../../types';
 import { GroupStage } from './GroupStage';
 import { MatchCard } from './MatchList';
 import { KnockoutStageView } from './KnockoutStageView';
 import { RulesModal } from './RulesModal'; // Updated import
 import { StatsStandings } from './StatsStandings';
-import { Users, ListChecks, Trophy, BookOpen, Crown, ChevronDown, Zap, ShieldCheck, Star, Lock, Calendar, Info, BarChart3, Layout, Coffee } from 'lucide-react';
+import { Users, ListChecks, Trophy, BookOpen, Crown, ChevronDown, Zap, ShieldCheck, Star, Lock, Calendar, Info, BarChart3, Layout, Coffee, Clock } from 'lucide-react';
 import type { User } from 'firebase/auth';
 import { TeamLogo } from '../shared/TeamLogo';
 
@@ -26,6 +26,7 @@ interface PublicViewProps {
   userOwnedTeamIds?: string[];
   clubStats?: any[];
   playerStats?: { topScorers: any[], topAssists: any[] };
+  scheduleSettings?: ScheduleSettings; // NEW PROP
 }
 
 type PublicTab = 'groups' | 'fixtures' | 'knockout' | 'stats'; 
@@ -59,10 +60,75 @@ const InternalTabButton: React.FC<{
     </button>
 );
 
+const MatchdayTimer: React.FC<{ settings: ScheduleSettings }> = ({ settings }) => {
+    const [timeLeft, setTimeLeft] = useState<string>('');
+    const [isUrgent, setIsUrgent] = useState(false);
+
+    useEffect(() => {
+        if (!settings.isActive || !settings.matchdayStartTime) {
+            setTimeLeft('');
+            return;
+        }
+
+        const interval = setInterval(() => {
+            const deadline = settings.matchdayStartTime! + (settings.matchdayDurationHours * 3600000);
+            const now = Date.now();
+            const diff = deadline - now;
+
+            if (diff <= 0) {
+                setTimeLeft('Waktu Habis');
+                setIsUrgent(true);
+            } else {
+                const hours = Math.floor(diff / 3600000);
+                const minutes = Math.floor((diff % 3600000) / 60000);
+                const seconds = Math.floor((diff % 60000) / 1000);
+                
+                setTimeLeft(`${hours}j ${minutes}m ${seconds}d`);
+                
+                // Urgent if less than 1 hour
+                setIsUrgent(hours < 1);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [settings]);
+
+    if (!timeLeft) return null;
+
+    return (
+        <div className={`
+            flex items-center justify-between px-4 py-3 rounded-2xl mb-4 shadow-2xl border
+            ${isUrgent 
+                ? 'bg-red-500/10 border-red-500/30 animate-pulse' 
+                : 'bg-gradient-to-r from-blue-900/40 to-brand-primary border-brand-vibrant/30'}
+        `}>
+            <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${isUrgent ? 'bg-red-500/20 text-red-500' : 'bg-brand-vibrant/20 text-brand-vibrant'}`}>
+                    <Clock size={20} className={isUrgent ? "animate-bounce" : ""} />
+                </div>
+                <div>
+                    <p className={`text-[10px] font-black uppercase tracking-widest ${isUrgent ? 'text-red-400' : 'text-brand-light'}`}>
+                        Batas Waktu Matchday {settings.currentMatchday}
+                    </p>
+                    <p className={`text-lg font-black italic tracking-tight ${isUrgent ? 'text-red-500' : 'text-white'}`}>
+                        {timeLeft}
+                    </p>
+                </div>
+            </div>
+            {isUrgent && (
+                <div className="hidden sm:block text-[9px] font-bold text-red-400 uppercase tracking-widest px-3 py-1 bg-red-500/10 rounded-lg border border-red-500/20">
+                    Segera Mainkan!
+                </div>
+            )}
+        </div>
+    );
+};
+
 export const PublicView: React.FC<PublicViewProps> = ({ 
     mode, groups, matches, knockoutStage, rules, history, onSelectTeam, 
     currentUser, onAddMatchComment, isAdmin, onUpdateMatchScore, onUpdateKnockoutScore,
-    userOwnedTeamIds = [], clubStats = [], playerStats = { topScorers: [], topAssists: [] }
+    userOwnedTeamIds = [], clubStats = [], playerStats = { topScorers: [], topAssists: [] },
+    scheduleSettings
 }) => {
   const [activeTab, setActiveTab] = useState<PublicTab>('groups');
   const [selectedMatchdays, setSelectedMatchdays] = useState<Record<string, string>>({});
@@ -73,15 +139,23 @@ export const PublicView: React.FC<PublicViewProps> = ({
   const hasMyTeam = userOwnedTeamIds.length > 0;
   const supportsKnockout = mode === 'two_leagues' || mode === 'wakacl';
 
-  // Logic to auto-select the current active matchday
+  // Logic to auto-select the current active matchday based on unfinished matches
   useEffect(() => {
     if (groups.length === 0 || matches.length === 0) return;
+    
+    // We only want to set the default if it hasn't been set yet for a group
+    // OR if we want to force update based on data changes (dynamic progression)
+    
     const newSelections = { ...selectedMatchdays };
     let hasChanged = false;
 
     groups.forEach(g => {
-        // If user manually selected a day, don't overwrite it immediately unless it's invalid
-        if (newSelections[g.id]) return;
+        // Only auto-switch if the specific group doesn't have a user-selected day yet
+        // OR if the currently selected day is completely finished and there is a next one?
+        // For simplicity and to satisfy the prompt, let's calculate the "Next Active Day" 
+        // and set it if we haven't manually interacted yet.
+        
+        if (newSelections[g.id]) return; 
 
         const groupLetter = g.name.replace('Group ', '').trim();
         const groupMatches = matches.filter(m => m.group === g.id || m.group === groupLetter || m.group === g.name);
@@ -109,116 +183,118 @@ export const PublicView: React.FC<PublicViewProps> = ({
             }
         }
 
-        if (targetKey) {
+        if (targetKey && newSelections[g.id] !== targetKey) {
             newSelections[g.id] = targetKey;
             hasChanged = true;
         }
     });
 
-    if (hasChanged) setSelectedMatchdays(newSelections);
+    if (hasChanged) {
+        setSelectedMatchdays(newSelections);
+    }
   }, [matches, groups, mode]);
 
   const renderFixtures = () => {
-    if (focusMyTeam && hasMyTeam) {
-        const myMatches = matches.filter(m => 
-            userOwnedTeamIds.includes(m.teamA.id) || userOwnedTeamIds.includes(m.teamB.id)
-        ).sort((a, b) => (a.matchday || 0) - (b.matchday || 0));
-
-        return (
-            <div className="space-y-4 max-w-4xl mx-auto">
-                <div className="bg-brand-vibrant/10 border border-brand-vibrant/20 p-5 rounded-[1.5rem] flex items-center justify-between shadow-lg">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-brand-vibrant/20 rounded-2xl text-brand-vibrant border border-brand-vibrant/20"><Star size={24} className="fill-brand-vibrant" /></div>
-                        <div>
-                            <h3 className="text-white text-sm sm:text-base font-black uppercase italic tracking-tight">Timeline Tim Anda</h3>
-                            <p className="text-[10px] text-brand-light font-bold uppercase opacity-60">Seluruh jadwal Anda di grup ini</p>
-                        </div>
-                    </div>
-                    <button onClick={() => setFocusMyTeam(false)} className="px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black uppercase text-brand-vibrant hover:bg-brand-vibrant hover:text-white transition-all">Lihat Semua</button>
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                    {myMatches.map(match => (
-                        <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateMatchScore} currentUser={currentUser} onAddComment={onAddMatchComment} isAdmin={isAdmin} userOwnedTeamIds={userOwnedTeamIds} />
-                    ))}
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {groups.map(group => {
-                const groupLetter = group.name.replace('Group ', '').trim();
-                const groupMatches = matches.filter(m => 
-                    m.group === group.id || m.group === groupLetter || m.group === group.name
-                );
-                const schedule = groupMatches.reduce((acc, match) => {
-                    const key = `L${match.leg || 1}-D${match.matchday || 1}`;
-                    if (!acc[key]) acc[key] = []; acc[key].push(match); return acc;
-                }, {} as Record<string, Match[]>);
-                const leg1Days = Array.from(new Set(groupMatches.filter(m => m.leg === 1).map(m => m.matchday))).filter((d): d is number => d !== undefined).sort((a, b) => a - b);
-                const leg2Days = Array.from(new Set(groupMatches.filter(m => m.leg === 2).map(m => m.matchday))).filter((d): d is number => d !== undefined).sort((a, b) => a - b);
-                const activeScheduleKey = selectedMatchdays[group.id] || (leg1Days.length > 0 ? `L1-D${leg1Days[0]}` : '');
-                
-                const currentMatches = schedule[activeScheduleKey] || [];
-                
-                // Calculate BYE Teams
-                const playingTeamIds = new Set<string>();
-                currentMatches.forEach(m => {
-                    playingTeamIds.add(m.teamA.id);
-                    playingTeamIds.add(m.teamB.id);
-                });
-                const byeTeams = group.teams.filter(t => !playingTeamIds.has(t.id));
-
-                return (
-                    <div key={`${group.id}-fixtures`} className="flex flex-col bg-brand-secondary/30 border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl relative group/card min-h-[300px]">
-                        <div className="p-4 sm:p-5 bg-black/40 border-b border-white/5 flex justify-between items-center gap-4">
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-brand-vibrant/10 flex items-center justify-center text-brand-vibrant border border-brand-vibrant/20 shadow-inner">
-                                    <Calendar size={18} />
-                                </div>
-                                <h4 className="text-base sm:text-xl font-black text-white uppercase italic tracking-tighter leading-none">{group.name}</h4>
-                            </div>
-                            <div className="relative">
-                                <select value={activeScheduleKey} onChange={(e) => setSelectedMatchdays(prev => ({...prev, [group.id]: e.target.value}))} className="appearance-none pl-3 pr-8 py-2 bg-brand-primary border border-white/10 rounded-xl text-white text-[9px] font-black uppercase tracking-widest outline-none focus:border-brand-vibrant transition-all cursor-pointer shadow-lg">
-                                    {leg1Days.length > 0 && (<optgroup label="PUTARAN 1 (LEG 1)" className="bg-brand-primary text-brand-vibrant">{leg1Days.map(d => <option key={`L1-D${d}`} value={`L1-D${d}`}>Matchday {d}</option>)}</optgroup>)}
-                                    {leg2Days.length > 0 && (<optgroup label="PUTARAN 2 (LEG 2)" className="bg-brand-primary text-brand-special">{leg2Days.map(d => <option key={`L2-D${d}`} value={`L2-D${d}`}>Matchday {d} (Leg 2)</option>)}</optgroup>)}
-                                </select>
-                                <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-brand-light pointer-events-none" />
+        <div className="space-y-6">
+            {scheduleSettings && <MatchdayTimer settings={scheduleSettings} />}
+            
+            {focusMyTeam && hasMyTeam ? (
+                <div className="space-y-4 max-w-4xl mx-auto">
+                    <div className="bg-brand-vibrant/10 border border-brand-vibrant/20 p-5 rounded-[1.5rem] flex items-center justify-between shadow-lg">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-brand-vibrant/20 rounded-2xl text-brand-vibrant border border-brand-vibrant/20"><Star size={24} className="fill-brand-vibrant" /></div>
+                            <div>
+                                <h3 className="text-white text-sm sm:text-base font-black uppercase italic tracking-tight">Timeline Tim Anda</h3>
+                                <p className="text-[10px] text-brand-light font-bold uppercase opacity-60">Seluruh jadwal Anda di grup ini</p>
                             </div>
                         </div>
-                        <div className="p-3 sm:p-4 flex-grow relative overflow-y-auto custom-scrollbar">
-                            {currentMatches.length > 0 ? (
-                                <div className="space-y-3 animate-in slide-in-from-bottom-3 duration-500">
-                                    {currentMatches.map(match => (
-                                        <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateMatchScore} currentUser={currentUser} onAddComment={onAddMatchComment} isAdmin={isAdmin} userOwnedTeamIds={userOwnedTeamIds} />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-10 opacity-20 italic font-black uppercase tracking-widest text-[10px]">Belum ada jadwal</div>
-                            )}
-
-                            {/* BYE TEAMS INDICATOR */}
-                            {byeTeams.length > 0 && (
-                                <div className="mt-4 p-3 bg-black/40 rounded-xl border border-white/5">
-                                    <div className="flex items-center gap-2 mb-2 px-1">
-                                        <Coffee size={12} className="text-yellow-500" />
-                                        <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest">Rest Week (BYE)</span>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {byeTeams.map(team => (
-                                            <div key={team.id} className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 opacity-80 hover:opacity-100 transition-all">
-                                                 <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-5 h-5" />
-                                                 <span className="text-[9px] font-bold text-white uppercase tracking-tight">{team.name}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+                        <button onClick={() => setFocusMyTeam(false)} className="px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black uppercase text-brand-vibrant hover:bg-brand-vibrant hover:text-white transition-all">Lihat Semua</button>
                     </div>
-                );
-            })}
+                    <div className="grid grid-cols-1 gap-4">
+                        {matches.filter(m => userOwnedTeamIds.includes(m.teamA.id) || userOwnedTeamIds.includes(m.teamB.id))
+                            .sort((a, b) => (a.matchday || 0) - (b.matchday || 0))
+                            .map(match => (
+                                <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateMatchScore} currentUser={currentUser} onAddComment={onAddMatchComment} isAdmin={isAdmin} userOwnedTeamIds={userOwnedTeamIds} />
+                            ))}
+                    </div>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {groups.map(group => {
+                        const groupLetter = group.name.replace('Group ', '').trim();
+                        const groupMatches = matches.filter(m => 
+                            m.group === group.id || m.group === groupLetter || m.group === group.name
+                        );
+                        const schedule = groupMatches.reduce((acc, match) => {
+                            const key = `L${match.leg || 1}-D${match.matchday || 1}`;
+                            if (!acc[key]) acc[key] = []; acc[key].push(match); return acc;
+                        }, {} as Record<string, Match[]>);
+                        const leg1Days = Array.from(new Set(groupMatches.filter(m => m.leg === 1).map(m => m.matchday))).filter((d): d is number => d !== undefined).sort((a, b) => a - b);
+                        const leg2Days = Array.from(new Set(groupMatches.filter(m => m.leg === 2).map(m => m.matchday))).filter((d): d is number => d !== undefined).sort((a, b) => a - b);
+                        const activeScheduleKey = selectedMatchdays[group.id] || (leg1Days.length > 0 ? `L1-D${leg1Days[0]}` : '');
+                        
+                        const currentMatches = schedule[activeScheduleKey] || [];
+                        
+                        // Calculate BYE Teams
+                        const playingTeamIds = new Set<string>();
+                        currentMatches.forEach(m => {
+                            playingTeamIds.add(m.teamA.id);
+                            playingTeamIds.add(m.teamB.id);
+                        });
+                        const byeTeams = group.teams.filter(t => !playingTeamIds.has(t.id));
+
+                        return (
+                            <div key={`${group.id}-fixtures`} className="flex flex-col bg-brand-secondary/30 border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl relative group/card min-h-[300px]">
+                                <div className="p-4 sm:p-5 bg-black/40 border-b border-white/5 flex justify-between items-center gap-4">
+                                    <div className="flex items-center gap-2 sm:gap-3">
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-brand-vibrant/10 flex items-center justify-center text-brand-vibrant border border-brand-vibrant/20 shadow-inner">
+                                            <Calendar size={18} />
+                                        </div>
+                                        <h4 className="text-base sm:text-xl font-black text-white uppercase italic tracking-tighter leading-none">{group.name}</h4>
+                                    </div>
+                                    <div className="relative">
+                                        <select value={activeScheduleKey} onChange={(e) => setSelectedMatchdays(prev => ({...prev, [group.id]: e.target.value}))} className="appearance-none pl-3 pr-8 py-2 bg-brand-primary border border-white/10 rounded-xl text-white text-[9px] font-black uppercase tracking-widest outline-none focus:border-brand-vibrant transition-all cursor-pointer shadow-lg">
+                                            {leg1Days.length > 0 && (<optgroup label="PUTARAN 1 (LEG 1)" className="bg-brand-primary text-brand-vibrant">{leg1Days.map(d => <option key={`L1-D${d}`} value={`L1-D${d}`}>Matchday {d}</option>)}</optgroup>)}
+                                            {leg2Days.length > 0 && (<optgroup label="PUTARAN 2 (LEG 2)" className="bg-brand-primary text-brand-special">{leg2Days.map(d => <option key={`L2-D${d}`} value={`L2-D${d}`}>Matchday {d} (Leg 2)</option>)}</optgroup>)}
+                                        </select>
+                                        <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 text-brand-light pointer-events-none" />
+                                    </div>
+                                </div>
+                                <div className="p-3 sm:p-4 flex-grow relative overflow-y-auto custom-scrollbar">
+                                    {currentMatches.length > 0 ? (
+                                        <div className="space-y-3 animate-in slide-in-from-bottom-3 duration-500">
+                                            {currentMatches.map(match => (
+                                                <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateMatchScore} currentUser={currentUser} onAddComment={onAddMatchComment} isAdmin={isAdmin} userOwnedTeamIds={userOwnedTeamIds} />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-10 opacity-20 italic font-black uppercase tracking-widest text-[10px]">Belum ada jadwal</div>
+                                    )}
+
+                                    {/* BYE TEAMS INDICATOR */}
+                                    {byeTeams.length > 0 && (
+                                        <div className="mt-4 p-3 bg-black/40 rounded-xl border border-white/5">
+                                            <div className="flex items-center gap-2 mb-2 px-1">
+                                                <Coffee size={12} className="text-yellow-500" />
+                                                <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest">Rest Week (BYE)</span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {byeTeams.map(team => (
+                                                    <div key={team.id} className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 opacity-80 hover:opacity-100 transition-all">
+                                                         <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-5 h-5" />
+                                                         <span className="text-[9px] font-bold text-white uppercase tracking-tight">{team.name}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
   };
