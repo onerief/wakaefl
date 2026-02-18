@@ -310,6 +310,33 @@ export const subscribeToTournamentData = (
     return () => { unsubMode(); unsubGlobal(); };
 };
 
+export const updateMatchProof = async (mode: TournamentMode, matchId: string, proofUrl: string) => {
+    if (!firestore || !mode || !matchId || !proofUrl) return;
+    const docRef = doc(firestore, TOURNAMENT_COLLECTION, mode);
+    
+    try {
+        await runTransaction(firestore, async (transaction) => {
+            const snap = await transaction.get(docRef);
+            if (!snap.exists()) throw new Error("Tournament data not found");
+            
+            const data = snap.data();
+            const matches = data.matches || [];
+            const index = matches.findIndex((m: any) => m.id === matchId);
+            
+            if (index === -1) throw new Error("Match not found");
+            
+            // Update the proof URL directly in the array
+            matches[index].proofUrl = proofUrl;
+            
+            transaction.update(docRef, { matches });
+        });
+        return true;
+    } catch (e) {
+        console.error("Error updating match proof:", e);
+        throw e;
+    }
+};
+
 export const getGlobalStats = async () => {
     if (!firestore) return { teamCount: 0, partnerCount: 0 };
     try {
@@ -461,7 +488,6 @@ export const submitTeamClaimRequest = async (mode: TournamentMode, teamId: strin
     });
 };
 
-// NEW: Function to handle approval/rejection of team claims
 export const resolveTeamClaimInFirestore = async (mode: TournamentMode, teamId: string, approved: boolean) => {
     if (!firestore || !mode) return;
     const docRef = doc(firestore, TOURNAMENT_COLLECTION, mode);

@@ -221,7 +221,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
                         {matches.filter(m => userOwnedTeamIds.includes(m.teamA.id) || userOwnedTeamIds.includes(m.teamB.id))
                             .sort((a, b) => (a.matchday || 0) - (b.matchday || 0))
                             .map(match => (
-                                <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateMatchScore} currentUser={currentUser} onAddComment={onAddMatchComment} isAdmin={isAdmin} userOwnedTeamIds={userOwnedTeamIds} />
+                                <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateMatchScore} currentUser={currentUser} onAddComment={onAddMatchComment} isAdmin={isAdmin} userOwnedTeamIds={userOwnedTeamIds} mode={mode} />
                             ))}
                     </div>
                 </div>
@@ -302,7 +302,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
                                     {currentMatches.length > 0 ? (
                                         <div className="space-y-3 animate-in slide-in-from-bottom-3 duration-500">
                                             {currentMatches.map(match => (
-                                                <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateMatchScore} currentUser={currentUser} onAddComment={onAddMatchComment} isAdmin={isAdmin} userOwnedTeamIds={userOwnedTeamIds} />
+                                                <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateMatchScore} currentUser={currentUser} onAddComment={onAddMatchComment} isAdmin={isAdmin} userOwnedTeamIds={userOwnedTeamIds} mode={mode} />
                                             ))}
                                         </div>
                                     ) : (

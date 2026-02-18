@@ -1,13 +1,13 @@
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import type { Match, Team, MatchComment } from '../../types';
+import type { Match, Team, MatchComment, TournamentMode } from '../../types';
 import { Card } from '../shared/Card';
 import { MonitorPlay, MessageSquare, Send, UserCircle, Save, Plus, Minus, Camera, Loader, Shield, Lock, Star, Layout, MapPin, Clock, Upload, MessageCircle } from 'lucide-react';
 import { ProofModal } from './ProofModal';
 import { TeamLogo } from '../shared/TeamLogo';
 import type { User } from 'firebase/auth';
 import { useToast } from '../shared/Toast';
-import { uploadMatchProof } from '../../services/firebaseService';
+import { uploadMatchProof, updateMatchProof } from '../../services/firebaseService';
 
 interface MatchCardProps {
     match: Match;
@@ -18,11 +18,12 @@ interface MatchCardProps {
     onUpdateScore?: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => void;
     isAdmin?: boolean;
     userOwnedTeamIds?: string[];
+    mode?: TournamentMode;
 }
 
 export const MatchCard: React.FC<MatchCardProps> = ({ 
     match, onSelectTeam, currentUser, onAddComment, isAdminMode, onUpdateScore, isAdmin,
-    userOwnedTeamIds = []
+    userOwnedTeamIds = [], mode
 }) => {
     const [showProof, setShowProof] = useState(false);
     const [showComments, setShowComments] = useState(false);
@@ -93,9 +94,24 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         setIsUploading(true);
         try {
             const url = await uploadMatchProof(file);
-            // Just update the proof URL, keep existing scores
+            
+            // 1. Update UI Locally via hook (Optimistic)
             await onUpdateScore(match.id, match.scoreA ?? 0, match.scoreB ?? 0, url);
-            addToast('Bukti berhasil diupload!', 'success');
+            
+            // 2. Persist to Firestore directly (Fix for "Not Saving" issue)
+            if (mode) {
+                await updateMatchProof(mode, match.id, url);
+            } else {
+                // Heuristic: Try all modes if mode prop is missing (Fallback)
+                // This handles cases where parent component didn't pass mode
+                await Promise.all([
+                    updateMatchProof('league', match.id, url).catch(() => {}),
+                    updateMatchProof('wakacl', match.id, url).catch(() => {}),
+                    updateMatchProof('two_leagues', match.id, url).catch(() => {})
+                ]);
+            }
+
+            addToast('Bukti berhasil diupload dan disimpan!', 'success');
         } catch (e: any) {
             addToast(e.message || 'Gagal mengupload bukti.', 'error');
         } finally {
