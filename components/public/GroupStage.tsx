@@ -1,20 +1,21 @@
 
 import React, { useRef, useState, useEffect } from 'react';
-import type { Group, Team, SeasonHistory } from '../../types';
+import type { Group, Team, SeasonHistory, Match } from '../../types';
 import { StandingsTable } from './StandingsTable';
-import { Download, ChevronDown, ChevronUp, Star, Users, Maximize2, Minimize2 } from 'lucide-react';
+import { Download, ChevronDown, Maximize2, Minimize2, Users, Star } from 'lucide-react';
 import { useToast } from '../shared/Toast';
 
 declare const html2canvas: any;
 
 interface GroupStageProps {
   groups: Group[];
+  matches?: Match[];
   onSelectTeam: (team: Team) => void;
   userOwnedTeamIds?: string[];
   history?: SeasonHistory[];
 }
 
-export const GroupStage: React.FC<GroupStageProps> = ({ groups, onSelectTeam, userOwnedTeamIds = [], history = [] }) => {
+export const GroupStage: React.FC<GroupStageProps> = ({ groups, matches, onSelectTeam, userOwnedTeamIds = [], history = [] }) => {
   const { addToast } = useToast();
   const groupRefs = useRef<{[key: string]: HTMLDivElement | null}>({});
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
@@ -97,7 +98,7 @@ export const GroupStage: React.FC<GroupStageProps> = ({ groups, onSelectTeam, us
               <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[1500px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div ref={el => { groupRefs.current[group.id] = el; }} className="p-4 sm:p-6 pt-0 sm:pt-0">
                     <div className="h-px bg-white/5 mb-6"></div>
-                    <StandingsTable standings={group.standings} onSelectTeam={onSelectTeam} history={history} />
+                    <StandingsTable standings={group.standings} matches={matches} groupName={group.name} onSelectTeam={onSelectTeam} history={history} />
                     <div className="sm:hidden mt-4 flex justify-center"><button onClick={(e) => handleExport(e, group.id, group.name)} className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl text-[10px] font-black uppercase text-brand-light"><Download size={14} /> Simpan Klasemen</button></div>
                 </div>
               </div>

@@ -1,17 +1,115 @@
 
-import React from 'react';
-import type { Standing, Team, SeasonHistory } from '../../types';
+import React, { useMemo } from 'react';
+import type { Standing, Team, SeasonHistory, Match } from '../../types';
 import { TeamLogo } from '../shared/TeamLogo';
-import { Crown } from 'lucide-react';
+import { Crown, ChevronUp, ChevronDown, Minus } from 'lucide-react';
 
 interface StandingsTableProps {
   standings: Standing[];
+  matches?: Match[];
+  groupName?: string;
   onSelectTeam: (team: Team) => void;
   history?: SeasonHistory[];
 }
 
-export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSelectTeam, history = [] }) => {
+export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, matches = [], groupName = '', onSelectTeam, history = [] }) => {
   const latestChampionId = history && history.length > 0 ? history[0].champion.id : null;
+
+  // --- LOGIC FOR RANK TRENDS (UP/DOWN) ---
+  const rankChanges = useMemo(() => {
+      // If no matches are played yet, everyone is 'same'
+      const finishedMatches = matches.filter(m => m.status === 'finished');
+      if (finishedMatches.length === 0) return {};
+
+      // 1. Identify which matches are relevant for THIS group
+      const groupLetter = groupName.replace('Group ', '').trim();
+      const relevantMatches = finishedMatches.filter(m => 
+          m.group === groupName || m.group === groupLetter || (groupName === 'Regular Season' && m.group === 'league-season')
+      );
+
+      if (relevantMatches.length === 0) return {};
+
+      // 2. Identify the "Current Matchday" (max matchday played by ANY team in this group)
+      // Actually, a better approach for "Rank Change" is to compare against "Standings BEFORE the last completed matchday".
+      // But since matchdays can be partial, let's compare:
+      // Current Standings (All Finished Matches) vs Previous Standings (Finished Matches - Last Match Per Team)
+      
+      // Let's create a map of "Last Played Match ID per Team" to exclude them
+      const lastMatchIds = new Set<string>();
+      
+      // We sort relevant matches by date/ID descending to find the last one for each team
+      const sortedMatches = [...relevantMatches].sort((a, b) => b.id.localeCompare(a.id)); 
+      
+      const teamLastMatchMap = new Map<string, string>();
+      sortedMatches.forEach(m => {
+          if (!teamLastMatchMap.has(m.teamA.id)) teamLastMatchMap.set(m.teamA.id, m.id);
+          if (!teamLastMatchMap.has(m.teamB.id)) teamLastMatchMap.set(m.teamB.id, m.id);
+      });
+
+      // The "Previous State" excludes the most recent match for EVERY team.
+      // This simulates "Where was I before my last game?"
+      const previousMatches = relevantMatches.filter(m => {
+          // If this match is the LAST match for Team A, exclude it?
+          // No, that's too aggressive.
+          // Standard approach: Find the MAX Matchday that is fully or partially active.
+          // Let's simply exclude matches where matchday == maxMatchday?
+          // Or simpler: Exclude matches played today?
+          
+          // Let's stick to the "Exclude Last Match Per Team" logic for individual trend.
+          // But that creates a fragmented table.
+          
+          // Better Logic: Calculate standings based on (Current Matchday - 1).
+          const maxDay = Math.max(...relevantMatches.map(m => m.matchday || 1));
+          if (maxDay <= 1) return false; // No history before matchday 1
+          return (m.matchday || 1) < maxDay;
+      });
+
+      // 3. Helper to calculate ranks for a subset of matches
+      const calculateRanks = (subsetMatches: Match[]) => {
+          const stats: Record<string, any> = {};
+          // Initialize for all teams in current standings
+          standings.forEach(s => {
+              stats[s.team.id] = { points: 0, gd: 0, played: 0 };
+          });
+
+          subsetMatches.forEach(m => {
+              if (stats[m.teamA.id] && stats[m.teamB.id]) {
+                  const sA = stats[m.teamA.id];
+                  const sB = stats[m.teamB.id];
+                  sA.played++; sB.played++;
+                  sA.gd += (m.scoreA! - m.scoreB!);
+                  sB.gd += (m.scoreB! - m.scoreA!);
+                  if (m.scoreA! > m.scoreB!) sA.points += 3;
+                  else if (m.scoreB! > m.scoreA!) sB.points += 3;
+                  else { sA.points += 1; sB.points += 1; }
+              }
+          });
+
+          // Convert to array and sort
+          return Object.keys(stats)
+              .map(tId => ({ id: tId, ...stats[tId] }))
+              .sort((a, b) => (b.points - a.points) || (b.gd - a.gd))
+              .map(t => t.id); // Return array of IDs in order
+      };
+
+      const prevRankList = calculateRanks(previousMatches);
+      const changes: Record<string, 'up' | 'down' | 'same'> = {};
+
+      standings.forEach((s, currentIndex) => {
+          const prevIndex = prevRankList.indexOf(s.team.id);
+          if (prevIndex === -1) {
+              changes[s.team.id] = 'same'; // New or no history
+          } else if (currentIndex < prevIndex) {
+              changes[s.team.id] = 'up'; // Lower index = Better rank
+          } else if (currentIndex > prevIndex) {
+              changes[s.team.id] = 'down';
+          } else {
+              changes[s.team.id] = 'same';
+          }
+      });
+
+      return changes;
+  }, [standings, matches, groupName]);
 
   return (
     <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40 backdrop-blur-md shadow-2xl w-full flex flex-col">
@@ -19,8 +117,8 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSel
         <table className="w-full text-left table-fixed border-collapse">
           <thead className="text-[8px] sm:text-[10px] text-brand-light uppercase bg-brand-secondary/95 border-b border-white/10 backdrop-blur-md sticky top-0 z-20 shadow-md">
             <tr>
-              <th scope="col" className="py-3 font-black tracking-wider text-center w-[12%] sm:w-[8%] bg-brand-secondary/95">#</th>
-              <th scope="col" className="py-3 font-black tracking-wider text-left pl-1 w-[48%] sm:w-[35%] bg-brand-secondary/95">Club</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center w-[16%] sm:w-[10%] bg-brand-secondary/95 pl-1">#</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-left pl-1 w-[44%] sm:w-[35%] bg-brand-secondary/95">Club</th>
               <th scope="col" className="py-3 font-black tracking-wider text-center w-[12%] sm:w-[8%] bg-brand-secondary/95">P</th>
               <th scope="col" className="py-3 font-black tracking-wider text-center hidden sm:table-cell w-[24%] bg-brand-secondary/95">Form</th>
               <th scope="col" className="py-3 font-black tracking-wider text-center w-[14%] sm:w-[10%] bg-brand-secondary/95">GD</th>
@@ -31,6 +129,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSel
             {standings.map((standing, index) => {
               const isQualifier = index < 2;
               const isDefendingChamp = standing.team.id === latestChampionId;
+              const trend = rankChanges[standing.team.id] || 'same';
 
               return (
                 <tr 
@@ -41,13 +140,20 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, onSel
                     ${isQualifier ? 'hover:bg-brand-vibrant/10' : 'hover:bg-white/5'}
                   `}
                 >
-                  <td className="py-2.5 sm:py-3 text-center relative">
+                  <td className="py-2.5 sm:py-3 text-center relative pl-1">
                     {isQualifier && (
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4/5 w-0.5 sm:w-1 bg-brand-vibrant rounded-r-full shadow-[0_0_10px_#2563eb]"></div>
                     )}
-                    <span className={`font-black text-[10px] sm:text-sm ${isQualifier ? 'text-brand-vibrant' : 'text-brand-light/50'}`}>
-                        {index + 1}
-                    </span>
+                    <div className="flex items-center justify-center gap-1">
+                        <div className="w-3 flex justify-center">
+                            {trend === 'up' && <ChevronUp size={10} className="text-green-500 animate-bounce" />}
+                            {trend === 'down' && <ChevronDown size={10} className="text-red-500" />}
+                            {trend === 'same' && <Minus size={8} className="text-brand-light/20" />}
+                        </div>
+                        <span className={`font-black text-[10px] sm:text-sm ${isQualifier ? 'text-brand-vibrant' : 'text-brand-light/50'}`}>
+                            {index + 1}
+                        </span>
+                    </div>
                   </td>
                   <td className="py-2.5 sm:py-3 pl-1 font-medium text-brand-text">
                     <button 
