@@ -240,6 +240,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         }`}>
                                             {comment.text}
                                         </div>
+                                        <span className="text-[8px] text-brand-light/30 mt-0.5 font-mono">
+                                            {new Date(comment.timestamp).toLocaleString('id-ID', { 
+                                                day: 'numeric', 
+                                                month: 'short', 
+                                                year: 'numeric', 
+                                                hour: '2-digit', 
+                                                minute: '2-digit' 
+                                            })}
+                                        </span>
                                     </div>
                                 ))
                             ) : (

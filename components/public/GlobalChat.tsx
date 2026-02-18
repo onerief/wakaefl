@@ -144,7 +144,15 @@ export const GlobalChat: React.FC<GlobalChatProps> = ({ currentUser, isAdmin, on
                                     }`}>
                                         {formatMessageText(msg.text)}
                                     </div>
-                                    <span className="text-[8px] text-brand-light/30 mt-1 font-mono">{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                    <span className="text-[8px] text-brand-light/30 mt-1 font-mono">
+                                        {new Date(msg.timestamp).toLocaleString('id-ID', { 
+                                            day: 'numeric', 
+                                            month: 'short', 
+                                            year: 'numeric', 
+                                            hour: '2-digit', 
+                                            minute: '2-digit' 
+                                        })}
+                                    </span>
                                 </div>
                             </div>
                         );
