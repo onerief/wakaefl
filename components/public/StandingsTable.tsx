@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import type { Standing, Team, SeasonHistory, Match } from '../../types';
 import { TeamLogo } from '../shared/TeamLogo';
-import { Crown, ChevronUp, ChevronDown, Minus } from 'lucide-react';
+import { Crown, ChevronUp, ChevronDown, Minus, Info } from 'lucide-react';
 
 interface StandingsTableProps {
   standings: Standing[];
@@ -223,10 +223,10 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, match
         </table>
       </div>
       
-      <div className="p-2 sm:p-3 bg-black/40 border-t border-white/5 flex items-center justify-between relative z-20">
+      <div className="p-2 sm:p-3 bg-black/40 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-2 relative z-20">
           <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
-                  <div className="w-1 h-1 bg-brand-vibrant rounded-full shadow-[0_0_8px_#2563eb]"></div>
+                  <div className="w-1.5 h-1.5 bg-brand-vibrant rounded-full shadow-[0_0_8px_#2563eb]"></div>
                   <span className="text-[7px] font-black text-brand-light/60 uppercase">Qualify</span>
               </div>
               <div className="flex items-center gap-1">
@@ -234,7 +234,12 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, match
                   <span className="text-[7px] font-black text-brand-light/60 uppercase">Def. Champ</span>
               </div>
           </div>
-          <div className="text-[7px] text-brand-light/30 italic font-medium">Tap nama untuk profil</div>
+          <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-lg border border-white/5">
+              <Info size={10} className="text-brand-light" />
+              <span className="text-[8px] text-brand-light font-bold italic">
+                  Klik Nama Tim untuk Info Manager & WhatsApp
+              </span>
+          </div>
       </div>
     </div>
   );
