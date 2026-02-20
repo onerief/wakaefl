@@ -13,10 +13,11 @@ interface ScheduleControlProps {
     onSetMatchday: (day: number) => void;
     onCheckTimeouts: () => { processedCount: number, message: string };
     totalMatchdays: number;
+    onSetResetCycle?: (cycle: 24 | 48) => void;
 }
 
 export const ScheduleControl: React.FC<ScheduleControlProps> = ({ 
-    settings, onStart, onPause, onSetMatchday, onCheckTimeouts, totalMatchdays 
+    settings, onStart, onPause, onSetMatchday, onCheckTimeouts, totalMatchdays, onSetResetCycle
 }) => {
     // Guard against undefined settings (e.g., initial load or migration)
     const safeSettings = settings || {
@@ -137,6 +138,25 @@ export const ScheduleControl: React.FC<ScheduleControlProps> = ({
                                 className="px-2 py-1 bg-black/40 rounded hover:bg-white/10 text-white"
                             >
                                 Next
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Reset Cycle Control */}
+                    <div className="flex items-center justify-between bg-white/5 p-2 rounded-xl border border-white/5">
+                        <span className="text-[10px] font-bold text-brand-light uppercase ml-1">Reset Cycle:</span>
+                        <div className="flex gap-1">
+                            <button 
+                                onClick={() => onSetResetCycle?.(24)}
+                                className={`px-3 py-1 text-[10px] font-black rounded transition-all ${safeSettings.resetCycleHours === 24 ? 'bg-brand-vibrant text-white' : 'bg-black/40 text-white/40'}`}
+                            >
+                                24H
+                            </button>
+                            <button 
+                                onClick={() => onSetResetCycle?.(48)}
+                                className={`px-3 py-1 text-[10px] font-black rounded transition-all ${safeSettings.resetCycleHours === 48 ? 'bg-brand-special text-brand-primary' : 'bg-black/40 text-white/40'}`}
+                            >
+                                48H
                             </button>
                         </div>
                     </div>

@@ -161,14 +161,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className="p-4 sm:p-6 flex items-center justify-between gap-2 relative bg-gradient-to-br from-brand-secondary/20 to-transparent">
                     
                     {/* Team A */}
-                    <button onClick={() => onSelectTeam(match.teamA)} className="flex-1 flex flex-col items-center gap-3 group/team transition-all active:scale-95">
+                    <div onClick={() => onSelectTeam(match.teamA)} className="flex-1 flex flex-col items-center gap-3 group/team transition-all active:scale-95 cursor-pointer">
                         <div className="relative">
                             <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-12 h-12 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-transparent group-hover/team:ring-brand-vibrant/50 transition-all" />
                             {match.status === 'scheduled' && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-brand-vibrant rounded-full flex items-center justify-center text-[7px] font-black text-white shadow-lg border border-black">H</div>}
                         </div>
                         <span className="text-[10px] sm:text-xs font-black text-white uppercase leading-tight line-clamp-2 text-center group-hover/team:text-brand-vibrant transition-colors px-1">{match.teamA.name}</span>
                         {isAdminMode && <QuickScoreControl val={editScoreA} setVal={setEditScoreA} label="A" />}
-                    </button>
+                    </div>
 
                     {/* Score Board / VS */}
                     <div className="shrink-0 px-2 flex flex-col items-center justify-center min-w-[60px]">
@@ -190,14 +190,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     </div>
 
                     {/* Team B */}
-                    <button onClick={() => onSelectTeam(match.teamB)} className="flex-1 flex flex-col items-center gap-3 group/team transition-all active:scale-95">
+                    <div onClick={() => onSelectTeam(match.teamB)} className="flex-1 flex flex-col items-center gap-3 group/team transition-all active:scale-95 cursor-pointer">
                         <div className="relative">
                             <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-12 h-12 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-transparent group-hover/team:ring-brand-vibrant/50 transition-all" />
                             {match.status === 'scheduled' && <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-brand-secondary rounded-full flex items-center justify-center text-[7px] font-black text-white shadow-lg border border-black">A</div>}
                         </div>
                         <span className="text-[10px] sm:text-xs font-black text-white uppercase leading-tight line-clamp-2 text-center group-hover/team:text-brand-vibrant transition-colors px-1">{match.teamB.name}</span>
                         {isAdminMode && <QuickScoreControl val={editScoreB} setVal={setEditScoreB} label="B" />}
-                    </button>
+                    </div>
                 </div>
 
                 {/* Footer Actions */}

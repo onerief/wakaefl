@@ -88,6 +88,7 @@ interface AdminPanelProps {
   startMatchday?: (duration: number) => void;
   pauseSchedule?: () => void;
   setMatchday?: (day: number) => void;
+  setResetCycle?: (cycle: 24 | 48) => void;
   processMatchdayTimeouts?: () => { processedCount: number, message: string };
 }
 
@@ -251,6 +252,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                     onPause={props.pauseSchedule}
                     onSetMatchday={props.setMatchday}
                     onCheckTimeouts={props.processMatchdayTimeouts}
+                    onSetResetCycle={props.setResetCycle}
                     totalMatchdays={38} // Hardcoded or dynamic
                 />
             )}

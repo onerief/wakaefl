@@ -164,6 +164,7 @@ export interface ScheduleSettings {
   matchdayStartTime: number | null; // Timestamp
   matchdayDurationHours: number; // Default 24
   autoProcessEnabled: boolean;
+  resetCycleHours?: 24 | 48; // NEW FIELD
 }
 
 export interface TournamentState {

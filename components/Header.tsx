@@ -3,6 +3,7 @@ import React from 'react';
 import type { View } from '../types';
 import { Shield, Zap, User as UserIcon, LogIn } from 'lucide-react';
 import type { User } from 'firebase/auth';
+import { AutoTimer } from './public/AutoTimer';
 
 interface HeaderProps {
   currentView: View;
@@ -15,6 +16,8 @@ interface HeaderProps {
   onUserLogout: () => void;
   onShowProfile?: () => void;
   headerLogoUrl?: string;
+  resetCycle?: 24 | 48;
+  onResetCycleChange?: (cycle: 24 | 48) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -25,11 +28,13 @@ export const Header: React.FC<HeaderProps> = ({
     currentUser,
     onUserAuthRequest,
     onShowProfile,
-    headerLogoUrl
+    headerLogoUrl,
+    resetCycle,
+    onResetCycleChange
 }) => {
   return (
-    <header className="sticky top-0 z-40 bg-brand-primary/95 backdrop-blur-xl border-b border-white/5 shadow-[0_15px_50px_rgba(0,0,0,0.8)] pt-safe">
-      <div className="container mx-auto px-3 sm:px-8 h-14 sm:h-32 flex justify-between items-center relative">
+    <header className="sticky top-0 z-40 glass border-b border-white/10 shadow-[0_15px_50px_rgba(0,0,0,0.8)] pt-safe">
+      <div className="container mx-auto px-3 sm:px-8 h-16 sm:h-32 flex justify-between items-center relative">
         
         {/* LEFT: LOGO */}
         <div 
@@ -41,7 +46,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <img 
                         src={headerLogoUrl} 
                         alt="Logo" 
-                        className="h-8 sm:h-24 w-auto object-contain drop-shadow-[0_0_20px_rgba(37,99,235,0.7)] group-hover:scale-105 transition-transform duration-500" 
+                        className="h-10 sm:h-24 w-auto object-contain drop-shadow-[0_0_20px_rgba(37,99,235,0.7)] group-hover:scale-105 transition-transform duration-500" 
                     />
                 ) : (
                     <div className="relative scale-75 sm:scale-100">
@@ -52,18 +57,17 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
         </div>
 
-        {/* CENTER: BRANDING TEXT - POINTER EVENTS FIX */}
-        {/* The container is pointer-events-none so it doesn't block clicks on the sides. The inner content is pointer-events-auto to be clickable. */}
+        {/* CENTER: BRANDING TEXT */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
             <div 
                 className="flex flex-col items-center cursor-pointer group pointer-events-auto"
                 onClick={() => setView('home')}
             >
-                <h1 className="text-sm sm:text-5xl font-black text-white italic leading-none tracking-tighter uppercase group-hover:text-brand-vibrant transition-all duration-500 drop-shadow-[0_5px_15px_rgba(0,0,0,1)] truncate w-full text-center">
+                <h1 className="text-lg sm:text-6xl font-black text-white italic leading-none tracking-tighter uppercase group-hover:text-brand-vibrant transition-all duration-500 text-glow truncate w-full text-center">
                     Way Kanan
                 </h1>
                 <div className="flex items-center gap-1 sm:gap-4 mt-0.5 sm:mt-1 w-full justify-center">
-                    <span className="text-[4px] sm:text-base font-black bg-gradient-to-r from-blue-500 via-blue-400 to-brand-special bg-clip-text text-transparent uppercase tracking-[0.1em] sm:tracking-[0.5em] leading-tight drop-shadow-[0_0_10px_rgba(37,99,235,0.5)] whitespace-nowrap">
+                    <span className="text-[6px] sm:text-base font-black bg-gradient-to-r from-blue-500 via-blue-400 to-brand-special bg-clip-text text-transparent uppercase tracking-[0.1em] sm:tracking-[0.5em] leading-tight drop-shadow-[0_0_10px_rgba(37,99,235,0.5)] whitespace-nowrap">
                         eFootball Mobile
                     </span>
                 </div>
@@ -72,6 +76,13 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* RIGHT: AUTH/PROFILE */}
         <div className="flex items-center gap-2 sm:gap-6 shrink-0 z-30">
+            <div className="hidden md:block">
+                <AutoTimer 
+                    cycle={resetCycle} 
+                    onCycleChange={onResetCycleChange} 
+                    isAdmin={isAdminAuthenticated} 
+                />
+            </div>
             {currentUser ? (
                 <button 
                     onClick={onShowProfile}

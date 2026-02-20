@@ -39,7 +39,8 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
       currentMatchday: 1,
       matchdayStartTime: null,
       matchdayDurationHours: 24,
-      autoProcessEnabled: false
+      autoProcessEnabled: false,
+      resetCycleHours: 24
   },
   matchComments: {}
 });
@@ -376,6 +377,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   };
   const pauseSchedule = () => dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { isActive: false } });
   const setMatchday = (day: number) => dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { currentMatchday: day, isActive: false, matchdayStartTime: null } });
+  const setResetCycle = (cycle: 24 | 48) => dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { resetCycleHours: cycle } });
 
   const resolveTeamClaim = useCallback(async (teamId: string, approved: boolean) => {
       if (!isAdmin) {
@@ -558,6 +560,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       startMatchday,
       pauseSchedule,
       setMatchday,
+      setResetCycle,
       processMatchdayTimeouts,
       resolveTeamClaim
   };

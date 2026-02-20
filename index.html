@@ -29,22 +29,27 @@
               'brand-accent': '#1e293b', // Borders
               'brand-light': '#94a3b8',   // Secondary Text
               'brand-text': '#f8fafc',   // Main Text
-              'brand-vibrant': '#2563eb', // Royal Blue (from logo)
-              'brand-special': '#fde047', // Bright Yellow (from logo)
-              'brand-gradient-start': '#1d4ed8', // Blue
-              'brand-gradient-end': '#fbbf24', // Yellow/Gold
+              'brand-vibrant': '#2563eb', // Royal Blue
+              'brand-special': '#fde047', // Bright Yellow
+              'brand-surface': 'rgba(15, 23, 42, 0.6)', // Glass surface
             },
             fontFamily: {
                 sans: ['Outfit', 'sans-serif'],
+                display: ['Outfit', 'sans-serif'],
             },
             animation: {
                 'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                 'float': 'float 6s ease-in-out infinite',
+                'glow': 'glow 3s ease-in-out infinite',
             },
             keyframes: {
                 float: {
                     '0%, 100%': { transform: 'translateY(0)' },
                     '50%': { transform: 'translateY(-20px)' },
+                },
+                glow: {
+                    '0%, 100%': { opacity: 0.5, filter: 'blur(20px)' },
+                    '50%': { opacity: 0.8, filter: 'blur(40px)' },
                 }
             }
           }
@@ -59,11 +64,31 @@
       .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
       .pt-safe { padding-top: env(safe-area-inset-top); }
 
-      /* Custom scrollbar for better look */
+      /* Custom scrollbar */
       .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
-      .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
-      .custom-scrollbar::-webkit-scrollbar-thumb { background: #2563eb; border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(37, 99, 235, 0.3); border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(37, 99, 235, 0.6); }
       
+      /* Glassmorphism */
+      .glass {
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .glass-vibrant {
+        background: rgba(37, 99, 235, 0.1);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(37, 99, 235, 0.2);
+      }
+
+      /* Typography refinements */
+      .text-glow {
+        text-shadow: 0 0 20px rgba(37, 99, 235, 0.5);
+      }
+
       /* Better touch highlights */
       * { -webkit-tap-highlight-color: transparent; }
       
@@ -71,6 +96,13 @@
       input, select, textarea { font-size: 16px !important; }
       @media (min-width: 640px) {
         input, select, textarea { font-size: inherit !important; }
+      }
+
+      /* Atmospheric background */
+      .atmosphere {
+        background: 
+          radial-gradient(circle at 50% 0%, rgba(37, 99, 235, 0.15) 0%, transparent 50%),
+          radial-gradient(circle at 100% 100%, rgba(253, 224, 71, 0.05) 0%, transparent 50%);
       }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -94,6 +126,7 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
   <body class="bg-brand-primary text-brand-text font-sans antialiased selection:bg-brand-vibrant selection:text-white overflow-x-hidden">
     <div id="root"></div>

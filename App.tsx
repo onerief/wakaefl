@@ -31,6 +31,8 @@ import { GlobalChat } from './components/public/GlobalChat';
 import { Button } from './components/shared/Button';
 import { ADMIN_EMAILS } from './constants';
 
+import { AnimatePresence, motion } from 'motion/react';
+
 const VIEW_PATHS: Record<View, string> = {
     home: '/',
     news: '/berita',
@@ -46,6 +48,7 @@ const VIEW_PATHS: Record<View, string> = {
 };
 
 function AppContent() {
+// ... (rest of the component logic)
   const [view, setView] = useState<View>('home');
   // Default to 'wakacl' to satisfy "format sperti ucl" request
   const [activeMode, setActiveMode] = useState<TournamentMode>('wakacl');
@@ -227,10 +230,11 @@ function AppContent() {
   const showBanners = view !== 'admin' && view !== 'hall_of_fame' && !['privacy', 'about', 'terms'].includes(view);
 
   return (
-    <div className="min-h-screen font-sans flex flex-col relative selection:bg-brand-vibrant selection:text-white overflow-x-hidden">
-      <div className="fixed inset-0 bg-brand-primary z-[-1]">
+    <div className="min-h-screen font-sans flex flex-col relative selection:bg-brand-vibrant selection:text-white overflow-x-hidden atmosphere">
+      <div className="fixed inset-0 z-[-1]">
          <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: `linear-gradient(rgba(37, 99, 235, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(37, 99, 235, 0.2) 1px, transparent 1px)`, backgroundSize: '40px 40px' }} />
-         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-brand-vibrant/20 blur-[140px] rounded-full"></div>
+         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-brand-vibrant/10 blur-[140px] rounded-full animate-glow"></div>
+         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-brand-special/5 blur-[100px] rounded-full animate-glow" style={{ animationDelay: '2s' }}></div>
       </div>
       
       <Header 
@@ -244,6 +248,8 @@ function AppContent() {
         onUserLogout={handleLogout} 
         onShowProfile={() => setShowUserProfile(true)} 
         headerLogoUrl={tournament.headerLogoUrl} 
+        resetCycle={tournament.scheduleSettings?.resetCycleHours}
+        onResetCycleChange={tournament.setResetCycle}
       />
 
       {showBanners && (
@@ -266,91 +272,105 @@ function AppContent() {
       )}
       
       <main className={`container mx-auto px-4 py-6 md:p-8 flex-grow relative z-20 ${view !== 'admin' ? 'pb-32' : ''}`}>
-        <Suspense fallback={<div className="flex justify-center py-20"><Spinner size={40} /></div>}>
-          {tournament.isLoading ? <DashboardSkeleton /> : (
-            <>
-              {view === 'home' && (
-                <HomeDashboard 
-                    onSelectMode={(m) => handleSetView(m as View)} 
-                    teamCount={globalStats.teamCount || tournament.teams.length} 
-                    partnerCount={globalStats.partnerCount || tournament.partners.length} 
-                    onRegisterTeam={() => currentUser ? setShowTeamRegistration(true) : setShowUserAuth(true)} 
-                    isRegistrationOpen={tournament.isRegistrationOpen} 
-                    userOwnedTeams={userOwnedTeams} 
-                    allMatches={tournament.matches} 
-                    news={tournament.news} 
-                    visibleModes={tournament.visibleModes}
-                    scheduleSettings={tournament.scheduleSettings}
-                />
-              )}
-              {view === 'news' && (
-                <NewsPortal 
-                    news={tournament.news || []} 
-                    categories={tournament.newsCategories} 
-                    deepLinkNewsId={deepLinkNewsId}
-                    onNavigateToArticle={(id) => handleSetView('news', id)}
-                    onBackToPortal={() => handleSetView('news')}
-                />
-              )}
-              {view === 'shop' && <StoreFront products={tournament.products || []} categories={tournament.shopCategories} />}
-              {(view === 'privacy' || view === 'about' || view === 'terms') && <StaticPages type={view as any} onBack={() => handleSetView('home')} />}
-              {(['league', 'wakacl', 'two_leagues'] as View[]).includes(view) && (
-                <PublicView 
-                    mode={activeMode}
-                    groups={tournament.groups} 
-                    matches={tournament.matches} 
-                    knockoutStage={(view === 'wakacl' || view === 'two_leagues') ? tournament.knockoutStage : null} 
-                    rules={tournament.rules} 
-                    history={tournament.history}
-                    onSelectTeam={setViewingTeam} 
-                    currentUser={currentUser} 
-                    onAddMatchComment={handleAddCommentWrapper} 
-                    isAdmin={isAdminAuthenticated} 
-                    onUpdateMatchScore={tournament.updateMatchScore} 
-                    onUpdateKnockoutScore={tournament.updateKnockoutMatch} 
-                    userOwnedTeamIds={userOwnedTeams.map(t => t.team.id)} 
-                    clubStats={tournament.clubStats}
-                    scheduleSettings={tournament.scheduleSettings}
-                />
-              )}
-              {view === 'hall_of_fame' && <HallOfFame history={tournament.history} currentStatus={tournament.status} mode={activeMode} onBack={() => handleSetView('home')} />}
-              {view === 'admin' && (
-                isAdminAuthenticated ? (
-                    <AdminPanel 
-                        {...tournament} 
-                        mode={activeMode} 
-                        setMode={setActiveMode} 
-                        onUpdateNews={tournament.updateNews} 
-                        updateProducts={tournament.updateProducts} 
-                        updateNewsCategories={tournament.updateNewsCategories} 
-                        updateShopCategories={tournament.updateShopCategories}
-                        updateMarqueeMessages={tournament.updateMarqueeMessages}
-                        generateKnockoutBracket={tournament.generateKnockoutBracket}
-                        initializeEmptyKnockoutStage={tournament.initializeEmptyKnockoutStage}
-                        addKnockoutMatch={tournament.addKnockoutMatch}
-                        deleteKnockoutMatch={tournament.deleteKnockoutMatch}
-                        resetTournament={tournament.resetTournament}
-                        archiveSeason={tournament.archiveSeason}
-                        setRegistrationOpen={tournament.setRegistrationOpen}
-                        setTournamentStatus={tournament.setTournamentStatus}
-                        updateHeaderLogo={tournament.updateHeaderLogo}
-                        updatePwaIcon={tournament.updatePwaIcon}
-                        updateVisibleModes={tournament.updateVisibleModes}
-                        updateMatch={tournament.updateMatch}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={view + (deepLinkNewsId || '')}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+            className="h-full flex flex-col"
+          >
+            <Suspense fallback={<div className="flex justify-center py-20"><Spinner size={40} /></div>}>
+              {tournament.isLoading ? <DashboardSkeleton /> : (
+                <>
+                  {view === 'home' && (
+                    <HomeDashboard 
+                        onSelectMode={(m) => handleSetView(m as View)} 
+                        teamCount={globalStats.teamCount || tournament.teams.length} 
+                        partnerCount={globalStats.partnerCount || tournament.partners.length} 
+                        onRegisterTeam={() => currentUser ? setShowTeamRegistration(true) : setShowUserAuth(true)} 
+                        isRegistrationOpen={tournament.isRegistrationOpen} 
+                        userOwnedTeams={userOwnedTeams} 
+                        allMatches={tournament.matches} 
+                        news={tournament.news} 
+                        visibleModes={tournament.visibleModes}
+                        scheduleSettings={tournament.scheduleSettings}
+                        isAdmin={isAdminAuthenticated}
+                        onResetCycleChange={tournament.setResetCycle}
                     />
-                ) : (
-                    <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-3xl mb-4">
-                            <h2 className="text-2xl font-black text-red-500 uppercase italic">Akses Ditolak</h2>
-                            <p className="text-brand-light text-sm mt-2">Akun Anda ({currentUser?.email}) tidak memiliki izin Admin.</p>
+                  )}
+                  {view === 'news' && (
+                    <NewsPortal 
+                        news={tournament.news || []} 
+                        categories={tournament.newsCategories} 
+                        deepLinkNewsId={deepLinkNewsId}
+                        onNavigateToArticle={(id) => handleSetView('news', id)}
+                        onBackToPortal={() => handleSetView('news')}
+                    />
+                  )}
+                  {view === 'shop' && <StoreFront products={tournament.products || []} categories={tournament.shopCategories} />}
+                  {(view === 'privacy' || view === 'about' || view === 'terms') && <StaticPages type={view as any} onBack={() => handleSetView('home')} />}
+                  {(['league', 'wakacl', 'two_leagues'] as View[]).includes(view) && (
+                    <PublicView 
+                        mode={activeMode}
+                        groups={tournament.groups} 
+                        matches={tournament.matches} 
+                        knockoutStage={(view === 'wakacl' || view === 'two_leagues') ? tournament.knockoutStage : null} 
+                        rules={tournament.rules} 
+                        history={tournament.history}
+                        onSelectTeam={setViewingTeam} 
+                        currentUser={currentUser} 
+                        onAddMatchComment={handleAddCommentWrapper} 
+                        isAdmin={isAdminAuthenticated} 
+                        onUpdateMatchScore={tournament.updateMatchScore} 
+                        onUpdateKnockoutScore={tournament.updateKnockoutMatch} 
+                        userOwnedTeamIds={userOwnedTeams.map(t => t.team.id)} 
+                        clubStats={tournament.clubStats}
+                        scheduleSettings={tournament.scheduleSettings}
+                    />
+                  )}
+                  {view === 'hall_of_fame' && <HallOfFame history={tournament.history} currentStatus={tournament.status} mode={activeMode} onBack={() => handleSetView('home')} />}
+                  {view === 'admin' && (
+                    isAdminAuthenticated ? (
+                        <AdminPanel 
+                            {...tournament} 
+                            mode={activeMode} 
+                            setMode={setActiveMode} 
+                            onUpdateNews={tournament.updateNews} 
+                            updateProducts={tournament.updateProducts} 
+                            updateNewsCategories={tournament.updateNewsCategories} 
+                            updateShopCategories={tournament.updateShopCategories}
+                            updateMarqueeMessages={tournament.updateMarqueeMessages}
+                            generateKnockoutBracket={tournament.generateKnockoutBracket}
+                            initializeEmptyKnockoutStage={tournament.initializeEmptyKnockoutStage}
+                            addKnockoutMatch={tournament.addKnockoutMatch}
+                            deleteKnockoutMatch={tournament.deleteKnockoutMatch}
+                            resetTournament={tournament.resetTournament}
+                            archiveSeason={tournament.archiveSeason}
+                            setRegistrationOpen={tournament.setRegistrationOpen}
+                            setTournamentStatus={tournament.setTournamentStatus}
+                            updateHeaderLogo={tournament.updateHeaderLogo}
+                            updatePwaIcon={tournament.updatePwaIcon}
+                            updateVisibleModes={tournament.updateVisibleModes}
+                            updateMatch={tournament.updateMatch}
+                            setResetCycle={tournament.setResetCycle}
+                        />
+                    ) : (
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-3xl mb-4">
+                                <h2 className="text-2xl font-black text-red-500 uppercase italic">Akses Ditolak</h2>
+                                <p className="text-brand-light text-sm mt-2">Akun Anda ({currentUser?.email}) tidak memiliki izin Admin.</p>
+                            </div>
+                            <Button onClick={() => handleSetView('home')}>Kembali ke Home</Button>
                         </div>
-                        <Button onClick={() => handleSetView('home')}>Kembali ke Home</Button>
-                    </div>
-                )
+                    )
+                  )}
+                </>
               )}
-            </>
-          )}
-        </Suspense>
+            </Suspense>
+          </motion.div>
+        </AnimatePresence>
       </main>
       
       <GlobalChat 
