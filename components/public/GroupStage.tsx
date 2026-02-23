@@ -79,7 +79,7 @@ export const GroupStage: React.FC<GroupStageProps> = ({ groups, matches, onSelec
 
           return (
             <div key={group.id} className={`relative group transition-all duration-500 rounded-[1.5rem] overflow-hidden border ${hasMyTeam ? 'border-brand-vibrant/50 shadow-[0_0_25px_rgba(37,99,235,0.15)] bg-brand-vibrant/[0.03]' : 'border-white/5 bg-brand-secondary/40'} ${isExpanded ? 'ring-1 ring-white/10' : ''}`}>
-              <button onClick={() => toggleGroup(group.id)} className={`w-full flex items-center justify-between p-4 sm:p-5 text-left transition-colors ${isExpanded ? 'bg-white/[0.03]' : 'hover:bg-white/[0.02]'}`}>
+              <div onClick={() => toggleGroup(group.id)} className={`w-full flex items-center justify-between p-4 sm:p-5 text-left transition-colors cursor-pointer ${isExpanded ? 'bg-white/[0.03]' : 'hover:bg-white/[0.02]'}`}>
                   <div className="flex items-center gap-4">
                       <div className={`p-2 rounded-xl ${hasMyTeam ? 'bg-brand-vibrant text-white shadow-[0_0_15px_rgba(37,99,235,0.5)]' : 'bg-white/5 text-brand-light'}`}><Users size={20} /></div>
                       <div>
@@ -94,7 +94,7 @@ export const GroupStage: React.FC<GroupStageProps> = ({ groups, matches, onSelec
                       <button onClick={(e) => handleExport(e, group.id, group.name)} className="hidden sm:flex text-brand-light hover:text-white p-2 rounded-xl bg-white/5 hover:bg-brand-vibrant/20 transition-all shadow-lg active:scale-90"><Download size={18} /></button>
                       <div className={`transition-transform duration-500 ${isExpanded ? 'rotate-180 text-brand-vibrant' : 'text-brand-light'}`}><ChevronDown size={24} /></div>
                   </div>
-              </button>
+              </div>
               <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[1500px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div ref={el => { groupRefs.current[group.id] = el; }} className="p-4 sm:p-6 pt-0 sm:pt-0">
                     <div className="h-px bg-white/5 mb-6"></div>
