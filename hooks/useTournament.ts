@@ -377,7 +377,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
   };
   const pauseSchedule = () => dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { isActive: false } });
   const setMatchday = (day: number) => dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { currentMatchday: day, isActive: false, matchdayStartTime: null } });
-  const setResetCycle = (cycle: 24 | 48) => dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { resetCycleHours: cycle } });
+  const setResetCycle = (cycle: 24 | 48) => dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { resetCycleHours: cycle, lastResetTime: Date.now() } });
 
   const resolveTeamClaim = useCallback(async (teamId: string, approved: boolean) => {
       if (!isAdmin) {

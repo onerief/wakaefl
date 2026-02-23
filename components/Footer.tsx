@@ -2,6 +2,7 @@
 import React from 'react';
 import { Shield, Instagram, Twitter, MessageCircle, Gamepad2, Trophy, Monitor, Lock, Mail, Phone } from 'lucide-react';
 import type { Partner, View } from '../types';
+import { WakaLogo } from './shared/Icons';
 
 interface FooterProps {
     partners?: Partner[];
@@ -74,7 +75,7 @@ export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin, setView 
           <div className="flex flex-col items-center md:items-start text-center md:text-left">
             <div className="flex items-center gap-2 mb-4 group cursor-pointer" onClick={() => setView?.('home')}>
                <div className="relative">
-                   <Shield size={32} className="text-brand-vibrant fill-brand-vibrant/10" />
+                   <WakaLogo className="w-8 h-8 text-brand-vibrant fill-brand-vibrant/10" />
                    <div className="absolute inset-0 bg-brand-vibrant/20 blur-lg rounded-full"></div>
                </div>
                <div className="flex flex-col">

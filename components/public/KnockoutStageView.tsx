@@ -41,12 +41,14 @@ const KnockoutMatchTeam: React.FC<KnockoutMatchTeamProps> = ({
     team, placeholder, isWinner, onSelectTeam, isLoser, isAdminMode, editScore, onAdjust, isMyTeam, isHome, isOngoing
 }) => {
     const hasTeam = !!team;
+    const Wrapper = hasTeam ? 'button' : 'div';
+    const wrapperProps = hasTeam ? { onClick: () => onSelectTeam(team!) } : {};
+
     return (
         <div className="flex flex-col gap-1 w-full relative">
-            <div 
+            <Wrapper 
                 className={`
                     relative flex items-center gap-2 sm:gap-3 w-full h-12 sm:h-16 px-3 sm:px-4 rounded-xl text-left transition-all duration-500 shadow-xl border
-                    ${hasTeam ? 'cursor-pointer' : ''}
                     ${isWinner 
                         ? 'bg-brand-vibrant text-white scale-[1.02] sm:scale-[1.05] z-10 border-white/20 shadow-[0_0_20px_rgba(37,99,235,0.4)] ring-2 ring-brand-vibrant' 
                         : isLoser 
@@ -57,7 +59,7 @@ const KnockoutMatchTeam: React.FC<KnockoutMatchTeamProps> = ({
                     }
                     ${isOngoing && !isWinner ? 'border-brand-vibrant/20 bg-white/[0.07]' : ''}
                 `} 
-                onClick={() => hasTeam && onSelectTeam(team!)}
+                {...wrapperProps}
             >
                 {team ? (
                     <>
@@ -94,7 +96,7 @@ const KnockoutMatchTeam: React.FC<KnockoutMatchTeamProps> = ({
                         <span className="italic text-[8px] sm:text-[9px] uppercase font-black tracking-widest truncate">{placeholder}</span>
                     </div>
                 )}
-            </div>
+            </Wrapper>
             
             {isAdminMode && team && onAdjust && (
                 <div className="flex items-center justify-center gap-2 bg-black/60 rounded-lg p-0.5 mx-1 mt-1 border border-white/10 scale-90">

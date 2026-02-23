@@ -165,6 +165,7 @@ export interface ScheduleSettings {
   matchdayDurationHours: number; // Default 24
   autoProcessEnabled: boolean;
   resetCycleHours?: 24 | 48; // NEW FIELD
+  lastResetTime?: number;
 }
 
 export interface TournamentState {
