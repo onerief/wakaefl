@@ -41,17 +41,17 @@ const InternalTabButton: React.FC<{
         onClick={onClick}
         className={`
             group relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 
-            py-2.5 sm:py-3 rounded-xl transition-all w-full border overflow-hidden
+            py-2 sm:py-3 rounded-lg sm:rounded-xl transition-all w-full border overflow-hidden
             ${isActive 
                 ? 'bg-brand-vibrant/10 border-brand-vibrant/30 text-brand-vibrant shadow-[inset_0_0_15px_rgba(37,99,235,0.15)]' 
                 : 'bg-white/[0.02] border-transparent hover:bg-white/5 text-brand-light/50 hover:text-brand-light'}
         `}
     >
         <Icon 
-            size={16} 
+            size={14} 
             className={`transition-colors sm:w-[18px] sm:h-[18px] ${isActive ? 'fill-brand-vibrant/20' : 'group-hover:text-brand-light'}`} 
         />
-        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-tight leading-none truncate w-full sm:w-auto text-center">
+        <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-tight leading-none truncate w-full sm:w-auto text-center">
             {label}
         </span>
         {isActive && (
@@ -362,9 +362,9 @@ export const PublicView: React.FC<PublicViewProps> = ({
         )}
 
         {/* SUB NAVIGATION - FIXED GRID LAYOUT - ALL ITEMS VISIBLE (NO SCROLL) */}
-        <div className="sticky top-[56px] sm:top-[128px] z-[30] -mx-4 bg-brand-primary/95 backdrop-blur-xl border-b border-white/5 shadow-2xl">
-            <div className="px-2 sm:px-4 py-2 sm:py-3 max-w-5xl mx-auto">
-                <div className={`grid ${supportsKnockout ? 'grid-cols-5' : 'grid-cols-4'} gap-1.5 sm:gap-3`}>
+        <div className="sticky top-[56px] sm:top-[128px] z-[30] -mx-2 sm:-mx-4 bg-brand-primary/95 backdrop-blur-xl border-b border-white/5 shadow-2xl">
+            <div className="px-1 sm:px-4 py-1.5 sm:py-3 max-w-5xl mx-auto">
+                <div className={`grid ${supportsKnockout ? 'grid-cols-5' : 'grid-cols-4'} gap-1 sm:gap-3`}>
                     <InternalTabButton 
                         isActive={activeTab === 'groups'} 
                         onClick={() => setActiveTab('groups')} 
@@ -395,10 +395,10 @@ export const PublicView: React.FC<PublicViewProps> = ({
                     {/* Rules Button as a direct Grid Item - Same size as others */}
                     <button
                         onClick={() => setShowRules(true)}
-                        className="group relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2.5 sm:py-3 rounded-xl transition-all w-full border bg-white/[0.02] border-transparent hover:bg-white/5 text-brand-light/50 hover:text-brand-light active:scale-95"
+                        className="group relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 rounded-lg sm:rounded-xl transition-all w-full border bg-white/[0.02] border-transparent hover:bg-white/5 text-brand-light/50 hover:text-brand-light active:scale-95"
                     >
-                        <BookOpen size={16} className="sm:w-[18px] sm:h-[18px] group-hover:text-brand-light" />
-                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-tight leading-none truncate w-full sm:w-auto text-center">
+                        <BookOpen size={14} className="sm:w-[18px] sm:h-[18px] group-hover:text-brand-light" />
+                        <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-tight leading-none truncate w-full sm:w-auto text-center">
                             Rules
                         </span>
                     </button>

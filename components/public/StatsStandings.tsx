@@ -29,13 +29,13 @@ export const StatsStandings: React.FC<StatsStandingsProps> = ({ clubStats = [] }
             </div>
 
             <Card className="!p-0 border-white/5 bg-brand-secondary/20 overflow-hidden shadow-2xl !rounded-[1.5rem]">
-                <div className="overflow-x-auto custom-scrollbar max-h-[65vh] overflow-y-auto relative">
-                    <table className="w-full text-left border-collapse">
+                <div className="overflow-x-auto custom-scrollbar max-h-[65vh] overflow-y-auto relative w-full">
+                    <table className="w-full text-left border-collapse min-w-[300px]">
                         <thead className="bg-brand-secondary/95 border-b border-white/5 sticky top-0 z-10 backdrop-blur-md shadow-md">
                             <tr>
-                                <th className="px-4 py-4 text-[9px] font-black uppercase tracking-widest text-brand-light/50 w-16 text-center">Rank</th>
-                                <th className="px-4 py-4 text-[9px] font-black uppercase tracking-widest text-brand-light/50">Club Name</th>
-                                <th className="px-4 py-4 text-[9px] font-black uppercase tracking-widest text-brand-light/50 text-center w-28">
+                                <th className="px-2 sm:px-6 py-3 sm:py-5 text-[8px] sm:text-xs font-black uppercase tracking-widest text-brand-light/50 w-10 sm:w-24 text-center">Rank</th>
+                                <th className="px-2 sm:px-6 py-3 sm:py-5 text-[8px] sm:text-xs font-black uppercase tracking-widest text-brand-light/50">Club Name</th>
+                                <th className="px-2 sm:px-6 py-3 sm:py-5 text-[8px] sm:text-xs font-black uppercase tracking-widest text-brand-light/50 text-center w-20 sm:w-32">
                                     Total Goals
                                 </th>
                             </tr>
@@ -49,7 +49,7 @@ export const StatsStandings: React.FC<StatsStandingsProps> = ({ clubStats = [] }
                 </div>
 
                 <div className="bg-black/40 p-4 border-t border-white/5 text-center relative z-20">
-                    <p className="text-[8px] sm:text-[9px] text-brand-light/30 uppercase font-black tracking-[0.2em] italic">
+                    <p className="text-[8px] sm:text-[10px] text-brand-light/30 uppercase font-black tracking-[0.2em] italic">
                         Kalkulasi real-time mencakup seluruh pertandingan musim ini
                     </p>
                 </div>
@@ -62,33 +62,33 @@ const StatRow = ({ rank, name, value, logoUrl }: any) => {
     const isTopThree = rank <= 3;
     return (
         <tr className={`group hover:bg-white/[0.02] transition-colors ${isTopThree ? 'bg-brand-vibrant/[0.02]' : ''}`}>
-            <td className="px-4 py-3 text-center">
+            <td className="px-2 sm:px-6 py-2 sm:py-4 text-center">
                 <div className="flex items-center justify-center">
                     {rank === 1 ? (
-                        <div className="w-7 h-7 rounded-lg bg-yellow-500/20 flex items-center justify-center text-yellow-500 border border-yellow-500/30 shadow-[0_0_10px_rgba(234,179,8,0.3)] animate-float">
-                            <Crown size={14} />
+                        <div className="w-6 h-6 sm:w-10 sm:h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center text-yellow-500 border border-yellow-500/30 shadow-[0_0_10px_rgba(234,179,8,0.3)] animate-float">
+                            <Crown size={12} className="sm:w-6 sm:h-6" />
                         </div>
                     ) : (
-                        <span className={`text-xs font-black italic ${isTopThree ? 'text-white' : 'text-brand-light/40'}`}>
+                        <span className={`text-[10px] sm:text-base font-black italic ${isTopThree ? 'text-white' : 'text-brand-light/40'}`}>
                             #{rank}
                         </span>
                     )}
                 </div>
             </td>
-            <td className="px-4 py-3">
-                <div className="flex items-center gap-3">
-                    <TeamLogo logoUrl={logoUrl} teamName={name} className="w-8 h-8 sm:w-10 sm:h-10" />
-                    <span className={`text-[10px] sm:text-xs font-black uppercase tracking-tight italic ${isTopThree ? 'text-white' : 'text-brand-light'}`}>
+            <td className="px-2 sm:px-6 py-2 sm:py-4">
+                <div className="flex items-center gap-2 sm:gap-4">
+                    <TeamLogo logoUrl={logoUrl} teamName={name} className="w-6 h-6 sm:w-12 sm:h-12 shrink-0" />
+                    <span className={`text-[9px] sm:text-sm font-black uppercase tracking-tight italic line-clamp-1 ${isTopThree ? 'text-white' : 'text-brand-light'}`}>
                         {name}
                     </span>
                 </div>
             </td>
-            <td className="px-4 py-3 text-center">
-                <div className={`inline-flex items-center gap-2 bg-black/40 px-4 py-1.5 rounded-full border border-white/10 ${isTopThree ? 'border-brand-vibrant/30 shadow-lg' : ''}`}>
-                    <span className={`text-sm sm:text-base font-black italic ${isTopThree ? 'text-brand-vibrant' : 'text-white'}`}>
+            <td className="px-2 sm:px-6 py-2 sm:py-4 text-center">
+                <div className={`inline-flex items-center gap-1 sm:gap-3 bg-black/40 px-2 sm:px-6 py-1 sm:py-2.5 rounded-full border border-white/10 ${isTopThree ? 'border-brand-vibrant/30 shadow-lg' : ''}`}>
+                    <span className={`text-xs sm:text-xl font-black italic ${isTopThree ? 'text-brand-vibrant' : 'text-white'}`}>
                         {value}
                     </span>
-                    <Target className={`${isTopThree ? 'text-brand-vibrant' : 'text-brand-light/20'}`} size={12} />
+                    <Target className={`${isTopThree ? 'text-brand-vibrant' : 'text-brand-light/20'} sm:w-5 sm:h-5`} size={10} />
                 </div>
             </td>
         </tr>
