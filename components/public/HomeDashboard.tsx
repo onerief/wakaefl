@@ -121,21 +121,21 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     return (
         <button 
             onClick={() => onSelectMode(mode)}
-            className={`group relative overflow-hidden rounded-[2rem] p-6 text-left transition-all duration-500 hover:-translate-y-2 border border-white/5 active:scale-95 flex flex-col h-full ${bgClass}`}
+            className={`group relative overflow-hidden rounded-[2rem] p-6 text-left transition-all duration-500 hover:-translate-y-2 border border-brand-accent active:scale-95 flex flex-col h-full ${bgClass} shadow-lg hover:shadow-2xl`}
         >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.05),transparent)] pointer-events-none"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)] pointer-events-none"></div>
             <div className="mb-4 flex items-center justify-between">
-                <div className={`p-3 rounded-2xl ${colorClass} shadow-xl`}>
-                    <Icon size={28} className="text-white" />
+                <div className={`p-3 rounded-2xl ${colorClass} shadow-xl text-white`}>
+                    <Icon size={28} />
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1">
-                    <ArrowRight size={20} className="text-white/40" />
+                    <ArrowRight size={20} className="text-brand-light" />
                 </div>
             </div>
-            <h4 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tighter mb-2 group-hover:text-brand-special transition-colors">{title}</h4>
-            <p className="text-xs text-white/50 font-medium leading-relaxed mb-6">{desc}</p>
+            <h4 className="text-xl sm:text-2xl font-black text-brand-text italic uppercase tracking-tighter mb-2 group-hover:text-brand-special transition-colors">{title}</h4>
+            <p className="text-xs text-brand-light font-medium leading-relaxed mb-6">{desc}</p>
             <div className="mt-auto flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/80 py-1.5 px-4 bg-black/40 rounded-full border border-white/10 group-hover:bg-brand-vibrant group-hover:border-brand-vibrant transition-all">
+                <span className="text-[10px] font-black uppercase tracking-widest text-brand-text/80 py-1.5 px-4 bg-brand-primary/40 rounded-full border border-brand-accent group-hover:bg-brand-vibrant group-hover:text-white group-hover:border-brand-vibrant transition-all">
                     Masuk Arena
                 </span>
             </div>
@@ -145,7 +145,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
 
   return (
     <div className="flex flex-col gap-10 md:gap-20 pt-0 pb-20 animate-in fade-in duration-700 relative z-10">
-      <div className="absolute inset-0 z-[-1] opacity-20 pointer-events-none">
+      <div className="absolute inset-0 z-[-1] opacity-20 pointer-events-none text-brand-light">
         <HeroPattern />
       </div>
 
@@ -157,11 +157,11 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               { label: 'Mode Kompetisi', val: visibleModes.length, icon: Trophy, color: 'text-purple-400' },
               { label: 'Status Server', val: 'Online', icon: Zap, color: 'text-green-400' }
           ].map((stat, i) => (
-              <div key={i} className="bg-brand-secondary/40 border border-white/5 p-3 sm:p-5 rounded-2xl sm:rounded-[1.5rem] flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-4 hover:border-white/10 transition-all">
-                  <div className={`p-2 sm:p-3 rounded-xl bg-white/5 ${stat.color}`}><stat.icon size={16} className="sm:w-5 sm:h-5" /></div>
+              <div key={i} className="bg-brand-secondary border border-brand-accent p-3 sm:p-5 rounded-2xl sm:rounded-[1.5rem] flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-4 hover:border-brand-light/30 transition-all shadow-sm">
+                  <div className={`p-2 sm:p-3 rounded-xl bg-brand-primary/50 ${stat.color}`}><stat.icon size={16} className="sm:w-5 sm:h-5" /></div>
                   <div>
-                      <p className="text-xl sm:text-2xl font-black text-white italic leading-none">{stat.val}</p>
-                      <p className="text-[8px] sm:text-[10px] font-bold text-brand-light uppercase tracking-widest opacity-50 mt-1">{stat.label}</p>
+                      <p className="text-xl sm:text-2xl font-black text-brand-text italic leading-none">{stat.val}</p>
+                      <p className="text-[8px] sm:text-[10px] font-bold text-brand-light uppercase tracking-widest opacity-70 mt-1">{stat.label}</p>
                   </div>
               </div>
           ))}
@@ -181,7 +181,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                       </div>
                   )}
               </div>
-              <Card onClick={() => onSelectMode(nextMatchInfo.mode!)} className="!p-0 overflow-hidden !bg-black/60 border-brand-vibrant/30 group cursor-pointer hover:border-brand-vibrant transition-all rounded-2xl sm:rounded-[1.5rem]">
+              <Card onClick={() => onSelectMode(nextMatchInfo.mode!)} className="!p-0 overflow-hidden !bg-brand-secondary border-brand-vibrant/30 group cursor-pointer hover:border-brand-vibrant transition-all rounded-2xl sm:rounded-[1.5rem] shadow-lg">
                   <div className="flex flex-col md:flex-row md:items-center">
                       <div className="bg-brand-vibrant p-3 sm:p-10 flex flex-row md:flex-col items-center justify-between md:justify-center text-white shrink-0 shadow-2xl">
                           <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] opacity-80">Matchday</span>
@@ -189,16 +189,16 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                       </div>
                       <div className="p-4 sm:p-6 md:p-12 flex-grow flex items-center justify-center gap-4 sm:gap-8 md:gap-24">
                           <div className="flex flex-col items-center gap-2 sm:gap-3 text-center flex-1">
-                              <TeamLogo logoUrl={nextMatchInfo.match.teamA.logoUrl} teamName={nextMatchInfo.match.teamA.name} className="w-12 h-12 sm:w-16 sm:h-16 md:w-28 md:h-28 shadow-2xl ring-2 sm:ring-4 ring-white/5" />
-                              <span className="text-[10px] sm:text-xs md:text-xl font-black text-white uppercase italic tracking-tight line-clamp-1">{nextMatchInfo.match.teamA.name}</span>
+                              <TeamLogo logoUrl={nextMatchInfo.match.teamA.logoUrl} teamName={nextMatchInfo.match.teamA.name} className="w-12 h-12 sm:w-16 sm:h-16 md:w-28 md:h-28 shadow-2xl ring-2 sm:ring-4 ring-brand-accent" />
+                              <span className="text-[10px] sm:text-xs md:text-xl font-black text-brand-text uppercase italic tracking-tight line-clamp-1">{nextMatchInfo.match.teamA.name}</span>
                           </div>
                           <div className="flex flex-col items-center">
                               <div className="text-sm sm:text-xl md:text-3xl font-black text-brand-vibrant italic px-3 sm:px-4 py-1.5 sm:py-2 bg-brand-vibrant/10 rounded-xl sm:rounded-2xl border border-brand-vibrant/30">VS</div>
                               {timeLeft && <span className="mt-1.5 sm:mt-2 text-[7px] sm:text-[8px] font-black text-red-400 uppercase tracking-widest">Live Limit</span>}
                           </div>
                           <div className="flex flex-col items-center gap-2 sm:gap-3 text-center flex-1">
-                              <TeamLogo logoUrl={nextMatchInfo.match.teamB.logoUrl} teamName={nextMatchInfo.match.teamB.name} className="w-12 h-12 sm:w-16 sm:h-16 md:w-28 md:h-28 shadow-2xl ring-2 sm:ring-4 ring-white/5" />
-                              <span className="text-[10px] sm:text-xs md:text-xl font-black text-white uppercase italic tracking-tight line-clamp-1">{nextMatchInfo.match.teamB.name}</span>
+                              <TeamLogo logoUrl={nextMatchInfo.match.teamB.logoUrl} teamName={nextMatchInfo.match.teamB.name} className="w-12 h-12 sm:w-16 sm:h-16 md:w-28 md:h-28 shadow-2xl ring-2 sm:ring-4 ring-brand-accent" />
+                              <span className="text-[10px] sm:text-xs md:text-xl font-black text-brand-text uppercase italic tracking-tight line-clamp-1">{nextMatchInfo.match.teamB.name}</span>
                           </div>
                       </div>
                   </div>
@@ -214,7 +214,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             onMouseLeave={() => setIsPaused(false)}
         >
             {latestNews.length > 0 ? (
-                <div className="relative overflow-hidden rounded-2xl sm:rounded-[3rem] border border-white/10 shadow-[0_15px_50px_rgba(0,0,0,0.5)] sm:shadow-[0_30px_100px_rgba(0,0,0,1)] bg-brand-secondary/40 aspect-[4/3] sm:aspect-[21/9]">
+                <div className="relative overflow-hidden rounded-2xl sm:rounded-[3rem] border border-brand-accent shadow-[0_15px_50px_rgba(0,0,0,0.5)] sm:shadow-[0_30px_100px_rgba(0,0,0,1)] bg-brand-secondary aspect-[4/3] sm:aspect-[21/9]">
                     <div 
                         className="flex h-full transition-transform duration-1000 ease-in-out"
                         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
@@ -230,14 +230,14 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                                     alt={item.title} 
                                     className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110" 
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-t from-brand-primary via-brand-primary/40 sm:via-brand-primary/20 to-transparent"></div>
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 sm:via-black/20 to-transparent"></div>
                                 
                                 <div className="absolute inset-0 p-4 sm:p-16 flex flex-col justify-end">
                                     <div className="flex items-center gap-1.5 sm:gap-3 mb-2 sm:mb-4">
                                         <span className="px-2 sm:px-4 py-1 sm:py-1.5 bg-brand-vibrant text-white text-[7px] sm:text-[11px] font-black uppercase rounded-md sm:rounded-lg shadow-2xl border border-white/20">
                                             {item.category}
                                         </span>
-                                        <span className="text-white/80 text-[7px] sm:text-[11px] font-bold uppercase tracking-widest flex items-center gap-1 sm:gap-1.5 bg-black/40 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-white/5">
+                                        <span className="text-white/80 text-[7px] sm:text-[11px] font-bold uppercase tracking-widest flex items-center gap-1 sm:gap-1.5 bg-black/60 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-white/5">
                                             <Clock size={10} className="sm:w-3 sm:h-3" /> {new Date(item.date).toLocaleDateString()}
                                         </span>
                                     </div>
@@ -269,7 +269,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                     )}
                 </div>
             ) : (
-                <div className="py-12 sm:py-32 bg-white/[0.02] rounded-2xl sm:rounded-[3rem] border border-dashed border-white/10 flex flex-col items-center justify-center text-center gap-4 sm:gap-6 group hover:bg-white/[0.04] transition-colors">
+                <div className="py-12 sm:py-32 bg-brand-secondary/40 rounded-2xl sm:rounded-[3rem] border border-dashed border-brand-accent flex flex-col items-center justify-center text-center gap-4 sm:gap-6 group hover:bg-brand-secondary/60 transition-colors">
                     <EmptyNewsIllustration className="w-24 h-16 sm:w-48 sm:h-36 opacity-30 group-hover:opacity-50 transition-opacity" />
                     <div className="flex flex-col gap-1.5 sm:gap-2">
                         <span className="text-brand-light font-black uppercase tracking-widest text-[10px] sm:text-sm">Belum Ada Berita</span>
@@ -283,7 +283,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
       {/* COMPETITION EXPLORER - THE MAIN MENU */}
       <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
           <div className="flex items-center justify-between px-1 sm:px-2">
-              <h3 className="text-base sm:text-3xl font-black text-white italic uppercase tracking-tighter flex items-center gap-2 sm:gap-3">
+              <h3 className="text-base sm:text-3xl font-black text-brand-text italic uppercase tracking-tighter flex items-center gap-2 sm:gap-3">
                   <Trophy size={20} className="sm:w-7 sm:h-7 text-brand-special" /> Jelajahi
               </h3>
           </div>
@@ -291,17 +291,17 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               <CompetitionCard 
                   mode="league" title="Liga Reguler" 
                   desc="Kompetisi format liga satu musim penuh."
-                  icon={LeagueIcon} colorClass="bg-blue-600" bgClass="bg-gradient-to-br from-blue-900/40 to-black" 
+                  icon={LeagueIcon} colorClass="bg-blue-600" bgClass="bg-brand-secondary bg-gradient-to-br from-blue-500/5 to-transparent" 
               />
               <CompetitionCard 
                   mode="two_leagues" title="2 Wilayah" 
                   desc="Pertarungan antar region menuju gelar juara."
-                  icon={RegionIcon} colorClass="bg-purple-600" bgClass="bg-gradient-to-br from-purple-900/40 to-black" 
+                  icon={RegionIcon} colorClass="bg-purple-600" bgClass="bg-brand-secondary bg-gradient-to-br from-purple-500/5 to-transparent" 
               />
               <CompetitionCard 
                   mode="wakacl" title="WakaEFL Champ" 
                   desc="Kasta tertinggi. Format UCL penuh gengsi."
-                  icon={ChampionshipIcon} colorClass="bg-yellow-600" bgClass="bg-gradient-to-br from-yellow-900/40 to-black" 
+                  icon={ChampionshipIcon} colorClass="bg-yellow-600" bgClass="bg-brand-secondary bg-gradient-to-br from-yellow-500/5 to-transparent" 
               />
           </div>
       </div>
@@ -312,14 +312,14 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               <style>{`
                 @keyframes gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
               `}</style>
-              <div className="bg-brand-primary p-6 sm:p-12 rounded-[1.4rem] sm:rounded-[2.4rem] flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8">
+              <div className="bg-brand-secondary p-6 sm:p-12 rounded-[1.4rem] sm:rounded-[2.4rem] flex flex-col md:flex-row items-center justify-between gap-6 sm:gap-8 shadow-2xl">
                   <div className="text-center md:text-left">
-                      <h3 className="text-2xl sm:text-5xl font-black text-white italic uppercase tracking-tighter mb-2 sm:mb-3">Siap Bertanding?</h3>
+                      <h3 className="text-2xl sm:text-5xl font-black text-brand-text italic uppercase tracking-tighter mb-2 sm:mb-3">Siap Bertanding?</h3>
                       <p className="text-brand-light text-xs sm:text-lg max-w-lg">Pendaftaran musim baru telah dibuka! Daftarkan tim kamu sekarang dan jadilah legenda baru di WakaEFL Hub.</p>
                   </div>
                   <button 
                       onClick={onRegisterTeam}
-                      className="group/btn flex items-center justify-center gap-2 sm:gap-3 w-full sm:w-auto px-6 sm:px-10 py-3.5 sm:py-5 bg-brand-vibrant hover:bg-white text-white hover:text-brand-primary rounded-xl sm:rounded-[1.5rem] text-sm sm:text-lg font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all shadow-2xl active:scale-95"
+                      className="group/btn flex items-center justify-center gap-2 sm:gap-3 w-full sm:w-auto px-6 sm:px-10 py-3.5 sm:py-5 bg-brand-vibrant hover:bg-brand-inverse text-white hover:text-brand-primary rounded-xl sm:rounded-[1.5rem] text-sm sm:text-lg font-black uppercase tracking-[0.1em] sm:tracking-[0.2em] transition-all shadow-2xl active:scale-95"
                   >
                       <PlusCircle size={18} className="sm:w-6 sm:h-6" />
                       <span>Daftar Sekarang</span>

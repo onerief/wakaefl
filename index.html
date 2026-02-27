@@ -21,18 +21,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: ['class', '[data-theme="light"]'],
         theme: {
           extend: {
             colors: {
-              'brand-primary': '#020617', // Deep Navy
-              'brand-secondary': '#0f172a', // Slate Blue-ish
-              'brand-accent': '#1e293b', // Borders
-              'brand-light': '#94a3b8',   // Secondary Text
-              'brand-text': '#f8fafc',   // Main Text
-              'brand-vibrant': '#2563eb', // Royal Blue (from logo)
-              'brand-special': '#fde047', // Bright Yellow (from logo)
-              'brand-gradient-start': '#1d4ed8', // Blue
-              'brand-gradient-end': '#fbbf24', // Yellow/Gold
+              'brand-primary': 'var(--brand-primary)', 
+              'brand-secondary': 'var(--brand-secondary)', 
+              'brand-accent': 'var(--brand-accent)', 
+              'brand-light': 'var(--brand-light)',   
+              'brand-text': 'var(--brand-text)',   
+              'brand-vibrant': 'var(--brand-vibrant)', 
+              'brand-special': 'var(--brand-special)', 
+              'brand-gradient-start': '#1d4ed8', 
+              'brand-gradient-end': '#fbbf24', 
             },
             fontFamily: {
                 sans: ['Outfit', 'sans-serif'],
@@ -52,6 +53,26 @@
       }
     </script>
     <style>
+      :root {
+        --brand-primary: #020617;
+        --brand-secondary: #0f172a;
+        --brand-accent: #1e293b;
+        --brand-light: #94a3b8;
+        --brand-text: #f8fafc;
+        --brand-vibrant: #2563eb;
+        --brand-special: #fde047;
+      }
+
+      [data-theme="light"] {
+        --brand-primary: #f8fafc; /* Slate 50 - Elegant Off-White */
+        --brand-secondary: #ffffff; /* White */
+        --brand-accent: #e2e8f0; /* Slate 200 */
+        --brand-light: #64748b; /* Slate 500 */
+        --brand-text: #0f172a; /* Slate 900 - Deep Charcoal */
+        --brand-vibrant: #3b82f6; /* Blue 500 */
+        --brand-special: #f59e0b; /* Amber 500 */
+      }
+
       /* Mobile optimization fixes */
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

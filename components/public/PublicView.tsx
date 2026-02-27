@@ -44,7 +44,7 @@ const InternalTabButton: React.FC<{
             py-2 sm:py-3 rounded-lg sm:rounded-xl transition-all w-full border overflow-hidden
             ${isActive 
                 ? 'bg-brand-vibrant/10 border-brand-vibrant/30 text-brand-vibrant shadow-[inset_0_0_15px_rgba(37,99,235,0.15)]' 
-                : 'bg-white/[0.02] border-transparent hover:bg-white/5 text-brand-light/50 hover:text-brand-light'}
+                : 'bg-brand-secondary/40 border-transparent hover:bg-brand-secondary/60 text-brand-light/50 hover:text-brand-light'}
         `}
     >
         <Icon 
@@ -101,7 +101,7 @@ const MatchdayTimer: React.FC<{ settings: ScheduleSettings }> = ({ settings }) =
                 flex items-center justify-between px-4 py-3 rounded-2xl shadow-2xl border
                 ${isUrgent 
                     ? 'bg-red-500/10 border-red-500/30 animate-pulse' 
-                    : 'bg-gradient-to-r from-blue-900/40 to-brand-primary border-brand-vibrant/30'}
+                    : 'bg-gradient-to-r from-blue-600/10 to-brand-primary/50 border-brand-vibrant/30'}
             `}>
                 <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-xl ${isUrgent ? 'bg-red-500/20 text-red-500' : 'bg-brand-vibrant/20 text-brand-vibrant'}`}>
@@ -111,7 +111,7 @@ const MatchdayTimer: React.FC<{ settings: ScheduleSettings }> = ({ settings }) =
                         <p className={`text-[10px] font-black uppercase tracking-widest ${isUrgent ? 'text-red-400' : 'text-brand-light'}`}>
                             Batas Waktu Matchday {settings.currentMatchday}
                         </p>
-                        <p className={`text-lg font-black italic tracking-tight ${isUrgent ? 'text-red-500' : 'text-white'}`}>
+                        <p className={`text-lg font-black italic tracking-tight ${isUrgent ? 'text-red-500' : 'text-brand-text'}`}>
                             {timeLeft}
                         </p>
                     </div>

@@ -60,6 +60,22 @@ function AppContent() {
   const [viewingTeam, setViewingTeam] = useState<Team | null>(null);
   const [globalStats, setGlobalStats] = useState({ teamCount: 0, partnerCount: 0 });
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+  };
   
   const tournament = useTournament(activeMode, isAdminAuthenticated);
   const { addToast } = useToast();
@@ -267,6 +283,8 @@ function AppContent() {
               visibleModes={tournament.visibleModes}
               onToggleChat={() => setIsChatOpen(!isChatOpen)}
               isChatOpen={isChatOpen}
+              theme={theme}
+              onToggleTheme={toggleTheme}
           />
       )}
       

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import type { View, TournamentMode } from '../types';
-import { Trophy, Globe, LayoutGrid, Newspaper, ShoppingBag, Home, Crown, MessageCircle } from 'lucide-react';
+import { Trophy, Globe, LayoutGrid, Newspaper, ShoppingBag, Home, Crown, MessageCircle, Sun, Moon } from 'lucide-react';
 import { CustomTrophy } from './shared/Icons';
 
 interface NavigationMenuProps {
@@ -10,9 +10,11 @@ interface NavigationMenuProps {
   visibleModes?: TournamentMode[];
   onToggleChat: () => void;
   isChatOpen: boolean;
+  theme: 'dark' | 'light';
+  onToggleTheme: () => void;
 }
 
-export const NavigationMenu: React.FC<NavigationMenuProps> = ({ currentView, setView, visibleModes = ['league', 'wakacl', 'two_leagues'], onToggleChat, isChatOpen }) => {
+export const NavigationMenu: React.FC<NavigationMenuProps> = ({ currentView, setView, visibleModes = ['league', 'wakacl', 'two_leagues'], onToggleChat, isChatOpen, theme, onToggleTheme }) => {
   const NavItem = ({ view, label, icon: Icon, colorClass = "" }: { view: View, label: string, icon: any, colorClass?: string }) => {
     const isActive = currentView === view;
     return (
@@ -68,6 +70,27 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ currentView, set
       );
   };
 
+  const ThemeToggle = () => {
+      return (
+        <button
+          type="button"
+          onClick={onToggleTheme}
+          className="flex flex-col items-center justify-center gap-0.5 sm:gap-1 transition-all duration-300 min-w-[60px] sm:min-w-0 flex-1 h-full py-1 cursor-pointer touch-manipulation active:scale-90 shrink-0 opacity-40 hover:opacity-70"
+        >
+          <div className="relative p-1.5 sm:p-2 rounded-xl transition-all duration-500 text-brand-light">
+            {theme === 'dark' ? (
+                <Sun size={20} className="sm:w-[24px] sm:h-[24px]" />
+            ) : (
+                <Moon size={20} className="sm:w-[24px] sm:h-[24px]" />
+            )}
+          </div>
+          <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-tight text-center leading-none truncate w-full px-0.5 mt-0.5 text-brand-light">
+            {theme === 'dark' ? 'Light' : 'Dark'}
+          </span>
+        </button>
+      );
+  };
+
   const isModeVisible = (mode: TournamentMode) => (visibleModes || ['league', 'wakacl', 'two_leagues']).includes(mode);
 
   return (
@@ -88,6 +111,7 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ currentView, set
             <NavItem view="shop" label="Shop" icon={ShoppingBag} colorClass="bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
             
             <ChatItem />
+            <ThemeToggle />
         </nav>
       </div>
     </div>
