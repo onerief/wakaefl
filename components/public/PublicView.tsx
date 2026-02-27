@@ -347,7 +347,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4 sm:gap-6">
         {/* UCL STAR PATTERN BACKGROUND */}
         {isChampionsMode && (
             <div className="fixed inset-0 pointer-events-none z-[-1] opacity-20">
@@ -362,8 +362,8 @@ export const PublicView: React.FC<PublicViewProps> = ({
         )}
 
         {/* SUB NAVIGATION - FIXED GRID LAYOUT - ALL ITEMS VISIBLE (NO SCROLL) */}
-        <div className="sticky top-[56px] sm:top-[128px] z-[30] -mx-2 sm:-mx-4 bg-brand-primary/95 backdrop-blur-xl border-b border-white/5 shadow-2xl">
-            <div className="px-1 sm:px-4 py-1.5 sm:py-3 max-w-5xl mx-auto">
+        <div className="sticky top-[56px] sm:top-[128px] z-[30] -mx-4 md:-mx-8 bg-brand-primary/95 backdrop-blur-xl border-b border-white/5 shadow-2xl">
+            <div className="px-2 sm:px-4 py-1.5 sm:py-3 max-w-5xl mx-auto">
                 <div className={`grid ${supportsKnockout ? 'grid-cols-5' : 'grid-cols-4'} gap-1 sm:gap-3`}>
                     <InternalTabButton 
                         isActive={activeTab === 'groups'} 

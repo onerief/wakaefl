@@ -27,7 +27,7 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ banners }) => {
 
     return (
         <div 
-            className="relative w-full mb-6 group"
+            className="relative w-full group"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
         >

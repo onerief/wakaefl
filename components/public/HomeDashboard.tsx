@@ -144,7 +144,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   };
 
   return (
-    <div className="space-y-10 md:space-y-20 py-2 md:py-4 animate-in fade-in duration-700 relative z-10 pb-20">
+    <div className="flex flex-col gap-10 md:gap-20 pt-0 pb-20 animate-in fade-in duration-700 relative z-10">
       <div className="absolute inset-0 z-[-1] opacity-20 pointer-events-none">
         <HeroPattern />
       </div>

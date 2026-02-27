@@ -252,9 +252,11 @@ function AppContent() {
       {showBanners && (
           <div className="w-full flex flex-col z-10">
               <MarqueeBanner messages={tournament.marqueeMessages} />
-              <div className="container mx-auto px-4 pt-6">
-                {tournament.banners && tournament.banners.length > 0 && <BannerCarousel banners={tournament.banners} />}
-              </div>
+              {tournament.banners && tournament.banners.length > 0 && (
+                  <div className="container mx-auto px-4 pt-4 md:pt-6">
+                      <BannerCarousel banners={tournament.banners} />
+                  </div>
+              )}
           </div>
       )}
 
@@ -268,7 +270,7 @@ function AppContent() {
           />
       )}
       
-      <main className={`container mx-auto px-4 py-6 md:p-8 flex-grow relative z-20 ${view !== 'admin' ? 'pb-32' : ''}`}>
+      <main className={`container mx-auto px-4 pt-2 pb-6 md:px-8 md:pt-4 md:pb-8 flex-grow relative z-20 ${view !== 'admin' ? 'pb-32' : ''}`}>
         <Suspense fallback={<div className="flex justify-center py-20"><Spinner size={40} /></div>}>
           {tournament.isLoading ? <DashboardSkeleton /> : (
             <>
