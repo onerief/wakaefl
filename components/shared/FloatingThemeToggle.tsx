@@ -12,10 +12,10 @@ export const FloatingThemeToggle: React.FC<FloatingThemeToggleProps> = ({ theme,
       onClick={toggleTheme}
       className="fixed bottom-24 right-4 z-50 p-3 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 group"
       style={{
-        backgroundColor: theme === 'dark' ? '#f8fafc' : '#020617', // Opposite background
-        color: theme === 'dark' ? '#020617' : '#f8fafc', // Opposite icon color
+        backgroundColor: theme === 'dark' ? '#f0f9ff' : '#020617', // Sky 50 (Light) vs Slate 950 (Dark)
+        color: theme === 'dark' ? '#020617' : '#f0f9ff', // Slate 950 (Dark) vs Sky 50 (Light)
         border: '2px solid',
-        borderColor: theme === 'dark' ? '#e2e8f0' : '#1e293b'
+        borderColor: theme === 'dark' ? '#e0f2fe' : '#1e293b' // Sky 100 vs Slate 800
       }}
       aria-label="Toggle Theme"
     >

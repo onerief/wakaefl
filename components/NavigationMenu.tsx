@@ -73,7 +73,7 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({ currentView, set
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-safe pointer-events-none">
       <div className="w-full max-w-5xl px-0 sm:px-3 pb-3 sm:pb-6">
-        <nav className="bg-brand-primary/95 backdrop-blur-2xl border-t sm:border border-white/10 sm:rounded-[2rem] p-1.5 shadow-[0_20px_50px_rgba(0,0,0,1)] flex items-center justify-start sm:justify-between pointer-events-auto ring-1 ring-white/5 h-[4.5rem] sm:h-20 w-full relative overflow-x-auto no-scrollbar select-none">
+        <nav className="bg-brand-primary/95 backdrop-blur-2xl border-t sm:border border-white/10 sm:rounded-[2rem] p-1.5 shadow-[0_20px_50px_var(--brand-shadow-color)] flex items-center justify-start sm:justify-between pointer-events-auto ring-1 ring-white/5 h-[4.5rem] sm:h-20 w-full relative overflow-x-auto no-scrollbar select-none">
             {/* Background Glow Effect for the whole bar */}
             <div className="absolute inset-0 bg-gradient-to-r from-brand-vibrant/5 via-transparent to-brand-special/5 pointer-events-none sticky left-0 right-0"></div>
             
