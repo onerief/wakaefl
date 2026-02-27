@@ -121,20 +121,21 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     return (
         <button 
             onClick={() => onSelectMode(mode)}
-            className={`group relative overflow-hidden rounded-[2rem] p-6 text-left transition-all duration-500 hover:-translate-y-2 border border-brand-accent active:scale-95 flex flex-col h-full ${bgClass} shadow-lg hover:shadow-2xl`}
+            className={`group relative overflow-hidden rounded-[2rem] p-6 text-left transition-all duration-500 hover:-translate-y-2 border border-brand-accent active:scale-95 flex flex-col h-full bg-brand-secondary shadow-lg hover:shadow-2xl`}
         >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent)] pointer-events-none"></div>
-            <div className="mb-4 flex items-center justify-between">
-                <div className={`p-3 rounded-2xl ${colorClass} shadow-xl text-white`}>
+            <div className={`absolute inset-0 opacity-5 bg-gradient-to-br ${colorClass} to-transparent pointer-events-none`}></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,var(--brand-light),transparent)] opacity-5 pointer-events-none"></div>
+            <div className="mb-4 flex items-center justify-between relative z-10">
+                <div className={`p-3 rounded-2xl ${colorClass.replace('from-', 'bg-').replace('/5', '')} shadow-xl text-white`}>
                     <Icon size={28} />
                 </div>
                 <div className="opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1">
-                    <ArrowRight size={20} className="text-brand-light" />
+                    <ArrowRight size={20} className="text-brand-text" />
                 </div>
             </div>
-            <h4 className="text-xl sm:text-2xl font-black text-brand-text italic uppercase tracking-tighter mb-2 group-hover:text-brand-special transition-colors">{title}</h4>
-            <p className="text-xs text-brand-light font-medium leading-relaxed mb-6">{desc}</p>
-            <div className="mt-auto flex items-center gap-2">
+            <h4 className="text-xl sm:text-2xl font-black text-brand-text italic uppercase tracking-tighter mb-2 group-hover:text-brand-special transition-colors relative z-10">{title}</h4>
+            <p className="text-xs text-brand-light font-medium leading-relaxed mb-6 relative z-10">{desc}</p>
+            <div className="mt-auto flex items-center gap-2 relative z-10">
                 <span className="text-[10px] font-black uppercase tracking-widest text-brand-text/80 py-1.5 px-4 bg-brand-primary/40 rounded-full border border-brand-accent group-hover:bg-brand-vibrant group-hover:text-white group-hover:border-brand-vibrant transition-all">
                     Masuk Arena
                 </span>
@@ -152,10 +153,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
       {/* QUICK STATS BAR - Moved Above News Slideshow */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-8 px-2 sm:px-0">
           {[
-              { label: 'Total Peserta', val: teamCount, icon: Users, color: 'text-blue-400' },
-              { label: 'Official Sponsors', val: partnerCount, icon: Star, color: 'text-yellow-400' },
-              { label: 'Mode Kompetisi', val: visibleModes.length, icon: Trophy, color: 'text-purple-400' },
-              { label: 'Status Server', val: 'Online', icon: Zap, color: 'text-green-400' }
+              { label: 'Total Peserta', val: teamCount, icon: Users, color: 'text-blue-500' },
+              { label: 'Official Sponsors', val: partnerCount, icon: Star, color: 'text-yellow-500' },
+              { label: 'Mode Kompetisi', val: visibleModes.length, icon: Trophy, color: 'text-purple-500' },
+              { label: 'Status Server', val: 'Online', icon: Zap, color: 'text-green-500' }
           ].map((stat, i) => (
               <div key={i} className="bg-brand-secondary border border-brand-accent p-3 sm:p-5 rounded-2xl sm:rounded-[1.5rem] flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-4 hover:border-brand-light/30 transition-all shadow-sm">
                   <div className={`p-2 sm:p-3 rounded-xl bg-brand-primary/50 ${stat.color}`}><stat.icon size={16} className="sm:w-5 sm:h-5" /></div>
@@ -214,7 +215,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
             onMouseLeave={() => setIsPaused(false)}
         >
             {latestNews.length > 0 ? (
-                <div className="relative overflow-hidden rounded-2xl sm:rounded-[3rem] border border-brand-accent shadow-[0_15px_50px_rgba(0,0,0,0.5)] sm:shadow-[0_30px_100px_rgba(0,0,0,1)] bg-brand-secondary aspect-[4/3] sm:aspect-[21/9]">
+                <div className="relative overflow-hidden rounded-2xl sm:rounded-[3rem] border border-brand-accent shadow-[0_15px_50px_rgba(0,0,0,0.2)] sm:shadow-[0_30px_100px_rgba(0,0,0,0.3)] bg-brand-secondary aspect-[4/3] sm:aspect-[21/9]">
                     <div 
                         className="flex h-full transition-transform duration-1000 ease-in-out"
                         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
@@ -291,17 +292,17 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
               <CompetitionCard 
                   mode="league" title="Liga Reguler" 
                   desc="Kompetisi format liga satu musim penuh."
-                  icon={LeagueIcon} colorClass="bg-blue-600" bgClass="bg-brand-secondary bg-gradient-to-br from-blue-500/5 to-transparent" 
+                  icon={LeagueIcon} colorClass="from-blue-500" 
               />
               <CompetitionCard 
                   mode="two_leagues" title="2 Wilayah" 
                   desc="Pertarungan antar region menuju gelar juara."
-                  icon={RegionIcon} colorClass="bg-purple-600" bgClass="bg-brand-secondary bg-gradient-to-br from-purple-500/5 to-transparent" 
+                  icon={RegionIcon} colorClass="from-purple-500" 
               />
               <CompetitionCard 
                   mode="wakacl" title="WakaEFL Champ" 
                   desc="Kasta tertinggi. Format UCL penuh gengsi."
-                  icon={ChampionshipIcon} colorClass="bg-yellow-600" bgClass="bg-brand-secondary bg-gradient-to-br from-yellow-500/5 to-transparent" 
+                  icon={ChampionshipIcon} colorClass="from-yellow-500" 
               />
           </div>
       </div>

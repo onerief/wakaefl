@@ -27,6 +27,7 @@ import { Spinner } from './components/shared/Spinner';
 import { DashboardSkeleton } from './components/shared/Skeleton';
 import { Footer } from './components/Footer';
 import type { User } from 'firebase/auth';
+import { FloatingThemeToggle } from './components/shared/FloatingThemeToggle';
 import { GlobalChat } from './components/public/GlobalChat';
 import { Button } from './components/shared/Button';
 import { ADMIN_EMAILS } from './constants';
@@ -283,9 +284,11 @@ function AppContent() {
               visibleModes={tournament.visibleModes}
               onToggleChat={() => setIsChatOpen(!isChatOpen)}
               isChatOpen={isChatOpen}
-              theme={theme}
-              onToggleTheme={toggleTheme}
           />
+      )}
+
+      {view !== 'admin' && (
+        <FloatingThemeToggle theme={theme} toggleTheme={toggleTheme} />
       )}
       
       <main className={`container mx-auto px-4 pt-2 pb-6 md:px-8 md:pt-4 md:pb-8 flex-grow relative z-20 ${view !== 'admin' ? 'pb-32' : ''}`}>

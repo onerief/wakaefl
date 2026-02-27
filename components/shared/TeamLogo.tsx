@@ -27,14 +27,14 @@ export const TeamLogo: React.FC<TeamLogoProps> = ({ logoUrl, teamName, className
   // If no URL or error, return the fallback immediately to save resources
   if (!effectiveLogoUrl) {
     return (
-      <div className={`${className} flex-shrink-0 rounded-full bg-brand-secondary/50 flex items-center justify-center text-brand-light/30 border border-white/5 backdrop-blur-sm`}>
+      <div className={`${className} flex-shrink-0 rounded-full bg-brand-secondary/50 flex items-center justify-center text-brand-light/30 border border-brand-accent backdrop-blur-sm`}>
         <Shield className="w-1/2 h-1/2 opacity-50" />
       </div>
     );
   }
 
   return (
-    <div className={`${className} relative flex-shrink-0 flex items-center justify-center rounded-full bg-brand-secondary/20 overflow-hidden border border-white/5 shadow-inner`}>
+    <div className={`${className} relative flex-shrink-0 flex items-center justify-center rounded-full bg-brand-secondary/20 overflow-hidden border border-brand-accent shadow-inner`}>
         
         {/* Placeholder / Skeleton while loading */}
         {!isLoaded && (
@@ -63,7 +63,7 @@ export const TeamLogo: React.FC<TeamLogoProps> = ({ logoUrl, teamName, className
 
           {/* High-tech border glow overlay when loaded */}
           {isLoaded && !hasError && (
-              <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/10 pointer-events-none"></div>
+              <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-brand-accent pointer-events-none"></div>
           )}
     </div>
   );

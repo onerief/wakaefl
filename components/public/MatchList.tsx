@@ -135,14 +135,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 isAdminMode 
                     ? 'ring-1 ring-brand-special/50 border-brand-special/30' 
                     : isMyMatch 
-                        ? 'border-brand-special/50 bg-brand-special/[0.03] shadow-[0_0_20px_rgba(253,224,71,0.15)] border-l-4 border-l-brand-special' 
-                        : 'border-white/5'
+                        ? 'border-brand-special/50 bg-brand-special/[0.05] shadow-[0_0_20px_var(--brand-special)] border-l-4 border-l-brand-special' 
+                        : 'border-brand-accent bg-brand-secondary/80'
             }`}>
                 {/* Header with improved status badges */}
-                <div className="flex items-center justify-between px-3 py-2 bg-black/40 border-b border-white/5 backdrop-blur-md">
+                <div className="flex items-center justify-between px-3 py-2 bg-brand-secondary/80 border-b border-brand-accent backdrop-blur-md">
                     <div className="flex items-center gap-2">
                          <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md border ${
-                             match.status === 'finished' ? 'bg-white/5 text-brand-light/70 border-white/10' : 
+                             match.status === 'finished' ? 'bg-brand-primary/50 text-brand-light/70 border-brand-accent' : 
                              match.status === 'live' ? 'bg-red-500/20 text-red-500 border-red-500/30 animate-pulse' : 
                              'bg-brand-vibrant/10 text-brand-vibrant border-brand-vibrant/20'
                          }`}>
@@ -153,7 +153,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             <span className="text-[8px] text-red-400 font-bold uppercase tracking-wider flex items-center gap-1 border border-red-500/20 px-1.5 py-0.5 rounded bg-red-500/10">WO</span>
                         )}
                     </div>
-                    <span className="text-[9px] font-bold text-brand-light/30 font-mono tracking-widest">
+                    <span className="text-[9px] font-bold text-brand-light/40 font-mono tracking-widest">
                         #{match.id.slice(-4)}
                     </span>
                 </div>
@@ -163,10 +163,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     {/* Team A */}
                     <button onClick={() => onSelectTeam(match.teamA)} className="flex-1 flex flex-col items-center gap-3 group/team transition-all active:scale-95">
                         <div className="relative">
-                            <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-12 h-12 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-transparent group-hover/team:ring-brand-vibrant/50 transition-all" />
-                            {match.status === 'scheduled' && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-brand-vibrant rounded-full flex items-center justify-center text-[7px] font-black text-white shadow-lg border border-black">H</div>}
+                            <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-12 h-12 sm:w-16 sm:h-16 shadow-xl ring-2 ring-transparent group-hover/team:ring-brand-vibrant/50 transition-all" />
+                            {match.status === 'scheduled' && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-brand-vibrant rounded-full flex items-center justify-center text-[7px] font-black text-white shadow-lg border border-brand-primary">H</div>}
                         </div>
-                        <span className="text-[10px] sm:text-xs font-black text-white uppercase leading-tight line-clamp-2 text-center group-hover/team:text-brand-vibrant transition-colors px-1">{match.teamA.name}</span>
+                        <span className="text-[10px] sm:text-xs font-black text-brand-text uppercase leading-tight line-clamp-2 text-center group-hover/team:text-brand-vibrant transition-colors px-1">{match.teamA.name}</span>
                         {isAdminMode && <QuickScoreControl val={editScoreA} setVal={setEditScoreA} label="A" />}
                     </button>
 
@@ -177,13 +177,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 {isSaving ? <Loader className="animate-spin" size={16} /> : <Save size={16} />}
                             </button>
                         ) : isFinished ? (
-                             <div className="flex items-center gap-3 text-2xl sm:text-4xl font-black italic text-white">
-                                 <span className={match.scoreA! > match.scoreB! ? 'text-brand-vibrant drop-shadow-[0_0_15px_rgba(37,99,235,0.6)]' : 'text-white/80'}>{match.scoreA}</span>
-                                 <span className="text-brand-light/20 text-xl font-light">-</span>
-                                 <span className={match.scoreB! > match.scoreA! ? 'text-brand-vibrant drop-shadow-[0_0_15px_rgba(37,99,235,0.6)]' : 'text-white/80'}>{match.scoreB}</span>
+                             <div className="flex items-center gap-3 text-2xl sm:text-4xl font-black italic text-brand-text">
+                                 <span className={match.scoreA! > match.scoreB! ? 'text-brand-vibrant drop-shadow-[0_0_15px_var(--brand-vibrant)]' : 'text-brand-text/60'}>{match.scoreA}</span>
+                                 <span className="text-brand-light/30 text-xl font-light">-</span>
+                                 <span className={match.scoreB! > match.scoreA! ? 'text-brand-vibrant drop-shadow-[0_0_15px_var(--brand-vibrant)]' : 'text-brand-text/60'}>{match.scoreB}</span>
                              </div>
                         ) : (
-                             <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-[10px] font-black text-brand-light/50 border border-white/5 italic">
+                             <div className="w-10 h-10 rounded-full bg-brand-primary/50 flex items-center justify-center text-[10px] font-black text-brand-light/50 border border-brand-accent italic">
                                  VS
                              </div>
                         )}
@@ -192,19 +192,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     {/* Team B */}
                     <button onClick={() => onSelectTeam(match.teamB)} className="flex-1 flex flex-col items-center gap-3 group/team transition-all active:scale-95">
                         <div className="relative">
-                            <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-12 h-12 sm:w-16 sm:h-16 shadow-2xl ring-2 ring-transparent group-hover/team:ring-brand-vibrant/50 transition-all" />
-                            {match.status === 'scheduled' && <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-brand-secondary rounded-full flex items-center justify-center text-[7px] font-black text-white shadow-lg border border-black">A</div>}
+                            <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-12 h-12 sm:w-16 sm:h-16 shadow-xl ring-2 ring-transparent group-hover/team:ring-brand-vibrant/50 transition-all" />
+                            {match.status === 'scheduled' && <div className="absolute -bottom-1 -left-1 w-4 h-4 bg-brand-secondary rounded-full flex items-center justify-center text-[7px] font-black text-brand-text shadow-lg border border-brand-primary">A</div>}
                         </div>
-                        <span className="text-[10px] sm:text-xs font-black text-white uppercase leading-tight line-clamp-2 text-center group-hover/team:text-brand-vibrant transition-colors px-1">{match.teamB.name}</span>
+                        <span className="text-[10px] sm:text-xs font-black text-brand-text uppercase leading-tight line-clamp-2 text-center group-hover/team:text-brand-vibrant transition-colors px-1">{match.teamB.name}</span>
                         {isAdminMode && <QuickScoreControl val={editScoreB} setVal={setEditScoreB} label="B" />}
                     </button>
                 </div>
 
                 {/* Footer Actions */}
-                <div className="flex items-center justify-between px-3 py-2 bg-black/30 border-t border-white/5">
+                <div className="flex items-center justify-between px-3 py-2 bg-brand-primary/30 border-t border-brand-accent">
                     <div className="flex gap-3">
                         {match.proofUrl ? (
-                            <button onClick={() => setShowProof(true)} className="flex items-center gap-1.5 text-[9px] font-bold text-brand-vibrant uppercase hover:text-white transition-all">
+                            <button onClick={() => setShowProof(true)} className="flex items-center gap-1.5 text-[9px] font-bold text-brand-vibrant uppercase hover:text-brand-text transition-all">
                                 <MonitorPlay size={12} /> <span>Lihat Bukti</span>
                             </button>
                         ) : (
@@ -220,7 +220,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     <button 
                                         onClick={() => fileInputRef.current?.click()} 
                                         disabled={isUploading}
-                                        className="flex items-center gap-1.5 text-[9px] font-bold text-brand-light uppercase hover:text-white transition-all disabled:opacity-50"
+                                        className="flex items-center gap-1.5 text-[9px] font-bold text-brand-light uppercase hover:text-brand-text transition-all disabled:opacity-50"
                                     >
                                         {isUploading ? <Loader className="animate-spin" size={12} /> : <Camera size={12} />}
                                         <span>Upload SS</span>
@@ -229,19 +229,19 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             )
                         )}
                         {hasComments && (
-                            <span className="text-[9px] font-bold text-brand-light/40 uppercase self-center flex items-center gap-1">
+                            <span className="text-[9px] font-bold text-brand-light/50 uppercase self-center flex items-center gap-1">
                                 <MessageCircle size={10} /> {match.comments?.length}
                             </span>
                         )}
                     </div>
                     
-                    <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1 text-[9px] font-bold uppercase transition-all py-1 px-2.5 rounded-lg border ${showComments ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-white/5 text-brand-light border-white/5 hover:bg-white/10'}`}>
+                    <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1 text-[9px] font-bold uppercase transition-all py-1 px-2.5 rounded-lg border ${showComments ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-brand-primary/50 text-brand-light border-brand-accent hover:bg-brand-accent/20'}`}>
                         <span>Chat Room</span>
                     </button>
                 </div>
 
                 {showComments && (
-                    <div className="bg-neutral-900 border-t border-white/10 animate-in slide-in-from-top-2 duration-300">
+                    <div className="bg-brand-primary/90 border-t border-brand-accent animate-in slide-in-from-top-2 duration-300">
                         <div className="max-h-40 overflow-y-auto p-3 space-y-2 custom-scrollbar">
                             {hasComments ? (
                                 match.comments?.map((comment) => (
@@ -251,12 +251,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         </span>
                                         <div className={`px-2.5 py-1.5 rounded-lg text-[10px] leading-relaxed break-words max-w-[90%] font-medium ${
                                             comment.userId === currentUser?.uid 
-                                            ? 'bg-brand-vibrant/20 text-white border border-brand-vibrant/30 rounded-tr-none' 
-                                            : 'bg-white/10 text-brand-text border border-white/5 rounded-tl-none'
+                                            ? 'bg-brand-vibrant/20 text-brand-text border border-brand-vibrant/30 rounded-tr-none' 
+                                            : 'bg-brand-secondary text-brand-text border border-brand-accent rounded-tl-none'
                                         }`}>
                                             {comment.text}
                                         </div>
-                                        <span className="text-[8px] text-brand-light/30 mt-0.5 font-mono">
+                                        <span className="text-[8px] text-brand-light/40 mt-0.5 font-mono">
                                             {new Date(comment.timestamp).toLocaleString('id-ID', { 
                                                 day: 'numeric', 
                                                 month: 'short', 
@@ -272,10 +272,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             )}
                             <div ref={commentsEndRef} />
                         </div>
-                        <div className="p-2 bg-black/60 border-t border-white/5">
+                        <div className="p-2 bg-brand-secondary/90 border-t border-brand-accent">
                             {chatPermissions.canChat ? (
                                 <form onSubmit={handleSubmitComment} className="flex gap-2">
-                                    <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Tulis komentar..." className="flex-grow bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[10px] text-white focus:border-brand-vibrant outline-none placeholder:text-brand-light/30 focus:bg-black transition-colors" />
+                                    <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Tulis komentar..." className="flex-grow bg-brand-primary/50 border border-brand-accent rounded-lg px-3 py-2 text-[10px] text-brand-text focus:border-brand-vibrant outline-none placeholder:text-brand-light/30 focus:bg-brand-primary transition-colors" />
                                     <button type="submit" disabled={!newComment.trim()} className="p-2 bg-brand-vibrant text-white rounded-lg transition-all active:scale-95 disabled:opacity-50"><Send size={14} /></button>
                                 </form>
                             ) : (

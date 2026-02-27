@@ -43,7 +43,7 @@ const InternalTabButton: React.FC<{
             group relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 
             py-2 sm:py-3 rounded-lg sm:rounded-xl transition-all w-full border overflow-hidden
             ${isActive 
-                ? 'bg-brand-vibrant/10 border-brand-vibrant/30 text-brand-vibrant shadow-[inset_0_0_15px_rgba(37,99,235,0.15)]' 
+                ? 'bg-brand-vibrant/10 border-brand-vibrant/30 text-brand-vibrant shadow-[inset_0_0_15px_var(--brand-vibrant)]' 
                 : 'bg-brand-secondary/40 border-transparent hover:bg-brand-secondary/60 text-brand-light/50 hover:text-brand-light'}
         `}
     >
@@ -55,7 +55,7 @@ const InternalTabButton: React.FC<{
             {label}
         </span>
         {isActive && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-vibrant shadow-[0_0_8px_#2563eb] sm:hidden"></span>
+            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-vibrant shadow-[0_0_8px_var(--brand-vibrant)] sm:hidden"></span>
         )}
     </button>
 );
@@ -101,7 +101,7 @@ const MatchdayTimer: React.FC<{ settings: ScheduleSettings }> = ({ settings }) =
                 flex items-center justify-between px-4 py-3 rounded-2xl shadow-2xl border
                 ${isUrgent 
                     ? 'bg-red-500/10 border-red-500/30 animate-pulse' 
-                    : 'bg-gradient-to-r from-blue-600/10 to-brand-primary/50 border-brand-vibrant/30'}
+                    : 'bg-gradient-to-r from-brand-vibrant/10 to-brand-primary/50 border-brand-vibrant/30'}
             `}>
                 <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-xl ${isUrgent ? 'bg-red-500/20 text-red-500' : 'bg-brand-vibrant/20 text-brand-vibrant'}`}>
@@ -259,14 +259,14 @@ export const PublicView: React.FC<PublicViewProps> = ({
                         const byeTeams = group.teams.filter(t => !playingTeamIds.has(t.id));
 
                         return (
-                            <div key={`${group.id}-fixtures`} className="flex flex-col bg-brand-secondary/30 border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl relative group/card min-h-[300px]">
-                                <div className="p-4 sm:p-5 bg-black/40 border-b border-white/5 flex flex-col gap-4">
+                            <div key={`${group.id}-fixtures`} className="flex flex-col bg-brand-secondary/30 border border-brand-accent rounded-[2rem] overflow-hidden shadow-2xl relative group/card min-h-[300px]">
+                                <div className="p-4 sm:p-5 bg-brand-primary/40 border-b border-brand-accent flex flex-col gap-4">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2 sm:gap-3">
                                             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-brand-vibrant/10 flex items-center justify-center text-brand-vibrant border border-brand-vibrant/20 shadow-inner">
                                                 <Calendar size={18} />
                                             </div>
-                                            <h4 className="text-base sm:text-xl font-black text-white uppercase italic tracking-tighter leading-none">{group.name}</h4>
+                                            <h4 className="text-base sm:text-xl font-black text-brand-text uppercase italic tracking-tighter leading-none">{group.name}</h4>
                                         </div>
                                     </div>
                                     
@@ -282,8 +282,8 @@ export const PublicView: React.FC<PublicViewProps> = ({
                                                     className={`
                                                         flex-shrink-0 flex flex-col items-center justify-center px-4 py-2 rounded-xl transition-all border
                                                         ${isActive 
-                                                            ? 'bg-brand-vibrant text-white border-brand-vibrant shadow-[0_4px_12px_rgba(37,99,235,0.3)] scale-105' 
-                                                            : 'bg-white/5 text-brand-light border-white/5 hover:bg-white/10 hover:border-white/10'}
+                                                            ? 'bg-brand-vibrant text-white border-brand-vibrant shadow-[0_4px_12px_var(--brand-vibrant)] scale-105' 
+                                                            : 'bg-brand-primary/20 text-brand-light border-brand-accent hover:bg-brand-primary/40 hover:border-brand-accent'}
                                                     `}
                                                 >
                                                     <span className={`text-[8px] font-bold uppercase tracking-widest ${isActive ? 'text-white/80' : 'text-brand-light/50'}`}>
@@ -298,7 +298,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
                                     </div>
                                 </div>
                                 
-                                <div className="p-3 sm:p-4 flex-grow relative overflow-y-auto custom-scrollbar bg-black/20">
+                                <div className="p-3 sm:p-4 flex-grow relative overflow-y-auto custom-scrollbar bg-brand-secondary/20">
                                     {currentMatches.length > 0 ? (
                                         <div className="space-y-3 animate-in slide-in-from-bottom-3 duration-500">
                                             {currentMatches.map(match => (
@@ -311,16 +311,16 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
                                     {/* BYE TEAMS INDICATOR */}
                                     {byeTeams.length > 0 && (
-                                        <div className="mt-4 p-3 bg-black/40 rounded-xl border border-white/5">
+                                        <div className="mt-4 p-3 bg-brand-primary/40 rounded-xl border border-brand-accent">
                                             <div className="flex items-center gap-2 mb-2 px-1">
                                                 <Coffee size={12} className="text-yellow-500" />
                                                 <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest">Rest Week (BYE)</span>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
                                                 {byeTeams.map(team => (
-                                                    <div key={team.id} className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5 opacity-80 hover:opacity-100 transition-all">
+                                                    <div key={team.id} className="flex items-center gap-2 bg-brand-secondary/40 px-3 py-1.5 rounded-lg border border-brand-accent opacity-80 hover:opacity-100 transition-all">
                                                          <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-5 h-5" />
-                                                         <span className="text-[9px] font-bold text-white uppercase tracking-tight">{team.name}</span>
+                                                         <span className="text-[9px] font-bold text-brand-text uppercase tracking-tight">{team.name}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -338,10 +338,10 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
   const renderContent = () => {
     switch(activeTab) {
-      case 'groups': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>Group Standings</span><div className="h-px flex-grow bg-gradient-to-r from-brand-vibrant/50 to-transparent"></div></h2>{groups.length > 0 ? (<GroupStage groups={groups} matches={matches} onSelectTeam={onSelectTeam} userOwnedTeamIds={userOwnedTeamIds} history={history} />) : (<div className="text-center bg-brand-secondary/30 border border-white/5 p-16 rounded-[2rem] opacity-30">Menyiapkan data...</div>)}</div>);
-      case 'fixtures': return (<div className="space-y-6"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 px-1"><div className="flex items-center gap-4"><h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter">Match Fixtures</h2><div className="px-2 py-0.5 bg-brand-vibrant/10 border border-brand-vibrant/30 rounded-full"><span className="text-[8px] font-black text-brand-vibrant uppercase tracking-widest animate-pulse">Live</span></div></div>{hasMyTeam && (<button onClick={() => setFocusMyTeam(!focusMyTeam)} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-xl border ${focusMyTeam ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-brand-secondary text-brand-light border-white/10 hover:border-brand-vibrant/40'}`}><Star size={14} className={focusMyTeam ? 'fill-white' : ''} /> {focusMyTeam ? 'Lihat Semua' : 'Fokus Tim Saya'}</button>)}</div>{groups.length > 0 ? renderFixtures() : <div className="text-center py-32 opacity-30 font-black italic">Jadwal Belum Dirilis</div>}</div>);
-      case 'knockout': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>{mode === 'two_leagues' ? 'Semi Final & Final' : 'Knockout Stage'}</span><div className="h-px flex-grow bg-gradient-to-r from-brand-special/50 to-transparent"></div></h2><KnockoutStageView knockoutStage={knockoutStage || {}} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateKnockoutScore} userOwnedTeamIds={userOwnedTeamIds} /></div>);
-      case 'stats': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-white italic uppercase tracking-tighter px-1 flex items-center gap-4"><BarChart3 className="text-brand-special" size={24} /><span>Peringkat Statistik</span></h2><StatsStandings clubStats={clubStats} playerStats={playerStats} /></div>);
+      case 'groups': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>Group Standings</span><div className="h-px flex-grow bg-gradient-to-r from-brand-vibrant/50 to-transparent"></div></h2>{groups.length > 0 ? (<GroupStage groups={groups} matches={matches} onSelectTeam={onSelectTeam} userOwnedTeamIds={userOwnedTeamIds} history={history} />) : (<div className="text-center bg-brand-secondary/30 border border-brand-accent p-16 rounded-[2rem] opacity-30">Menyiapkan data...</div>)}</div>);
+      case 'fixtures': return (<div className="space-y-6"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 px-1"><div className="flex items-center gap-4"><h2 className="text-xl sm:text-4xl font-black text-brand-text italic uppercase tracking-tighter">Match Fixtures</h2><div className="px-2 py-0.5 bg-brand-vibrant/10 border border-brand-vibrant/30 rounded-full"><span className="text-[8px] font-black text-brand-vibrant uppercase tracking-widest animate-pulse">Live</span></div></div>{hasMyTeam && (<button onClick={() => setFocusMyTeam(!focusMyTeam)} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-xl border ${focusMyTeam ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-brand-secondary text-brand-light border-brand-accent hover:border-brand-vibrant/40'}`}><Star size={14} className={focusMyTeam ? 'fill-white' : ''} /> {focusMyTeam ? 'Lihat Semua' : 'Fokus Tim Saya'}</button>)}</div>{groups.length > 0 ? renderFixtures() : <div className="text-center py-32 opacity-30 font-black italic">Jadwal Belum Dirilis</div>}</div>);
+      case 'knockout': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>{mode === 'two_leagues' ? 'Semi Final & Final' : 'Knockout Stage'}</span><div className="h-px flex-grow bg-gradient-to-r from-brand-special/50 to-transparent"></div></h2><KnockoutStageView knockoutStage={knockoutStage || {}} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateKnockoutScore} userOwnedTeamIds={userOwnedTeamIds} /></div>);
+      case 'stats': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><BarChart3 className="text-brand-special" size={24} /><span>Peringkat Statistik</span></h2><StatsStandings clubStats={clubStats} playerStats={playerStats} /></div>);
       default: return null;
     }
   }
@@ -362,7 +362,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
         )}
 
         {/* SUB NAVIGATION - FIXED GRID LAYOUT - ALL ITEMS VISIBLE (NO SCROLL) */}
-        <div className="sticky top-[56px] sm:top-[128px] z-[30] -mx-4 md:-mx-8 bg-brand-primary/95 backdrop-blur-xl border-b border-white/5 shadow-2xl">
+        <div className="sticky top-[56px] sm:top-[128px] z-[30] -mx-4 md:-mx-8 bg-brand-primary/95 backdrop-blur-xl border-b border-brand-accent shadow-2xl">
             <div className="px-2 sm:px-4 py-1.5 sm:py-3 max-w-5xl mx-auto">
                 <div className={`grid ${supportsKnockout ? 'grid-cols-5' : 'grid-cols-4'} gap-1 sm:gap-3`}>
                     <InternalTabButton 
@@ -395,7 +395,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
                     {/* Rules Button as a direct Grid Item - Same size as others */}
                     <button
                         onClick={() => setShowRules(true)}
-                        className="group relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 rounded-lg sm:rounded-xl transition-all w-full border bg-white/[0.02] border-transparent hover:bg-white/5 text-brand-light/50 hover:text-brand-light active:scale-95"
+                        className="group relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 rounded-lg sm:rounded-xl transition-all w-full border bg-brand-secondary/20 border-transparent hover:bg-brand-secondary/40 text-brand-light/50 hover:text-brand-light active:scale-95"
                     >
                         <BookOpen size={14} className="sm:w-[18px] sm:h-[18px] group-hover:text-brand-light" />
                         <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-tight leading-none truncate w-full sm:w-auto text-center">
