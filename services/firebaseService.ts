@@ -380,14 +380,50 @@ export const getUserTeams = async (email: string) => {
     }
 };
 
-export const addMatchCommentToFirestore = async (mode: TournamentMode, matchId: string, comment: MatchComment) => {
+export const addMatchCommentToFirestore = async (mode: TournamentMode, matchId: string, comment: MatchComment, match: Match) => {
     if (!firestore || !mode || !matchId) return;
     try {
         const colRef = collection(firestore, TOURNAMENT_COLLECTION, mode, MATCH_COMMENTS_COLLECTION);
         await addDoc(colRef, { ...comment, matchId });
+
+        // Send notifications to team owners
+        const ownersToNotify = new Set<string>();
+        if (match.teamA.ownerEmail && match.teamA.ownerEmail.toLowerCase() !== comment.userEmail.toLowerCase()) {
+            ownersToNotify.add(match.teamA.ownerEmail);
+        }
+        if (match.teamB.ownerEmail && match.teamB.ownerEmail.toLowerCase() !== comment.userEmail.toLowerCase()) {
+            ownersToNotify.add(match.teamB.ownerEmail);
+        }
+
+        for (const email of ownersToNotify) {
+            await sendNotification(
+                email,
+                'Komentar Baru di Jadwal',
+                `${comment.userName} mengomentari pertandingan ${match.teamA.name} vs ${match.teamB.name}: "${comment.text.substring(0, 50)}${comment.text.length > 50 ? '...' : ''}"`,
+                'info'
+            );
+        }
     } catch (e) {
         console.error("addMatchCommentToFirestore error:", e);
     }
+};
+
+export const subscribeToGlobalNotifications = (callback: (notifs: Notification[]) => void) => {
+    if (!firestore) return () => {};
+    const colRef = collection(firestore, 'global_notifications');
+    const q = query(colRef, orderBy('timestamp', 'desc'), limit(5));
+    return onSnapshot(q, (snap) => {
+        const notifs: Notification[] = [];
+        snap.forEach(docSnap => notifs.push({ ...docSnap.data(), id: docSnap.id } as Notification));
+        callback(notifs);
+    });
+};
+
+export const sendGlobalNotification = async (title: string, message: string, type: 'info' | 'success' | 'warning' = 'info') => {
+    if (!firestore) return;
+    await addDoc(collection(firestore, 'global_notifications'), {
+        email: 'global', title, message, type, timestamp: Date.now()
+    });
 };
 
 export const subscribeToMatchComments = (mode: TournamentMode, callback: (comments: Record<string, MatchComment[]>) => void) => {

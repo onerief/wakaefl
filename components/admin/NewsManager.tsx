@@ -8,6 +8,7 @@ import { useToast } from '../shared/Toast';
 import { CategoryManager } from './CategoryManager';
 import { RichTextEditor } from '../shared/RichTextEditor';
 import { ConfirmationModal } from './ConfirmationModal';
+import { sendGlobalNotification } from '../../services/firebaseService';
 
 interface NewsManagerProps {
     news: NewsItem[];
@@ -66,6 +67,13 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
             };
             newsItems.push(newItem);
             addToast('Berita berhasil diterbitkan!', 'success');
+            
+            // Send global notification
+            sendGlobalNotification(
+                'Pengumuman Baru!',
+                `Admin baru saja menerbitkan berita: ${title}`,
+                'info'
+            ).catch(console.error);
         }
 
         onUpdateNews(newsItems);

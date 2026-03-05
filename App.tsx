@@ -21,7 +21,7 @@ import { ToastProvider } from './components/shared/Toast';
 import { TeamProfileModal } from './components/public/TeamProfileModal';
 import { UserProfileModal } from './components/public/UserProfileModal';
 import { TeamRegistrationModal } from './components/public/TeamRegistrationModal';
-import { onAuthChange, signOutUser, getGlobalStats, getUserTeams, addMatchCommentToFirestore } from './services/firebaseService';
+import { onAuthChange, signOutUser, getGlobalStats, getUserTeams, addMatchCommentToFirestore, subscribeToGlobalNotifications } from './services/firebaseService';
 import { useToast } from './components/shared/Toast';
 import { Spinner } from './components/shared/Spinner';
 import { DashboardSkeleton } from './components/shared/Skeleton';
@@ -214,6 +214,9 @@ function AppContent() {
           return;
       }
       
+      const match = tournament.matches.find(m => m.id === matchId);
+      if (!match) return;
+
       // Optimistic Update (Immediate UI feedback)
       tournament.addMatchComment(
           matchId,
@@ -234,12 +237,26 @@ function AppContent() {
               text: text,
               timestamp: Date.now(),
               isAdmin: isAdminAuthenticated
-          });
+          }, match);
       } catch (e) {
           console.error("Failed to save comment:", e);
           addToast("Gagal menyimpan komentar ke server.", "error");
       }
   };
+
+  useEffect(() => {
+    const unsub = subscribeToGlobalNotifications((notifs) => {
+        if (notifs.length > 0) {
+            const latest = notifs[0];
+            const lastSeen = localStorage.getItem('last_global_notif');
+            if (lastSeen !== latest.id) {
+                addToast(`${latest.title}: ${latest.message}`, latest.type as any);
+                localStorage.setItem('last_global_notif', latest.id);
+            }
+        }
+    });
+    return () => unsub();
+  }, [addToast]);
 
   const showBanners = view !== 'admin' && view !== 'hall_of_fame' && !['privacy', 'about', 'terms'].includes(view);
 
