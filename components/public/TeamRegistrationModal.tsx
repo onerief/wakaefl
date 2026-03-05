@@ -113,7 +113,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                     {/* Header */}
                     <div className="bg-brand-secondary/50 p-4 sm:p-6 border-b border-white/5 flex justify-between items-center">
                         <div>
-                            <h2 className="text-lg sm:text-xl font-black text-white italic uppercase tracking-tighter">Form Pendaftaran</h2>
+                            <h2 className="text-lg sm:text-xl font-black text-brand-text italic uppercase tracking-tighter">Form Pendaftaran</h2>
                             <p className="text-[10px] sm:text-xs text-brand-light">Daftarkan tim untuk kompetisi baru.</p>
                         </div>
                         <button onClick={onClose} className="text-brand-light hover:text-white transition-colors">
@@ -139,7 +139,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                 <div className="relative">
                                     <select
                                         onChange={(e) => handleUseExistingTeam(e.target.value)}
-                                        className="w-full pl-3 sm:pl-4 pr-10 py-2.5 sm:py-3 bg-brand-primary border border-brand-accent rounded-xl text-white text-[11px] sm:text-xs font-bold focus:ring-2 focus:ring-brand-vibrant outline-none appearance-none"
+                                        className="w-full pl-3 sm:pl-4 pr-10 py-2.5 sm:py-3 bg-brand-primary border border-brand-accent rounded-xl text-brand-text text-[11px] sm:text-xs font-bold focus:ring-2 focus:ring-brand-vibrant outline-none appearance-none"
                                         defaultValue=""
                                     >
                                         <option value="">-- Pilih Tim Anda --</option>
@@ -195,7 +195,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                         <select
                                             value={preferredMode}
                                             onChange={(e) => setPreferredMode(e.target.value as TournamentMode)}
-                                            className="w-full pl-9 sm:pl-10 pr-10 p-2.5 sm:p-3 bg-brand-secondary border border-brand-accent rounded-xl text-white text-[11px] sm:text-sm focus:ring-2 focus:ring-brand-vibrant outline-none appearance-none"
+                                            className="w-full pl-9 sm:pl-10 pr-10 p-2.5 sm:p-3 bg-brand-secondary border border-brand-accent rounded-xl text-brand-text text-[11px] sm:text-sm focus:ring-2 focus:ring-brand-vibrant outline-none appearance-none"
                                             required
                                         >
                                             <option value="league">Liga Reguler</option>
@@ -215,7 +215,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                         placeholder="Contoh: Garuda FC"
-                                        className="w-full p-2.5 sm:p-3 bg-brand-secondary border border-brand-accent rounded-xl text-white text-[11px] sm:text-sm focus:ring-2 focus:ring-brand-vibrant outline-none"
+                                        className="w-full p-2.5 sm:p-3 bg-brand-secondary border border-brand-accent rounded-xl text-brand-text text-[11px] sm:text-sm focus:ring-2 focus:ring-brand-vibrant outline-none"
                                         required
                                     />
                                 </div>
@@ -229,7 +229,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                             value={manager}
                                             onChange={(e) => setManager(e.target.value)}
                                             placeholder="Nama Panggilan"
-                                            className="w-full pl-9 sm:pl-10 p-2.5 sm:p-3 bg-brand-secondary border border-brand-accent rounded-xl text-white text-[11px] sm:text-sm focus:ring-2 focus:ring-brand-vibrant outline-none"
+                                            className="w-full pl-9 sm:pl-10 p-2.5 sm:p-3 bg-brand-secondary border border-brand-accent rounded-xl text-brand-text text-[11px] sm:text-sm focus:ring-2 focus:ring-brand-vibrant outline-none"
                                             required
                                         />
                                     </div>
@@ -245,7 +245,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                                 value={whatsappNumber}
                                                 onChange={(e) => setWhatsappNumber(e.target.value)}
                                                 placeholder="08..."
-                                                className="w-full pl-9 sm:pl-10 p-2.5 sm:p-3 bg-brand-secondary border border-brand-accent rounded-xl text-white text-[11px] sm:text-sm focus:ring-2 focus:ring-green-500 outline-none"
+                                                className="w-full pl-9 sm:pl-10 p-2.5 sm:p-3 bg-brand-secondary border border-brand-accent rounded-xl text-brand-text text-[11px] sm:text-sm focus:ring-2 focus:ring-green-500 outline-none"
                                                 required
                                             />
                                         </div>
@@ -259,7 +259,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                                 value={socialMediaUrl}
                                                 onChange={(e) => setSocialMediaUrl(e.target.value)}
                                                 placeholder="Link Profile"
-                                                className="w-full pl-9 sm:pl-10 p-2.5 sm:p-3 bg-brand-secondary border border-brand-accent rounded-xl text-white text-[11px] sm:text-sm focus:ring-2 focus:ring-pink-500 outline-none"
+                                                className="w-full pl-9 sm:pl-10 p-2.5 sm:p-3 bg-brand-secondary border border-brand-accent rounded-xl text-brand-text text-[11px] sm:text-sm focus:ring-2 focus:ring-pink-500 outline-none"
                                             />
                                         </div>
                                     </div>

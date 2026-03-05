@@ -26,7 +26,7 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, rules }
                         <BookOpen size={20} />
                     </div>
                     <div>
-                        <h2 className="text-lg font-black text-white italic uppercase tracking-tighter">Peraturan Resmi</h2>
+                        <h2 className="text-lg font-black text-brand-text italic uppercase tracking-tighter">Peraturan Resmi</h2>
                         <p className="text-[10px] text-brand-light uppercase tracking-widest">WakaEFL Hub Rulebook</p>
                     </div>
                 </div>
@@ -39,9 +39,9 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, rules }
             </div>
 
             {/* Content */}
-            <div className="p-6 overflow-y-auto custom-scrollbar flex-grow bg-black/20">
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-grow bg-brand-secondary/20">
                 {rules ? (
-                    <div className="prose prose-invert max-w-none">
+                    <div className="prose max-w-none">
                         <div className="whitespace-pre-wrap text-xs sm:text-sm text-brand-light leading-relaxed font-medium">
                             {rules}
                         </div>

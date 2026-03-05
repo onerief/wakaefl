@@ -179,7 +179,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
             </div>
             {isEditingName ? (
                 <div className="flex flex-col items-center gap-1.5 w-full px-4 sm:px-8">
-                    <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} className="w-full bg-brand-primary border border-brand-vibrant/50 rounded-lg px-2 py-1 text-center text-white font-bold text-xs sm:text-base outline-none" autoFocus />
+                    <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} className="w-full bg-brand-primary border border-brand-vibrant/50 rounded-lg px-2 py-1 text-center text-brand-text font-bold text-xs sm:text-base outline-none" autoFocus />
                     <div className="flex gap-2">
                         <button onClick={handleUpdateName} className="p-1.5 bg-green-600 text-white rounded-lg">
                             {isUpdatingName ? <Spinner size={12} /> : <Check size={12} />}
@@ -192,7 +192,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
             ) : (
                 <div className="flex flex-col items-center">
                     <div className="flex items-center gap-1.5">
-                        <h2 className="text-sm sm:text-xl font-bold text-white">{currentUser.displayName || 'Member'}</h2>
+                        <h2 className="text-sm sm:text-xl font-bold text-brand-text">{currentUser.displayName || 'Member'}</h2>
                         <button onClick={() => setIsEditingName(true)} className="text-brand-light hover:text-brand-vibrant"><Edit size={12} /></button>
                     </div>
                     <p className="text-[9px] sm:text-sm text-brand-light opacity-60">{currentUser.email}</p>
@@ -240,16 +240,16 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
                             <div className="flex justify-center py-2"><Spinner /></div>
                         ) : userOwnedTeams.length > 0 ? (
                             <div className="space-y-2">
-                                {userOwnedTeams.map((item, idx) => (
-                                    <div key={idx} className="bg-white/[0.02] border border-white/5 rounded-xl p-2 flex items-center justify-between">
+                                 {userOwnedTeams.map((item, idx) => (
+                                    <div key={idx} className="bg-brand-secondary/20 border border-white/5 rounded-xl p-2 flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <TeamLogo logoUrl={item.team.logoUrl} teamName={item.team.name} className="w-7 h-7" />
                                             <div>
-                                                <h4 className="font-bold text-white text-[10px] truncate max-w-[120px]">{item.team.name}</h4>
+                                                <h4 className="font-bold text-brand-text text-[10px] truncate max-w-[120px]">{item.team.name}</h4>
                                                 <span className="text-[7px] text-brand-vibrant font-black uppercase">{getModeLabel(item.mode)}</span>
                                             </div>
                                         </div>
-                                        <button onClick={() => handleEditClick(item)} className="p-1.5 rounded-lg bg-white/5 text-brand-light"><Edit size={12} /></button>
+                                        <button onClick={() => handleEditClick(item)} className="p-1.5 rounded-lg bg-brand-secondary/20 text-brand-light"><Edit size={12} /></button>
                                     </div>
                                 ))}
                             </div>
@@ -274,7 +274,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
                         ) : (
                             <form onSubmit={handleClaimSubmit} className="space-y-2">
                                 <div className="relative">
-                                    <select value={selectedClaimTeamId} onChange={(e) => setSelectedClaimTeamId(e.target.value)} className="w-full p-2 bg-black/20 border border-brand-accent rounded-lg text-white text-[10px] outline-none appearance-none" required>
+                                    <select value={selectedClaimTeamId} onChange={(e) => setSelectedClaimTeamId(e.target.value)} className="w-full p-2 bg-black/20 border border-brand-accent rounded-lg text-brand-text text-[10px] outline-none appearance-none" required>
                                         <option value="">-- Pilih Tim ({availableTeams.length}) --</option>
                                         {availableTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                                     </select>
@@ -301,7 +301,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
                                         {notif.type === 'success' ? <CheckCircle size={16} /> : notif.type === 'warning' ? <AlertTriangle size={16} /> : <Info size={16} />}
                                     </div>
                                     <div className="flex-grow min-w-0">
-                                        <h4 className="text-xs font-bold text-white mb-1">{notif.title}</h4>
+                                        <h4 className="text-xs font-bold text-brand-text mb-1">{notif.title}</h4>
                                         <p className="text-[10px] text-brand-light leading-relaxed whitespace-pre-line">{notif.message}</p>
                                         <span className="text-[8px] text-brand-light/40 mt-2 block">{new Date(notif.timestamp).toLocaleString()}</span>
                                     </div>

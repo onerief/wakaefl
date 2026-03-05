@@ -93,7 +93,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
             <div className="flex-1">
                 {/* Header */}
                 <div className="p-4 sm:p-6 pb-2 text-center">
-                    <h2 className="text-xl sm:text-2xl font-black text-white italic uppercase tracking-tighter mb-0.5 sm:mb-1">
+                    <h2 className="text-xl sm:text-2xl font-black text-brand-text italic uppercase tracking-tighter mb-0.5 sm:mb-1">
                         Member Area
                     </h2>
                     <p className="text-[10px] sm:text-xs text-brand-light opacity-60">Komunitas eFootball Way Kanan</p>
@@ -150,7 +150,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
                                     placeholder="Nama Lengkap"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="w-full bg-black/20 border border-brand-accent text-white text-xs sm:text-sm rounded-xl py-2.5 sm:py-3 pl-9 sm:pl-10 focus:ring-2 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/40 transition-all"
+                                    className="w-full bg-black/20 border border-brand-accent text-brand-text text-xs sm:text-sm rounded-xl py-2.5 sm:py-3 pl-9 sm:pl-10 focus:ring-2 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/40 transition-all"
                                     required={!isLogin}
                                 />
                             </div>
@@ -162,7 +162,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
                                 placeholder="Alamat Email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="w-full bg-black/20 border border-brand-accent text-white text-xs sm:text-sm rounded-xl py-2.5 sm:py-3 pl-9 sm:pl-10 focus:ring-2 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/40 transition-all"
+                                className="w-full bg-black/20 border border-brand-accent text-brand-text text-xs sm:text-sm rounded-xl py-2.5 sm:py-3 pl-9 sm:pl-10 focus:ring-2 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/40 transition-all"
                                 required
                             />
                         </div>
@@ -173,7 +173,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
                                 placeholder="Password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full bg-black/20 border border-brand-accent text-white text-xs sm:text-sm rounded-xl py-2.5 sm:py-3 pl-9 sm:pl-10 focus:ring-2 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/40 transition-all"
+                                className="w-full bg-black/20 border border-brand-accent text-brand-text text-xs sm:text-sm rounded-xl py-2.5 sm:py-3 pl-9 sm:pl-10 focus:ring-2 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/40 transition-all"
                                 required
                             />
                         </div>
