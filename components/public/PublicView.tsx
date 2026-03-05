@@ -1,6 +1,6 @@
 
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { Group, Match, KnockoutStageRounds, Team, KnockoutMatch, TournamentMode, SeasonHistory, ScheduleSettings } from '../../types';
 import { GroupStage } from './GroupStage';
 import { MatchCard } from './MatchList';
@@ -10,6 +10,45 @@ import { StatsStandings } from './StatsStandings';
 import { Users, ListChecks, Trophy, BookOpen, Crown, ChevronDown, Zap, ShieldCheck, Star, Lock, Calendar, Info, BarChart3, Layout, Coffee, Clock, Search, Filter, X } from 'lucide-react';
 import type { User } from 'firebase/auth';
 import { TeamLogo } from '../shared/TeamLogo';
+
+const MatchdayButton: React.FC<{
+    isActive: boolean;
+    onClick: () => void;
+    leg: number;
+    day: number;
+}> = ({ isActive, onClick, leg, day }) => {
+    const btnRef = useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+        if (isActive && btnRef.current) {
+            btnRef.current.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
+            });
+        }
+    }, [isActive]);
+
+    return (
+        <button
+            ref={btnRef}
+            onClick={onClick}
+            className={`
+                flex-shrink-0 flex flex-col items-center justify-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all border
+                ${isActive 
+                    ? 'bg-brand-vibrant text-white border-brand-vibrant shadow-[0_4px_12px_var(--brand-vibrant)] scale-105' 
+                    : 'bg-brand-primary/20 text-brand-light border-brand-accent hover:bg-brand-primary/40 hover:border-brand-accent'}
+            `}
+        >
+            <span className={`text-[7px] font-bold uppercase tracking-widest ${isActive ? 'text-white/80' : 'text-brand-light/50'}`}>
+                {leg === 1 ? 'Leg 1' : 'Leg 2'}
+            </span>
+            <span className="text-[8px] font-black uppercase whitespace-nowrap">
+                Day {day}
+            </span>
+        </button>
+    );
+};
 
 interface PublicViewProps {
   mode: TournamentMode;
@@ -297,28 +336,18 @@ export const PublicView: React.FC<PublicViewProps> = ({
                                     </div>
                                     
                                     {/* Horizontal Matchday Selector */}
-                                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
+                                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1 scroll-smooth">
                                         {sortedKeys.map(key => {
                                             const [leg, day] = key.replace('L','').split('-D').map(Number);
                                             const isActive = activeScheduleKey === key;
                                             return (
-                                                <button
+                                                <MatchdayButton
                                                     key={key}
+                                                    isActive={isActive}
                                                     onClick={() => setSelectedMatchdays(prev => ({...prev, [group.id]: key}))}
-                                                    className={`
-                                                        flex-shrink-0 flex flex-col items-center justify-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all border
-                                                        ${isActive 
-                                                            ? 'bg-brand-vibrant text-white border-brand-vibrant shadow-[0_4px_12px_var(--brand-vibrant)] scale-105' 
-                                                            : 'bg-brand-primary/20 text-brand-light border-brand-accent hover:bg-brand-primary/40 hover:border-brand-accent'}
-                                                    `}
-                                                >
-                                                    <span className={`text-[7px] font-bold uppercase tracking-widest ${isActive ? 'text-white/80' : 'text-brand-light/50'}`}>
-                                                        {leg === 1 ? 'Leg 1' : 'Leg 2'}
-                                                    </span>
-                                                    <span className="text-[8px] font-black uppercase whitespace-nowrap">
-                                                        Day {day}
-                                                    </span>
-                                                </button>
+                                                    leg={leg}
+                                                    day={day}
+                                                />
                                             )
                                         })}
                                     </div>

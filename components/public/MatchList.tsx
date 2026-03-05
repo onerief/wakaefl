@@ -345,10 +345,17 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         </div>
                         <div className="p-3 bg-brand-secondary/60 border-t border-brand-accent/20">
                             {chatPermissions.canChat ? (
-                                <form onSubmit={handleSubmitComment} className="flex gap-2">
-                                    <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Type a message..." className="flex-grow bg-brand-primary/40 border border-brand-accent/20 rounded-xl px-4 py-2 text-[10px] text-brand-text focus:border-brand-vibrant outline-none transition-all placeholder:text-brand-light/20" />
-                                    <button type="submit" disabled={!newComment.trim()} className="p-2 bg-brand-vibrant text-white rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"><Send size={16} /></button>
-                                </form>
+                                <div className="space-y-2">
+                                    <div className="px-2 py-1 bg-brand-vibrant/5 border border-brand-vibrant/10 rounded-lg">
+                                        <p className="text-[7px] sm:text-[8px] font-bold text-brand-vibrant/80 uppercase tracking-tight text-center">
+                                            ⚠️ Score wajib diinput di chat atau upload SS di menu bukti
+                                        </p>
+                                    </div>
+                                    <form onSubmit={handleSubmitComment} className="flex gap-2">
+                                        <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Type a message..." className="flex-grow bg-brand-primary/40 border border-brand-accent/20 rounded-xl px-4 py-2 text-[10px] text-brand-text focus:border-brand-vibrant outline-none transition-all placeholder:text-brand-light/20" />
+                                        <button type="submit" disabled={!newComment.trim()} className="p-2 bg-brand-vibrant text-white rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"><Send size={16} /></button>
+                                    </form>
+                                </div>
                             ) : (
                                 <div className="text-center text-[8px] font-black text-brand-light/30 uppercase italic flex items-center justify-center gap-2 py-1"><Lock size={12} /> {chatPermissions.reason}</div>
                             )}
