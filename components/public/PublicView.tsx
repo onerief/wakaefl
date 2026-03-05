@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import type { Group, Match, KnockoutStageRounds, Team, KnockoutMatch, TournamentMode, SeasonHistory, ScheduleSettings } from '../../types';
 import { GroupStage } from './GroupStage';
@@ -6,7 +7,7 @@ import { MatchCard } from './MatchList';
 import { KnockoutStageView } from './KnockoutStageView';
 import { RulesModal } from './RulesModal'; // Updated import
 import { StatsStandings } from './StatsStandings';
-import { Users, ListChecks, Trophy, BookOpen, Crown, ChevronDown, Zap, ShieldCheck, Star, Lock, Calendar, Info, BarChart3, Layout, Coffee, Clock } from 'lucide-react';
+import { Users, ListChecks, Trophy, BookOpen, Crown, ChevronDown, Zap, ShieldCheck, Star, Lock, Calendar, Info, BarChart3, Layout, Coffee, Clock, Search, Filter, X } from 'lucide-react';
 import type { User } from 'firebase/auth';
 import { TeamLogo } from '../shared/TeamLogo';
 
@@ -51,7 +52,7 @@ const InternalTabButton: React.FC<{
             size={14} 
             className={`transition-colors sm:w-[18px] sm:h-[18px] ${isActive ? 'fill-brand-vibrant/20' : 'group-hover:text-brand-light'}`} 
         />
-        <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-tight leading-none truncate w-full sm:w-auto text-center">
+        <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-tight leading-none truncate w-full sm:w-auto text-center">
             {label}
         </span>
         {isActive && (
@@ -108,21 +109,21 @@ const MatchdayTimer: React.FC<{ settings: ScheduleSettings }> = ({ settings }) =
                         <Clock size={20} className={isUrgent ? "animate-bounce" : ""} />
                     </div>
                     <div>
-                        <p className={`text-[10px] font-black uppercase tracking-widest ${isUrgent ? 'text-red-400' : 'text-brand-light'}`}>
+                        <p className="text-[8px] font-black uppercase tracking-widest text-brand-light">
                             Batas Waktu Matchday {settings.currentMatchday}
                         </p>
-                        <p className={`text-lg font-black italic tracking-tight ${isUrgent ? 'text-red-500' : 'text-brand-text'}`}>
+                        <p className={`text-base font-black italic tracking-tight ${isUrgent ? 'text-red-500' : 'text-brand-text'}`}>
                             {timeLeft}
                         </p>
                     </div>
                 </div>
                 {isUrgent && (
-                    <div className="hidden sm:block text-[9px] font-bold text-red-400 uppercase tracking-widest px-3 py-1 bg-red-500/10 rounded-lg border border-red-500/20">
+                    <div className="hidden sm:block text-[8px] font-bold text-red-400 uppercase tracking-widest px-3 py-1 bg-red-500/10 rounded-lg border border-red-500/20">
                         Segera Mainkan!
                     </div>
                 )}
             </div>
-            <div className="text-center text-[10px] text-brand-light/60 mt-2 italic font-medium px-2">
+            <div className="text-center text-[8px] text-brand-light/60 mt-2 italic font-medium px-2">
                 *Untuk input score silakan kirim di Chat Jadwal beserta Screenshot Bukti Pertandingan.
             </div>
         </div>
@@ -140,10 +141,18 @@ export const PublicView: React.FC<PublicViewProps> = ({
   const [isAdminModeActive, setIsAdminModeActive] = useState(false);
   const [focusMyTeam, setFocusMyTeam] = useState(false);
   const [showRules, setShowRules] = useState(false); 
-
+  
   const hasMyTeam = userOwnedTeamIds.length > 0;
   const supportsKnockout = mode === 'two_leagues' || mode === 'wakacl';
   const isChampionsMode = mode === 'wakacl';
+
+  const getTeamStanding = (teamId: string) => {
+    for (const group of groups) {
+      const standing = group.standings.find(s => s.team.id === teamId);
+      if (standing) return standing;
+    }
+    return null;
+  };
 
   // Logic to auto-select the current active matchday based on unfinished matches
   useEffect(() => {
@@ -211,17 +220,31 @@ export const PublicView: React.FC<PublicViewProps> = ({
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-brand-vibrant/20 rounded-2xl text-brand-vibrant border border-brand-vibrant/20"><Star size={24} className="fill-brand-vibrant" /></div>
                             <div>
-                                <h3 className="text-white text-sm sm:text-base font-black uppercase italic tracking-tight">Timeline Tim Anda</h3>
-                                <p className="text-[10px] text-brand-light font-bold uppercase opacity-60">Seluruh jadwal Anda di grup ini</p>
+                                <h3 className="text-xs sm:text-sm font-black uppercase italic tracking-tight text-white">Timeline Tim Anda</h3>
+                                <p className="text-[8px] text-brand-light font-bold uppercase opacity-60">Seluruh jadwal Anda di grup ini</p>
                             </div>
                         </div>
-                        <button onClick={() => setFocusMyTeam(false)} className="px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-[9px] font-black uppercase text-brand-vibrant hover:bg-brand-vibrant hover:text-white transition-all">Lihat Semua</button>
+                        <button onClick={() => setFocusMyTeam(false)} className="px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-[8px] font-black uppercase text-brand-vibrant hover:bg-brand-vibrant hover:text-white transition-all">Lihat Semua</button>
                     </div>
                     <div className="grid grid-cols-1 gap-4">
                         {matches.filter(m => userOwnedTeamIds.includes(m.teamA.id) || userOwnedTeamIds.includes(m.teamB.id))
                             .sort((a, b) => (a.matchday || 0) - (b.matchday || 0))
                             .map(match => (
-                                <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateMatchScore} currentUser={currentUser} onAddComment={onAddMatchComment} isAdmin={isAdmin} userOwnedTeamIds={userOwnedTeamIds} mode={mode} />
+                                <MatchCard 
+                                    key={match.id} 
+                                    match={match} 
+                                    onSelectTeam={onSelectTeam} 
+                                    isAdminMode={isAdminModeActive} 
+                                    onUpdateScore={onUpdateMatchScore} 
+                                    currentUser={currentUser} 
+                                    onAddComment={onAddMatchComment} 
+                                    isAdmin={isAdmin} 
+                                    userOwnedTeamIds={userOwnedTeamIds} 
+                                    mode={mode} 
+                                    scheduleSettings={scheduleSettings}
+                                    teamAStanding={getTeamStanding(match.teamA.id)}
+                                    teamBStanding={getTeamStanding(match.teamB.id)}
+                                />
                             ))}
                     </div>
                 </div>
@@ -229,10 +252,13 @@ export const PublicView: React.FC<PublicViewProps> = ({
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {groups.map(group => {
                         const groupLetter = group.name.replace('Group ', '').trim();
+                        // Use matches here instead of filteredMatches
                         const groupMatches = matches.filter(m => 
                             m.group === group.id || m.group === groupLetter || m.group === group.name
                         );
                         
+                        if (groupMatches.length === 0) return null; // Hide group if no matches match filter
+
                         const schedule = groupMatches.reduce((acc, match) => {
                             const key = `L${match.leg || 1}-D${match.matchday || 1}`;
                             if (!acc[key]) acc[key] = []; acc[key].push(match); return acc;
@@ -250,7 +276,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
                         
                         const currentMatches = schedule[activeScheduleKey] || [];
                         
-                        // Calculate BYE Teams
+                        // Calculate BYE Teams (based on original group teams, not filtered)
                         const playingTeamIds = new Set<string>();
                         currentMatches.forEach(m => {
                             playingTeamIds.add(m.teamA.id);
@@ -266,7 +292,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
                                             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-brand-vibrant/10 flex items-center justify-center text-brand-vibrant border border-brand-vibrant/20 shadow-inner">
                                                 <Calendar size={18} />
                                             </div>
-                                            <h4 className="text-base sm:text-xl font-black text-brand-text uppercase italic tracking-tighter leading-none">{group.name}</h4>
+                                            <h4 className="text-xs sm:text-base font-black text-brand-text uppercase italic tracking-tighter leading-none">{group.name}</h4>
                                         </div>
                                     </div>
                                     
@@ -280,16 +306,16 @@ export const PublicView: React.FC<PublicViewProps> = ({
                                                     key={key}
                                                     onClick={() => setSelectedMatchdays(prev => ({...prev, [group.id]: key}))}
                                                     className={`
-                                                        flex-shrink-0 flex flex-col items-center justify-center px-4 py-2 rounded-xl transition-all border
+                                                        flex-shrink-0 flex flex-col items-center justify-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl transition-all border
                                                         ${isActive 
                                                             ? 'bg-brand-vibrant text-white border-brand-vibrant shadow-[0_4px_12px_var(--brand-vibrant)] scale-105' 
                                                             : 'bg-brand-primary/20 text-brand-light border-brand-accent hover:bg-brand-primary/40 hover:border-brand-accent'}
                                                     `}
                                                 >
-                                                    <span className={`text-[8px] font-bold uppercase tracking-widest ${isActive ? 'text-white/80' : 'text-brand-light/50'}`}>
+                                                    <span className={`text-[7px] font-bold uppercase tracking-widest ${isActive ? 'text-white/80' : 'text-brand-light/50'}`}>
                                                         {leg === 1 ? 'Leg 1' : 'Leg 2'}
                                                     </span>
-                                                    <span className="text-[10px] font-black uppercase whitespace-nowrap">
+                                                    <span className="text-[8px] font-black uppercase whitespace-nowrap">
                                                         Day {day}
                                                     </span>
                                                 </button>
@@ -302,11 +328,25 @@ export const PublicView: React.FC<PublicViewProps> = ({
                                     {currentMatches.length > 0 ? (
                                         <div className="space-y-3 animate-in slide-in-from-bottom-3 duration-500">
                                             {currentMatches.map(match => (
-                                                <MatchCard key={match.id} match={match} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateMatchScore} currentUser={currentUser} onAddComment={onAddMatchComment} isAdmin={isAdmin} userOwnedTeamIds={userOwnedTeamIds} mode={mode} />
+                                                <MatchCard 
+                                                    key={match.id} 
+                                                    match={match} 
+                                                    onSelectTeam={onSelectTeam} 
+                                                    isAdminMode={isAdminModeActive} 
+                                                    onUpdateScore={onUpdateMatchScore} 
+                                                    currentUser={currentUser} 
+                                                    onAddComment={onAddMatchComment} 
+                                                    isAdmin={isAdmin} 
+                                                    userOwnedTeamIds={userOwnedTeamIds} 
+                                                    mode={mode} 
+                                                    scheduleSettings={scheduleSettings}
+                                                    teamAStanding={getTeamStanding(match.teamA.id)}
+                                                    teamBStanding={getTeamStanding(match.teamB.id)}
+                                                />
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-10 opacity-20 italic font-black uppercase tracking-widest text-[10px]">Belum ada jadwal</div>
+                                        <div className="text-center py-10 opacity-20 italic font-black uppercase tracking-widest text-[8px]">Belum ada jadwal</div>
                                     )}
 
                                     {/* BYE TEAMS INDICATOR */}
@@ -314,13 +354,13 @@ export const PublicView: React.FC<PublicViewProps> = ({
                                         <div className="mt-4 p-3 bg-brand-primary/40 rounded-xl border border-brand-accent">
                                             <div className="flex items-center gap-2 mb-2 px-1">
                                                 <Coffee size={12} className="text-yellow-500" />
-                                                <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest">Rest Week (BYE)</span>
+                                                <span className="text-[8px] font-black text-yellow-500 uppercase tracking-widest">Rest Week (BYE)</span>
                                             </div>
                                             <div className="flex flex-wrap gap-2">
                                                 {byeTeams.map(team => (
                                                     <div key={team.id} className="flex items-center gap-2 bg-brand-secondary/40 px-3 py-1.5 rounded-lg border border-brand-accent opacity-80 hover:opacity-100 transition-all">
                                                          <TeamLogo logoUrl={team.logoUrl} teamName={team.name} className="w-5 h-5" />
-                                                         <span className="text-[9px] font-bold text-brand-text uppercase tracking-tight">{team.name}</span>
+                                                         <span className="text-[8px] font-bold text-brand-text uppercase tracking-tight">{team.name}</span>
                                                     </div>
                                                 ))}
                                             </div>
@@ -338,10 +378,10 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
   const renderContent = () => {
     switch(activeTab) {
-      case 'groups': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>Group Standings</span><div className="h-px flex-grow bg-gradient-to-r from-brand-vibrant/50 to-transparent"></div></h2>{groups.length > 0 ? (<GroupStage groups={groups} matches={matches} onSelectTeam={onSelectTeam} userOwnedTeamIds={userOwnedTeamIds} history={history} />) : (<div className="text-center bg-brand-secondary/30 border border-brand-accent p-16 rounded-[2rem] opacity-30">Menyiapkan data...</div>)}</div>);
-      case 'fixtures': return (<div className="space-y-6"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 px-1"><div className="flex items-center gap-4"><h2 className="text-xl sm:text-4xl font-black text-brand-text italic uppercase tracking-tighter">Match Fixtures</h2><div className="px-2 py-0.5 bg-brand-vibrant/10 border border-brand-vibrant/30 rounded-full"><span className="text-[8px] font-black text-brand-vibrant uppercase tracking-widest animate-pulse">Live</span></div></div>{hasMyTeam && (<button onClick={() => setFocusMyTeam(!focusMyTeam)} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-xl border ${focusMyTeam ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-brand-secondary text-brand-light border-brand-accent hover:border-brand-vibrant/40'}`}><Star size={14} className={focusMyTeam ? 'fill-white' : ''} /> {focusMyTeam ? 'Lihat Semua' : 'Fokus Tim Saya'}</button>)}</div>{groups.length > 0 ? renderFixtures() : <div className="text-center py-32 opacity-30 font-black italic">Jadwal Belum Dirilis</div>}</div>);
-      case 'knockout': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>{mode === 'two_leagues' ? 'Semi Final & Final' : 'Knockout Stage'}</span><div className="h-px flex-grow bg-gradient-to-r from-brand-special/50 to-transparent"></div></h2><KnockoutStageView knockoutStage={knockoutStage || {}} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateKnockoutScore} userOwnedTeamIds={userOwnedTeamIds} /></div>);
-      case 'stats': return (<div className="space-y-6"><h2 className="text-xl sm:text-4xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><BarChart3 className="text-brand-special" size={24} /><span>Peringkat Statistik</span></h2><StatsStandings clubStats={clubStats} playerStats={playerStats} /></div>);
+      case 'groups': return (<div className="space-y-6"><h2 className="text-base sm:text-3xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>Group Standings</span><div className="h-px flex-grow bg-gradient-to-r from-brand-vibrant/50 to-transparent"></div></h2>{groups.length > 0 ? (<GroupStage groups={groups} matches={matches} onSelectTeam={onSelectTeam} userOwnedTeamIds={userOwnedTeamIds} history={history} />) : (<div className="text-center bg-brand-secondary/30 border border-brand-accent p-16 rounded-[2rem] opacity-30">Menyiapkan data...</div>)}</div>);
+      case 'fixtures': return (<div className="space-y-6"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 px-1"><div className="flex items-center gap-4"><h2 className="text-base sm:text-3xl font-black text-brand-text italic uppercase tracking-tighter">Match Fixtures</h2><div className="px-2 py-0.5 bg-brand-vibrant/10 border border-brand-vibrant/30 rounded-full"><span className="text-[7px] font-black text-brand-vibrant uppercase tracking-widest animate-pulse">Live</span></div></div>{hasMyTeam && (<button onClick={() => setFocusMyTeam(!focusMyTeam)} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all shadow-xl border ${focusMyTeam ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-brand-secondary text-brand-light border-brand-accent hover:border-brand-vibrant/40'}`}><Star size={14} className={focusMyTeam ? 'fill-white' : ''} /> {focusMyTeam ? 'Lihat Semua' : 'Fokus Tim Saya'}</button>)}</div>{groups.length > 0 ? renderFixtures() : <div className="text-center py-32 opacity-30 font-black italic">Jadwal Belum Dirilis</div>}</div>);
+      case 'knockout': return (<div className="space-y-6"><h2 className="text-base sm:text-3xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>{mode === 'two_leagues' ? 'Semi Final & Final' : 'Knockout Stage'}</span><div className="h-px flex-grow bg-gradient-to-r from-brand-special/50 to-transparent"></div></h2><KnockoutStageView knockoutStage={knockoutStage || {}} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateKnockoutScore} userOwnedTeamIds={userOwnedTeamIds} /></div>);
+      case 'stats': return (<div className="space-y-6"><h2 className="text-base sm:text-3xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><BarChart3 className="text-brand-special" size={24} /><span>Peringkat Statistik</span></h2><StatsStandings clubStats={clubStats} playerStats={playerStats} /></div>);
       default: return null;
     }
   }
@@ -398,7 +438,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
                         className="group relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 sm:py-3 rounded-lg sm:rounded-xl transition-all w-full border bg-brand-secondary/20 border-transparent hover:bg-brand-secondary/40 text-brand-light/50 hover:text-brand-light active:scale-95"
                     >
                         <BookOpen size={14} className="sm:w-[18px] sm:h-[18px] group-hover:text-brand-light" />
-                        <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-tight leading-none truncate w-full sm:w-auto text-center">
+                        <span className="text-[7px] sm:text-[9px] font-black uppercase tracking-tight leading-none truncate w-full sm:w-auto text-center">
                             Rules
                         </span>
                     </button>
@@ -408,7 +448,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
 
         {isAdmin && (
             <div className="flex justify-center mt-2 px-4">
-                 <button onClick={() => setIsAdminModeActive(!isAdminModeActive)} className={`w-full sm:w-auto flex justify-center items-center gap-2 px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isAdminModeActive ? 'bg-brand-special text-brand-primary shadow-[0_0_20px_rgba(253,224,71,0.4)]' : 'bg-brand-vibrant/10 text-brand-vibrant border border-brand-vibrant/30'}`}>
+                 <button onClick={() => setIsAdminModeActive(!isAdminModeActive)} className={`w-full sm:w-auto flex justify-center items-center gap-2 px-6 py-3 rounded-full text-[8px] font-black uppercase tracking-widest transition-all ${isAdminModeActive ? 'bg-brand-special text-brand-primary shadow-[0_0_20px_rgba(253,224,71,0.4)]' : 'bg-brand-vibrant/10 text-brand-vibrant border border-brand-vibrant/30'}`}>
                     {isAdminModeActive ? '⚡ Edit Mode ON' : 'Aktifkan Edit Skor'}
                 </button>
             </div>
@@ -421,3 +461,5 @@ export const PublicView: React.FC<PublicViewProps> = ({
     </div>
   );
 };
+
+export default PublicView;

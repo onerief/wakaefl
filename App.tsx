@@ -5,13 +5,13 @@ import { MarqueeBanner } from './components/public/MarqueeBanner';
 import { BannerCarousel } from './components/public/BannerCarousel';
 
 // Lazy load components
-const PublicView = lazy(() => import('./components/public/PublicView').then(module => ({ default: module.PublicView })));
-const HomeDashboard = lazy(() => import('./components/public/HomeDashboard').then(module => ({ default: module.HomeDashboard })));
-const HallOfFame = lazy(() => import('./components/public/HallOfFame').then(module => ({ default: module.HallOfFame })));
-const NewsPortal = lazy(() => import('./components/public/NewsPortal').then(module => ({ default: module.NewsPortal })));
-const StoreFront = lazy(() => import('./components/public/StoreFront').then(module => ({ default: module.StoreFront })));
-const StaticPages = lazy(() => import('./components/public/StaticPages').then(module => ({ default: module.StaticPages })));
-const AdminPanel = lazy(() => import('./components/admin/AdminPanel').then(module => ({ default: module.AdminPanel })));
+const PublicView = lazy(() => import('@/components/public/PublicView'));
+const HomeDashboard = lazy(() => import('@/components/public/HomeDashboard').then(module => ({ default: module.HomeDashboard })));
+const HallOfFame = lazy(() => import('@/components/public/HallOfFame').then(module => ({ default: module.HallOfFame })));
+const NewsPortal = lazy(() => import('@/components/public/NewsPortal').then(module => ({ default: module.NewsPortal })));
+const StoreFront = lazy(() => import('@/components/public/StoreFront').then(module => ({ default: module.StoreFront })));
+const StaticPages = lazy(() => import('@/components/public/StaticPages').then(module => ({ default: module.StaticPages })));
+const AdminPanel = lazy(() => import('@/components/admin/AdminPanel').then(module => ({ default: module.AdminPanel })));
 
 import { useTournament } from './hooks/useTournament';
 import type { View, Team, TournamentMode } from './types';

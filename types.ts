@@ -11,6 +11,8 @@ export interface Team {
   assignedGroup?: string;
   ownerEmail?: string;
   requestedOwnerEmail?: string;
+  ovr?: number;
+  rating?: number;
 }
 
 export interface PlayerStat {
