@@ -86,10 +86,18 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
 
         setIsSubmitting(true);
         try {
+            // Format WhatsApp number: 08... -> +628...
+            let formattedWA = whatsappNumber.trim().replace(/\s/g, '');
+            if (formattedWA.startsWith('0')) {
+                formattedWA = '+62' + formattedWA.substring(1);
+            } else if (formattedWA.startsWith('8')) {
+                formattedWA = '+62' + formattedWA;
+            }
+
             await submitNewTeamRegistration({
                 name: name.trim(),
                 manager: manager.trim(),
-                whatsappNumber: whatsappNumber.trim(),
+                whatsappNumber: formattedWA,
                 socialMediaUrl: socialMediaUrl.trim(),
                 logoUrl: logoUrl,
                 ownerEmail: currentUser.email || '',
@@ -249,6 +257,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                                 required
                                             />
                                         </div>
+                                        <p className="text-[8px] text-brand-light/60 mt-1 italic">Input mulai dari 08... (Otomatis +62)</p>
                                     </div>
                                     <div>
                                         <label className="block text-[10px] sm:text-xs font-bold text-brand-light uppercase mb-1">Instagram</label>

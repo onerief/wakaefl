@@ -219,53 +219,6 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
                  </div>
             </div>
 
-            {/* MATCH HISTORY */}
-            <div className="w-full mb-4">
-                <h4 className="flex items-center gap-2 text-[8px] font-black text-brand-light uppercase tracking-widest mb-2">
-                    <Calendar size={10} /> Match History
-                </h4>
-                <div className="space-y-1.5">
-                    {teamMatches.length > 0 ? (
-                        teamMatches.slice(0, 5).map(match => {
-                            const isTeamA = match.teamA.id === team.id;
-                            const opponent = isTeamA ? match.teamB : match.teamA;
-                            const scoreSelf = isTeamA ? match.scoreA : match.scoreB;
-                            const scoreOpp = isTeamA ? match.scoreB : match.scoreA;
-                            const isWin = scoreSelf !== null && scoreOpp !== null && scoreSelf > scoreOpp;
-                            const isDraw = scoreSelf !== null && scoreOpp !== null && scoreSelf === scoreOpp;
-                            
-                            return (
-                                 <div key={match.id} className="flex items-center justify-between bg-brand-secondary/20 p-1.5 sm:p-2 rounded-lg border border-white/5">
-                                    <div className="flex items-center gap-2">
-                                         <div className={`w-0.5 h-5 rounded-full ${
-                                             match.status !== 'finished' ? 'bg-brand-light/30' :
-                                             isWin ? 'bg-green-500' : isDraw ? 'bg-gray-500' : 'bg-red-500'
-                                         }`}></div>
-                                         <div className="flex flex-col">
-                                             <span className="text-[6px] text-brand-light uppercase">vs</span>
-                                             <span className="text-[8px] sm:text-[9px] font-bold text-brand-text truncate max-w-[90px] sm:max-w-[110px]">{opponent.name}</span>
-                                         </div>
-                                    </div>
-                                    {match.status === 'finished' ? (
-                                        <div className="flex items-center gap-1.5 font-mono font-bold text-[9px] sm:text-[10px]">
-                                            <span className={scoreSelf! > scoreOpp! ? 'text-green-400' : ''}>{scoreSelf}</span>
-                                            <span className="text-brand-light/50">-</span>
-                                            <span className={scoreOpp! > scoreSelf! ? 'text-green-400' : ''}>{scoreOpp}</span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-[6px] bg-brand-light/10 text-brand-light px-1.5 py-0.5 rounded uppercase tracking-wider">Jadwal</span>
-                                    )}
-                                </div>
-                            )
-                        })
-                    ) : (
-                         <div className="text-center py-2 bg-white/5 rounded-lg border border-dashed border-white/10 text-[8px] text-brand-light italic">
-                             Belum ada pertandingan.
-                         </div>
-                    )}
-                </div>
-            </div>
-
             {/* Social Actions */}
             <div className="w-full flex gap-2">
                 {whatsappLink && (
