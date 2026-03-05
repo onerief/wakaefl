@@ -165,15 +165,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     
                     {/* Team A */}
                     <div className="flex-1 flex flex-col items-center gap-1 sm:gap-2 min-w-0">
-                        <span className="text-[8px] sm:text-[10px] font-black text-brand-text uppercase tracking-tight text-center line-clamp-1 w-full px-1 mb-1">{match.teamA.name}</span>
-                        
                         <div className="flex items-center gap-2 w-full justify-center">
                             <button onClick={() => onSelectTeam(match.teamA)} className="relative group/logo active:scale-95 transition-transform shrink-0">
                                 <div className="absolute inset-0 bg-brand-vibrant/20 blur-xl rounded-full opacity-0 group-hover/logo:opacity-100 transition-opacity"></div>
                                 <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-2xl relative z-10" />
                             </button>
                             
-                            <div className="flex flex-col items-start gap-0.5 min-w-[40px]">
+                            <div className="flex flex-col items-start gap-0.5 min-w-[40px] max-w-[80px] sm:max-w-[120px]">
+                                <span className="text-[7px] sm:text-[9px] font-black text-brand-text uppercase tracking-tight line-clamp-1 mb-0.5">{match.teamA.name}</span>
                                 {match.teamA.rating && (
                                     <div className="flex items-center gap-0.5 mb-0.5">
                                         {[...Array(5)].map((_, i) => (
@@ -239,15 +238,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
                     {/* Team B */}
                     <div className="flex-1 flex flex-col items-center gap-1 sm:gap-2 min-w-0">
-                        <span className="text-[8px] sm:text-[10px] font-black text-brand-text uppercase tracking-tight text-center line-clamp-1 w-full px-1 mb-1">{match.teamB.name}</span>
-                        
                         <div className="flex items-center gap-2 w-full justify-center flex-row-reverse">
                             <button onClick={() => onSelectTeam(match.teamB)} className="relative group/logo active:scale-95 transition-transform shrink-0">
                                 <div className="absolute inset-0 bg-brand-vibrant/20 blur-xl rounded-full opacity-0 group-hover/logo:opacity-100 transition-opacity"></div>
                                 <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-2xl relative z-10" />
                             </button>
                             
-                            <div className="flex flex-col items-end gap-0.5 min-w-[40px]">
+                            <div className="flex flex-col items-end gap-0.5 min-w-[40px] max-w-[80px] sm:max-w-[120px]">
+                                <span className="text-[7px] sm:text-[9px] font-black text-brand-text uppercase tracking-tight line-clamp-1 mb-0.5">{match.teamB.name}</span>
                                 {match.teamB.rating && (
                                     <div className="flex items-center gap-0.5 mb-0.5">
                                         {[...Array(5)].map((_, i) => (
