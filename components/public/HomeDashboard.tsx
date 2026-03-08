@@ -153,18 +153,18 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
       {/* BENTO GRID DASHBOARD */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 px-2 sm:px-0">
           {/* Quick Stats (Horizontal Bar) */}
-          <div className="md:col-span-4 flex flex-col sm:flex-row gap-4">
+          <div className="md:col-span-4 grid grid-cols-2 gap-3 sm:gap-4">
               {[
                   { label: 'Peserta', val: teamCount, icon: Users, color: 'text-blue-500' },
                   { label: 'Sponsors', val: partnerCount, icon: Star, color: 'text-yellow-500' }
               ].map((stat, i) => (
-                  <div key={i} className="glass-card p-4 sm:p-6 rounded-[2rem] flex items-center gap-4 flex-1 hover:border-brand-vibrant/30 transition-all group">
-                      <div className={`w-12 h-12 rounded-2xl bg-brand-primary/50 flex items-center justify-center shrink-0 ${stat.color}`}>
-                          <stat.icon size={24} />
+                  <div key={i} className="glass-card p-3 sm:p-6 rounded-2xl sm:rounded-[2rem] flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-4 hover:border-brand-vibrant/30 transition-all group">
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-brand-primary/50 flex items-center justify-center shrink-0 ${stat.color}`}>
+                          <stat.icon size={20} className="sm:w-6 sm:h-6" />
                       </div>
-                      <div>
+                      <div className="flex flex-col justify-center">
                           <p className="text-2xl sm:text-4xl font-sports text-brand-text leading-none">{stat.val}</p>
-                          <p className="text-[10px] sm:text-xs font-black text-brand-light uppercase tracking-widest mt-1 opacity-60">{stat.label}</p>
+                          <p className="text-[9px] sm:text-xs font-black text-brand-light uppercase tracking-widest mt-1 opacity-60">{stat.label}</p>
                       </div>
                   </div>
               ))}

@@ -12,7 +12,7 @@ export const ProofModal: React.FC<ProofModalProps> = ({ isOpen, onClose, imageUr
 
   return (
     <div
-      className="fixed inset-0 bg-black/95 flex items-center justify-center z-[150] backdrop-blur-md animate-fade-in p-4"
+      className="fixed inset-0 bg-black/95 flex items-center justify-center z-[200] backdrop-blur-md animate-fade-in p-2 sm:p-4"
       onClick={onClose}
     >
       <style>{`
@@ -24,22 +24,25 @@ export const ProofModal: React.FC<ProofModalProps> = ({ isOpen, onClose, imageUr
           animation: fade-in 0.2s ease-out forwards;
         }
       `}</style>
+      
+      {/* Close button fixed to top right of screen for easy access on mobile */}
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 bg-black/60 text-white rounded-full p-2 hover:bg-brand-vibrant transition-colors shadow-2xl z-50 border border-white/20 backdrop-blur-md"
+        aria-label="Close proof image"
+      >
+        <X size={24} />
+      </button>
+
       <div
-        className="relative flex items-center justify-center max-w-full max-h-full"
+        className="relative w-full h-full max-h-[100dvh] flex items-center justify-center"
         onClick={(e) => e.stopPropagation()}
       >
         <img
           src={imageUrl}
           alt="Match Proof Screenshot"
-          className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
         />
-        <button
-          onClick={onClose}
-          className="absolute -top-3 -right-3 bg-brand-primary text-brand-light rounded-full p-1.5 hover:bg-brand-accent hover:text-white transition-colors shadow-2xl z-50 border border-brand-accent"
-          aria-label="Close proof image"
-        >
-          <X size={20} />
-        </button>
       </div>
     </div>
   );
