@@ -159,44 +159,27 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
 
                 {/* Main Match Content */}
-                <div className="relative p-4 sm:p-6 flex items-center justify-between gap-2 sm:gap-4">
+                <div className="relative p-4 sm:p-6 flex items-center justify-between gap-2 sm:gap-4 overflow-hidden">
                     {/* Background Star Pattern (UCL Style) */}
                     <div className="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(circle_at_center,white_1px,transparent_1px)] bg-[length:20px_20px]"></div>
                     
                     {/* Team A */}
-                    <div className="flex-1 flex flex-col items-center gap-1 sm:gap-2 min-w-0">
-                        <div className="flex items-center gap-2 w-full justify-center">
+                    <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-3 w-full justify-center">
                             <button onClick={() => onSelectTeam(match.teamA)} className="relative group/logo active:scale-95 transition-transform shrink-0">
                                 <div className="absolute inset-0 bg-brand-vibrant/20 blur-xl rounded-full opacity-0 group-hover/logo:opacity-100 transition-opacity"></div>
-                                <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-2xl relative z-10" />
+                                <TeamLogo logoUrl={match.teamA.logoUrl} teamName={match.teamA.name} className="w-12 h-12 sm:w-16 sm:h-16 drop-shadow-2xl relative z-10" />
                             </button>
                             
                             <div className="flex flex-col items-start gap-0.5 min-w-[40px] max-w-[80px] sm:max-w-[120px]">
-                                <span className="text-[7px] sm:text-[9px] font-black text-brand-text uppercase tracking-tight line-clamp-1 mb-0.5">{match.teamA.name}</span>
-                                {match.teamA.rating && (
-                                    <div className="flex items-center gap-0.5 mb-0.5">
-                                        {[...Array(5)].map((_, i) => (
-                                            <Star key={i} size={6} className={`${i < Math.floor(match.teamA.rating!) ? 'text-brand-special fill-brand-special' : 'text-brand-light/20'}`} />
-                                        ))}
-                                    </div>
-                                )}
+                                <span className="text-[9px] sm:text-[11px] font-sports text-brand-text leading-tight line-clamp-1">{match.teamA.name}</span>
                                 <div className="flex items-center gap-1">
-                                    <span className="text-[6px] sm:text-[7px] font-bold text-brand-light/40 uppercase">{match.teamA.ovr ? 'OVR' : 'WR'}</span>
-                                    <span className="text-[8px] sm:text-[9px] font-black text-brand-special">
-                                        {match.teamA.ovr || (teamAStanding ? Math.round((teamAStanding.wins / (teamAStanding.played || 1)) * 100) : 0)}
-                                        {!match.teamA.ovr && '%'}
-                                    </span>
+                                    <span className="text-[7px] font-black text-brand-special">{match.teamA.ovr || (teamAStanding ? Math.round((teamAStanding.wins / (teamAStanding.played || 1)) * 100) : 0)}{!match.teamA.ovr && '%'}</span>
+                                    <span className="text-[6px] font-bold text-brand-light/40 uppercase">OVR</span>
                                 </div>
-                                <div className="flex gap-0.5">
-                                    {(teamAStanding?.form || []).slice(-5).map((res: string, i: number) => (
-                                        <div key={i} className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-[1px] flex items-center justify-center text-[5px] sm:text-[6px] font-black text-white ${
-                                            res === 'W' ? 'bg-green-500' : res === 'D' ? 'bg-yellow-500' : 'bg-red-500'
-                                        }`}>
-                                            {res}
-                                        </div>
-                                    ))}
-                                    {(!teamAStanding || teamAStanding.form.length === 0) && [1,2,3,4,5].map(i => (
-                                        <div key={i} className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-[1px] bg-brand-light/10"></div>
+                                <div className="flex gap-0.5 mt-1">
+                                    {(teamAStanding?.form || []).slice(-3).map((res: string, i: number) => (
+                                        <div key={i} className={`w-2 h-2 rounded-full ${res === 'W' ? 'bg-green-500' : res === 'D' ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
                                     ))}
                                 </div>
                             </div>
@@ -204,32 +187,36 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                         {isAdminMode && <QuickScoreControl val={editScoreA} setVal={setEditScoreA} />}
                     </div>
 
-                    {/* Score / VS Area */}
-                    <div className="flex flex-col items-center justify-center min-w-[60px] sm:min-w-[100px] shrink-0">
+                    {/* Score / VS Area - BROADCAST STYLE */}
+                    <div className="flex flex-col items-center justify-center min-w-[80px] sm:min-w-[120px] shrink-0 z-10">
                         {isAdminMode ? (
-                            <button onClick={handleQuickUpdate} disabled={isSaving} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-brand-special text-brand-primary flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all">
-                                {isSaving ? <Loader className="animate-spin" size={18} /> : <Save size={18} />}
+                            <button onClick={handleQuickUpdate} disabled={isSaving} className="w-12 h-12 rounded-full bg-brand-special text-brand-primary flex items-center justify-center shadow-2xl hover:scale-110 active:scale-90 transition-all border-4 border-brand-primary">
+                                {isSaving ? <Loader className="animate-spin" size={20} /> : <Save size={20} />}
                             </button>
                         ) : isFinished ? (
-                            <div className="flex flex-col items-center gap-1">
-                                <div className="flex items-center gap-2 sm:gap-4 text-lg sm:text-2xl font-black italic">
-                                    <span className={match.scoreA! > match.scoreB! ? 'text-brand-vibrant drop-shadow-[0_0_15px_rgba(37,99,235,0.5)]' : 'text-brand-text/40'}>{match.scoreA}</span>
-                                    <span className="text-brand-light/20 text-base sm:text-lg font-light">:</span>
-                                    <span className={match.scoreB! > match.scoreA! ? 'text-brand-vibrant drop-shadow-[0_0_15px_rgba(37,99,235,0.5)]' : 'text-brand-text/40'}>{match.scoreB}</span>
+                            <div className="flex flex-col items-center">
+                                <div className="flex items-center bg-brand-primary/80 backdrop-blur-md rounded-lg border border-white/10 overflow-hidden shadow-2xl">
+                                    <div className={`px-3 py-2 text-xl sm:text-3xl font-sports min-w-[40px] text-center ${match.scoreA! > match.scoreB! ? 'text-brand-special' : 'text-brand-text/60'}`}>
+                                        {match.scoreA}
+                                    </div>
+                                    <div className="w-px h-8 bg-white/10"></div>
+                                    <div className={`px-3 py-2 text-xl sm:text-3xl font-sports min-w-[40px] text-center ${match.scoreB! > match.scoreA! ? 'text-brand-special' : 'text-brand-text/60'}`}>
+                                        {match.scoreB}
+                                    </div>
                                 </div>
-                                <div className="px-2 py-0.5 bg-brand-primary/40 rounded-full border border-brand-accent/20">
-                                    <span className="text-[6px] sm:text-[7px] font-black text-brand-light/50 uppercase tracking-[0.2em]">Full Time</span>
+                                <div className="mt-2 px-2 py-0.5 bg-brand-vibrant/20 rounded-full border border-brand-vibrant/30">
+                                    <span className="text-[7px] font-black text-brand-vibrant uppercase tracking-widest">FT</span>
                                 </div>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center gap-2">
-                                <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-brand-primary/40 border border-brand-accent/20 flex items-center justify-center">
-                                    <span className="text-[10px] sm:text-base font-black italic text-brand-light/20 tracking-tighter">VS</span>
+                                <div className="px-4 py-2 bg-brand-primary/80 backdrop-blur-md rounded-lg border border-white/10 shadow-2xl">
+                                    <span className="text-sm sm:text-xl font-sports text-brand-light/40 tracking-widest">VS</span>
                                 </div>
                                 {match.status === 'live' && (
-                                    <div className="flex items-center gap-1 px-1.5 py-0.5 bg-red-500/20 border border-red-500/40 rounded-full animate-pulse">
+                                    <div className="flex items-center gap-1 px-2 py-0.5 bg-red-500/20 border border-red-500/40 rounded-full animate-pulse">
                                         <div className="w-1 h-1 bg-red-500 rounded-full"></div>
-                                        <span className="text-[6px] sm:text-[7px] font-black text-red-500 uppercase tracking-widest">Live</span>
+                                        <span className="text-[7px] font-black text-red-500 uppercase tracking-widest">Live</span>
                                     </div>
                                 )}
                             </div>
@@ -237,39 +224,22 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                     </div>
 
                     {/* Team B */}
-                    <div className="flex-1 flex flex-col items-center gap-1 sm:gap-2 min-w-0">
-                        <div className="flex items-center gap-2 w-full justify-center flex-row-reverse">
+                    <div className="flex-1 flex flex-col items-center gap-2 min-w-0">
+                        <div className="flex items-center gap-3 w-full justify-center flex-row-reverse">
                             <button onClick={() => onSelectTeam(match.teamB)} className="relative group/logo active:scale-95 transition-transform shrink-0">
                                 <div className="absolute inset-0 bg-brand-vibrant/20 blur-xl rounded-full opacity-0 group-hover/logo:opacity-100 transition-opacity"></div>
-                                <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-10 h-10 sm:w-14 sm:h-14 drop-shadow-2xl relative z-10" />
+                                <TeamLogo logoUrl={match.teamB.logoUrl} teamName={match.teamB.name} className="w-12 h-12 sm:w-16 sm:h-16 drop-shadow-2xl relative z-10" />
                             </button>
                             
                             <div className="flex flex-col items-end gap-0.5 min-w-[40px] max-w-[80px] sm:max-w-[120px]">
-                                <span className="text-[7px] sm:text-[9px] font-black text-brand-text uppercase tracking-tight line-clamp-1 mb-0.5">{match.teamB.name}</span>
-                                {match.teamB.rating && (
-                                    <div className="flex items-center gap-0.5 mb-0.5">
-                                        {[...Array(5)].map((_, i) => (
-                                            <Star key={i} size={6} className={`${i < Math.floor(match.teamB.rating!) ? 'text-brand-special fill-brand-special' : 'text-brand-light/20'}`} />
-                                        ))}
-                                    </div>
-                                )}
+                                <span className="text-[9px] sm:text-[11px] font-sports text-brand-text leading-tight line-clamp-1">{match.teamB.name}</span>
                                 <div className="flex items-center gap-1">
-                                    <span className="text-[8px] sm:text-[9px] font-black text-brand-special">
-                                        {match.teamB.ovr || (teamBStanding ? Math.round((teamBStanding.wins / (teamBStanding.played || 1)) * 100) : 0)}
-                                        {!match.teamB.ovr && '%'}
-                                    </span>
-                                    <span className="text-[6px] sm:text-[7px] font-bold text-brand-light/40 uppercase">{match.teamB.ovr ? 'OVR' : 'WR'}</span>
+                                    <span className="text-[6px] font-bold text-brand-light/40 uppercase">OVR</span>
+                                    <span className="text-[7px] font-black text-brand-special">{match.teamB.ovr || (teamBStanding ? Math.round((teamBStanding.wins / (teamBStanding.played || 1)) * 100) : 0)}{!match.teamB.ovr && '%'}</span>
                                 </div>
-                                <div className="flex gap-0.5">
-                                    {(teamBStanding?.form || []).slice(-5).map((res: string, i: number) => (
-                                        <div key={i} className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-[1px] flex items-center justify-center text-[5px] sm:text-[6px] font-black text-white ${
-                                            res === 'W' ? 'bg-green-500' : res === 'D' ? 'bg-yellow-500' : 'bg-red-500'
-                                        }`}>
-                                            {res}
-                                        </div>
-                                    ))}
-                                    {(!teamBStanding || teamBStanding.form.length === 0) && [1,2,3,4,5].map(i => (
-                                        <div key={i} className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-[1px] bg-brand-light/10"></div>
+                                <div className="flex gap-0.5 mt-1">
+                                    {(teamBStanding?.form || []).slice(-3).map((res: string, i: number) => (
+                                        <div key={i} className={`w-2 h-2 rounded-full ${res === 'W' ? 'bg-green-500' : res === 'D' ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
                                     ))}
                                 </div>
                             </div>
@@ -327,6 +297,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         <div className="flex items-center gap-2 px-1">
                                             <span className={`text-[8px] font-black uppercase tracking-widest ${comment.userId === currentUser?.uid ? 'text-brand-vibrant' : comment.isAdmin ? 'text-brand-special' : 'text-brand-light/60'}`}>
                                                 {comment.userName}{comment.isAdmin ? ' (Admin)' : ''}
+                                            </span>
+                                            <span className="text-[7px] text-brand-light/30 font-medium">
+                                                {new Date(comment.timestamp).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                             </span>
                                         </div>
                                         <div className={`px-3 py-2 rounded-2xl text-[10px] leading-relaxed break-words max-w-[85%] font-medium shadow-sm border ${

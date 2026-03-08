@@ -32,7 +32,7 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({ banners }) => {
             onMouseLeave={() => setIsPaused(false)}
         >
             {/* Aspect Video (16:9) on Mobile, 21:7 on SM+ screens */}
-            <div className="relative aspect-video sm:aspect-[21/7] w-full overflow-hidden rounded-2xl border border-white/10 shadow-2xl bg-brand-secondary/20">
+            <div className="relative aspect-video sm:aspect-[21/7] w-full overflow-hidden rounded-deepin border border-white/10 shadow-2xl bg-brand-secondary/20">
                 
                 {/* Slidable Wrapper */}
                 <div 

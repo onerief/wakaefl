@@ -324,8 +324,8 @@ export const PublicView: React.FC<PublicViewProps> = ({
                         const byeTeams = group.teams.filter(t => !playingTeamIds.has(t.id));
 
                         return (
-                            <div key={`${group.id}-fixtures`} className="flex flex-col bg-brand-secondary/30 border border-brand-accent rounded-[2rem] overflow-hidden shadow-2xl relative group/card min-h-[300px]">
-                                <div className="p-4 sm:p-5 bg-brand-primary/40 border-b border-brand-accent flex flex-col gap-4">
+                            <div key={`${group.id}-fixtures`} className="flex flex-col deepin-glass deepin-card overflow-hidden relative group/card min-h-[300px]">
+                                <div className="p-4 sm:p-5 bg-white/5 border-b border-white/5 flex flex-col gap-4">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2 sm:gap-3">
                                             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-brand-vibrant/10 flex items-center justify-center text-brand-vibrant border border-brand-vibrant/20 shadow-inner">
@@ -431,7 +431,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
         )}
 
         {/* SUB NAVIGATION - FIXED GRID LAYOUT - ALL ITEMS VISIBLE (NO SCROLL) */}
-        <div className="sticky top-[56px] sm:top-[128px] z-[30] -mx-4 md:-mx-8 bg-brand-primary/95 backdrop-blur-xl border-b border-brand-accent shadow-2xl">
+        <div className="sticky top-[56px] sm:top-[128px] z-[30] -mx-4 md:-mx-8 deepin-glass border-b border-white/5">
             <div className="px-2 sm:px-4 py-1.5 sm:py-3 max-w-5xl mx-auto">
                 <div className={`grid ${supportsKnockout ? 'grid-cols-5' : 'grid-cols-4'} gap-1 sm:gap-3`}>
                     <InternalTabButton 

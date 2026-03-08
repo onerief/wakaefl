@@ -308,7 +308,7 @@ function AppContent() {
         <FloatingThemeToggle theme={theme} toggleTheme={toggleTheme} />
       )}
       
-      <main className={`container mx-auto px-4 pt-2 pb-6 md:px-8 md:pt-4 md:pb-8 flex-grow relative z-20 ${view !== 'admin' ? 'pb-32' : ''}`}>
+      <main className={`container mx-auto px-4 pt-2 pb-6 md:px-8 md:pt-4 md:pb-8 flex-grow relative z-20 ${view !== 'admin' ? 'pb-40 sm:pb-48' : ''}`}>
         <Suspense fallback={<div className="flex justify-center py-20"><Spinner size={40} /></div>}>
           {tournament.isLoading ? <DashboardSkeleton /> : (
             <>

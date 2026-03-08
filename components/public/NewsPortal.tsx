@@ -77,7 +77,7 @@ export const NewsPortal: React.FC<NewsPortalProps> = ({
                     <ArrowRight size={16} className="rotate-180 group-hover:-translate-x-1 transition-transform" /> Kembali ke Portal
                 </button>
 
-                <div className="relative aspect-[21/9] w-full rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl mb-8">
+                <div className="relative aspect-[21/9] w-full rounded-deepin overflow-hidden border border-white/10 shadow-2xl mb-8">
                     <img src={readingItem.imageUrl} alt={readingItem.title} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-brand-primary via-transparent to-transparent"></div>
                     <div className="absolute bottom-6 left-6 right-6">

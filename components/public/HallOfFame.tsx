@@ -32,7 +32,7 @@ export const HallOfFame: React.FC<HallOfFameProps> = ({ history, currentStatus, 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       {/* Header */}
-      <div className="relative rounded-[2rem] overflow-hidden bg-gradient-to-br from-yellow-900 to-brand-primary p-6 sm:p-10 border border-yellow-500/20 shadow-2xl">
+      <div className="relative rounded-deepin overflow-hidden bg-gradient-to-br from-yellow-900 to-brand-primary p-6 sm:p-10 border border-yellow-500/20 shadow-2xl">
          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-yellow-500/10 via-transparent to-transparent"></div>
          <div className="relative z-10">
              <button onClick={onBack} className="flex items-center gap-2 text-brand-light hover:text-white mb-6 transition-colors group text-sm font-bold uppercase tracking-widest">
@@ -139,7 +139,7 @@ export const HallOfFame: React.FC<HallOfFameProps> = ({ history, currentStatus, 
                {history.length > 0 ? (
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                        {history.map((season) => (
-                           <div key={season.seasonId} className="bg-brand-secondary/40 border border-white/5 rounded-3xl p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-white/5 transition-all duration-300 group gap-4 relative overflow-hidden">
+                           <div key={season.seasonId} className="deepin-glass deepin-card p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-white/5 transition-all duration-300 group gap-4 relative overflow-hidden">
                                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                                    <div className="flex flex-col items-center justify-center w-8 sm:w-12 text-yellow-500 shrink-0">
                                        <Trophy size={18} className="sm:size-24" />

@@ -36,8 +36,8 @@ export const Header: React.FC<HeaderProps> = ({
     onResetCycleChange
 }) => {
   return (
-    <header className="sticky top-0 z-40 bg-brand-primary/95 backdrop-blur-xl border-b border-white/5 shadow-[0_15px_50px_rgba(0,0,0,0.8)] pt-safe">
-      <div className="container mx-auto px-3 sm:px-8 h-14 sm:h-32 flex justify-between items-center relative">
+    <header className="sticky top-0 z-40 deepin-glass border-b border-white/5 pt-safe">
+      <div className="container mx-auto px-3 sm:px-8 h-14 sm:h-24 flex justify-between items-center relative">
         
         {/* LEFT: LOGO */}
         <div 

@@ -150,145 +150,130 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
         <HeroPattern />
       </div>
 
-      {/* QUICK STATS BAR - Moved Above News Slideshow */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-8 px-2 sm:px-0">
-          {[
-              { label: 'Total Peserta', val: teamCount, icon: Users, color: 'text-blue-500' },
-              { label: 'Official Sponsors', val: partnerCount, icon: Star, color: 'text-yellow-500' },
-              { label: 'Mode Kompetisi', val: visibleModes.length, icon: Trophy, color: 'text-purple-500' },
-              { label: 'Status Server', val: 'Online', icon: Zap, color: 'text-green-500' }
-          ].map((stat, i) => (
-              <div key={i} className="bg-brand-secondary border border-brand-accent p-3 sm:p-5 rounded-2xl sm:rounded-[1.5rem] flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-4 hover:border-brand-light/30 transition-all shadow-sm">
-                  <div className={`p-2 sm:p-3 rounded-xl bg-brand-primary/50 ${stat.color}`}><stat.icon size={16} className="sm:w-5 sm:h-5" /></div>
-                  <div>
-                      <p className="text-xl sm:text-2xl font-black text-brand-text italic leading-none">{stat.val}</p>
-                      <p className="text-[8px] sm:text-[10px] font-bold text-brand-light uppercase tracking-widest opacity-70 mt-1">{stat.label}</p>
-                  </div>
-              </div>
-          ))}
-      </div>
-
-      {/* INTELLIGENT SPOTLIGHT: Next Match (Moved Up) */}
-      {nextMatchInfo && (
-          <div className="animate-in slide-in-from-left duration-700 px-2 sm:px-0">
-              <div className="flex items-center justify-between mb-3 sm:mb-4 px-1">
-                  <h3 className="text-[9px] sm:text-[10px] font-black text-brand-light uppercase tracking-[0.2em] sm:tracking-[0.3em] flex items-center gap-1.5 sm:gap-2">
-                      <Calendar size={12} className="sm:w-3.5 sm:h-3.5 text-brand-vibrant" /> Jadwal Terdekat Tim Anda
-                  </h3>
-                  {timeLeft && (
-                      <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 bg-red-500/10 border border-red-500/30 rounded-full animate-pulse">
-                          <Timer size={10} className="sm:w-3 sm:h-3 text-red-500" />
-                          <span className="text-[9px] sm:text-[10px] font-black text-red-500 font-mono tracking-widest">{timeLeft}</span>
-                      </div>
-                  )}
-              </div>
-              <Card onClick={() => onSelectMode(nextMatchInfo.mode!)} className="!p-0 overflow-hidden !bg-brand-secondary border-brand-vibrant/30 group cursor-pointer hover:border-brand-vibrant transition-all rounded-2xl sm:rounded-[1.5rem] shadow-lg">
-                  <div className="flex flex-col md:flex-row md:items-center">
-                      <div className="bg-brand-vibrant p-3 sm:p-10 flex flex-row md:flex-col items-center justify-between md:justify-center text-white shrink-0 shadow-2xl">
-                          <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-[0.2em] sm:tracking-[0.3em] opacity-80">Matchday</span>
-                          <span className="text-2xl sm:text-5xl font-black italic leading-none">{nextMatchInfo.match.matchday || 1}</span>
-                      </div>
-                      <div className="p-4 sm:p-6 md:p-12 flex-grow flex items-center justify-center gap-4 sm:gap-8 md:gap-24">
-                          <div className="flex flex-col items-center gap-2 sm:gap-3 text-center flex-1">
-                              <TeamLogo logoUrl={nextMatchInfo.match.teamA.logoUrl} teamName={nextMatchInfo.match.teamA.name} className="w-12 h-12 sm:w-16 sm:h-16 md:w-28 md:h-28 shadow-2xl ring-2 sm:ring-4 ring-brand-accent" />
-                              <span className="text-[10px] sm:text-xs md:text-xl font-black text-brand-text uppercase italic tracking-tight line-clamp-1">{nextMatchInfo.match.teamA.name}</span>
-                          </div>
-                          <div className="flex flex-col items-center">
-                              <div className="text-sm sm:text-xl md:text-3xl font-black text-brand-vibrant italic px-3 sm:px-4 py-1.5 sm:py-2 bg-brand-vibrant/10 rounded-xl sm:rounded-2xl border border-brand-vibrant/30">VS</div>
-                              {timeLeft && <span className="mt-1.5 sm:mt-2 text-[7px] sm:text-[8px] font-black text-red-400 uppercase tracking-widest">Live Limit</span>}
-                          </div>
-                          <div className="flex flex-col items-center gap-2 sm:gap-3 text-center flex-1">
-                              <TeamLogo logoUrl={nextMatchInfo.match.teamB.logoUrl} teamName={nextMatchInfo.match.teamB.name} className="w-12 h-12 sm:w-16 sm:h-16 md:w-28 md:h-28 shadow-2xl ring-2 sm:ring-4 ring-brand-accent" />
-                              <span className="text-[10px] sm:text-xs md:text-xl font-black text-brand-text uppercase italic tracking-tight line-clamp-1">{nextMatchInfo.match.teamB.name}</span>
-                          </div>
-                      </div>
-                  </div>
-              </Card>
-          </div>
-      )}
-
-      {/* BERITA SLIDESHOW (Prominent UCL Style Hero) */}
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 px-2 sm:px-0">
-        <div 
-            className="relative w-full group"
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
-        >
-            {latestNews.length > 0 ? (
-                <div className="relative overflow-hidden rounded-2xl sm:rounded-[3rem] border border-brand-accent shadow-[0_15px_50px_rgba(0,0,0,0.2)] sm:shadow-[0_30px_100px_rgba(0,0,0,0.3)] bg-brand-secondary aspect-[4/3] sm:aspect-[21/9]">
-                    <div 
-                        className="flex h-full transition-transform duration-1000 ease-in-out"
-                        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-                    >
-                        {latestNews.map((item) => (
-                            <div 
-                                key={item.id} 
-                                className="relative flex-shrink-0 w-full h-full cursor-pointer"
-                                onClick={() => onSelectMode('news')}
-                            >
-                                <img 
-                                    src={item.imageUrl} 
-                                    alt={item.title} 
-                                    className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110" 
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 sm:via-black/20 to-transparent"></div>
-                                
-                                <div className="absolute inset-0 p-4 sm:p-16 flex flex-col justify-end">
-                                    <div className="flex items-center gap-1.5 sm:gap-3 mb-2 sm:mb-4">
-                                        <span className="px-2 sm:px-4 py-1 sm:py-1.5 bg-brand-vibrant text-white text-[7px] sm:text-[11px] font-black uppercase rounded-md sm:rounded-lg shadow-2xl border border-white/20">
-                                            {item.category}
-                                        </span>
-                                        <span className="text-white/80 text-[7px] sm:text-[11px] font-bold uppercase tracking-widest flex items-center gap-1 sm:gap-1.5 bg-black/60 backdrop-blur-md px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-white/5">
-                                            <Clock size={10} className="sm:w-3 sm:h-3" /> {new Date(item.date).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    <h4 className="text-base sm:text-6xl font-black text-white italic uppercase tracking-tighter leading-tight sm:leading-none line-clamp-3 sm:line-clamp-2 drop-shadow-2xl mb-2 sm:mb-4">
-                                        {item.title}
-                                    </h4>
-                                    <div className="flex sm:hidden items-center gap-1.5 text-brand-vibrant text-[9px] font-black uppercase tracking-widest mt-1">
-                                        <span>Baca Artikel</span>
-                                        <ArrowRight size={10} />
-                                    </div>
-                                    <div className="hidden md:flex items-center gap-4 text-brand-light text-lg font-medium opacity-80 group-hover:opacity-100 transition-all">
-                                        <span>Baca Artikel Lengkap</span>
-                                        <ArrowRight size={24} className="animate-pulse" />
+      {/* BENTO GRID DASHBOARD */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 px-2 sm:px-0">
+          {/* Main News Spotlight (Bento Large) */}
+          <div className="md:col-span-3 md:row-span-2">
+            <div 
+                className="relative w-full group h-full"
+                onMouseEnter={() => setIsPaused(true)}
+                onMouseLeave={() => setIsPaused(false)}
+            >
+                {latestNews.length > 0 ? (
+                    <div className="relative overflow-hidden rounded-[2.5rem] border border-brand-accent glass-card h-full aspect-[4/3] md:aspect-auto">
+                        <div 
+                            className="flex h-full transition-transform duration-1000 ease-in-out"
+                            style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                        >
+                            {latestNews.map((item) => (
+                                <div 
+                                    key={item.id} 
+                                    className="relative flex-shrink-0 w-full h-full cursor-pointer"
+                                    onClick={() => onSelectMode('news')}
+                                >
+                                    <img 
+                                        src={item.imageUrl} 
+                                        alt={item.title} 
+                                        className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110" 
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                                    
+                                    <div className="absolute inset-0 p-6 md:p-12 flex flex-col justify-end">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <span className="px-3 py-1 bg-brand-vibrant text-white text-[9px] font-black uppercase rounded-lg border border-white/20">
+                                                {item.category}
+                                            </span>
+                                        </div>
+                                        <h4 className="text-xl md:text-4xl font-sports text-white leading-tight mb-4 line-clamp-2">
+                                            {item.title}
+                                        </h4>
+                                        <div className="flex items-center gap-2 text-brand-vibrant text-[10px] font-black uppercase tracking-widest">
+                                            <span>Baca Selengkapnya</span>
+                                            <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
+                                        </div>
                                     </div>
                                 </div>
+                            ))}
+                        </div>
+                        {latestNews.length > 1 && (
+                            <div className="absolute bottom-6 right-6 flex gap-2 z-20">
+                                <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="w-10 h-10 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-brand-vibrant transition-all">
+                                    <ChevronLeft size={20} />
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="w-10 h-10 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-brand-vibrant transition-all">
+                                    <ChevronRight size={20} />
+                                </button>
                             </div>
-                        ))}
+                        )}
                     </div>
+                ) : (
+                    <div className="h-full py-12 bg-brand-secondary/40 rounded-[2.5rem] border border-dashed border-brand-accent flex flex-col items-center justify-center text-center gap-4">
+                        <EmptyNewsIllustration className="w-24 h-16 opacity-30" />
+                        <span className="text-brand-light font-black uppercase tracking-widest text-[10px]">Belum Ada Berita</span>
+                    </div>
+                )}
+            </div>
+          </div>
 
-                    {latestNews.length > 1 && (
-                        <>
-                            <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="absolute left-2 sm:left-10 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-16 sm:h-16 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-brand-vibrant hover:scale-110">
-                                <ChevronLeft size={16} className="sm:w-8 sm:h-8" />
-                            </button>
-                            <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="absolute right-2 sm:right-10 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-16 sm:h-16 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-brand-vibrant hover:scale-110">
-                                <ChevronRight size={16} className="sm:w-8 sm:h-8" />
-                            </button>
-                        </>
-                    )}
-                </div>
-            ) : (
-                <div className="py-12 sm:py-32 bg-brand-secondary/40 rounded-2xl sm:rounded-[3rem] border border-dashed border-brand-accent flex flex-col items-center justify-center text-center gap-4 sm:gap-6 group hover:bg-brand-secondary/60 transition-colors">
-                    <EmptyNewsIllustration className="w-24 h-16 sm:w-48 sm:h-36 opacity-30 group-hover:opacity-50 transition-opacity" />
-                    <div className="flex flex-col gap-1.5 sm:gap-2">
-                        <span className="text-brand-light font-black uppercase tracking-widest text-[10px] sm:text-sm">Belum Ada Berita</span>
-                        <span className="text-brand-light/50 text-[9px] sm:text-xs max-w-[200px] sm:max-w-xs mx-auto">Pantau terus untuk update terbaru seputar turnamen dan transfer pemain.</span>
-                    </div>
-                </div>
-            )}
-        </div>
+          {/* Quick Stats (Bento Small) */}
+          <div className="md:col-span-1 grid grid-cols-2 md:grid-cols-1 gap-4">
+              {[
+                  { label: 'Peserta', val: teamCount, icon: Users, color: 'text-blue-500' },
+                  { label: 'Sponsors', val: partnerCount, icon: Star, color: 'text-yellow-500' }
+              ].map((stat, i) => (
+                  <div key={i} className="glass-card p-5 rounded-[2rem] flex flex-col justify-between hover:border-brand-vibrant/30 transition-all group">
+                      <div className={`w-10 h-10 rounded-xl bg-brand-primary/50 flex items-center justify-center ${stat.color}`}>
+                          <stat.icon size={20} />
+                      </div>
+                      <div className="mt-4">
+                          <p className="text-3xl font-sports text-brand-text leading-none">{stat.val}</p>
+                          <p className="text-[9px] font-black text-brand-light uppercase tracking-widest mt-1 opacity-60">{stat.label}</p>
+                      </div>
+                  </div>
+              ))}
+          </div>
+
+          {/* Next Match Spotlight (Bento Medium) */}
+          {nextMatchInfo && (
+              <div className="md:col-span-4">
+                  <div 
+                      onClick={() => onSelectMode(nextMatchInfo.mode!)}
+                      className="glass-card rounded-[2.5rem] overflow-hidden border-brand-vibrant/20 group cursor-pointer hover:border-brand-vibrant transition-all p-1"
+                  >
+                      <div className="flex flex-col md:flex-row items-stretch bg-brand-primary/30 rounded-[2.4rem] overflow-hidden">
+                          <div className="bg-brand-vibrant p-6 md:p-10 flex md:flex-col items-center justify-between md:justify-center text-white shrink-0">
+                              <span className="text-[8px] font-black uppercase tracking-widest opacity-80">Next Match</span>
+                              <span className="text-3xl md:text-6xl font-sports leading-none">MD{nextMatchInfo.match.matchday || 1}</span>
+                          </div>
+                          <div className="p-6 md:p-10 flex-grow flex items-center justify-around gap-4">
+                              <div className="flex flex-col items-center gap-3 text-center">
+                                  <TeamLogo logoUrl={nextMatchInfo.match.teamA.logoUrl} teamName={nextMatchInfo.match.teamA.name} className="w-16 h-16 md:w-24 md:h-24 shadow-2xl ring-4 ring-brand-accent/30" />
+                                  <span className="text-[10px] md:text-sm font-black text-brand-text uppercase italic tracking-tight line-clamp-1">{nextMatchInfo.match.teamA.name}</span>
+                              </div>
+                              <div className="flex flex-col items-center">
+                                  <div className="text-xl md:text-4xl font-sports text-brand-vibrant italic px-4 py-2 bg-brand-vibrant/10 rounded-2xl border border-brand-vibrant/30">VS</div>
+                                  {timeLeft && <span className="mt-2 text-[8px] font-black text-red-500 uppercase tracking-widest animate-pulse">{timeLeft}</span>}
+                              </div>
+                              <div className="flex flex-col items-center gap-3 text-center">
+                                  <TeamLogo logoUrl={nextMatchInfo.match.teamB.logoUrl} teamName={nextMatchInfo.match.teamB.name} className="w-16 h-16 md:w-24 md:h-24 shadow-2xl ring-4 ring-brand-accent/30" />
+                                  <span className="text-[10px] md:text-sm font-black text-brand-text uppercase italic tracking-tight line-clamp-1">{nextMatchInfo.match.teamB.name}</span>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          )}
       </div>
 
-      {/* COMPETITION EXPLORER - THE MAIN MENU */}
-      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
-          <div className="flex items-center justify-between px-1 sm:px-2">
-              <h3 className="text-base sm:text-3xl font-black text-brand-text italic uppercase tracking-tighter flex items-center gap-2 sm:gap-3">
-                  <Trophy size={20} className="sm:w-7 sm:h-7 text-brand-special" /> Jelajahi
-              </h3>
+      {/* COMPETITION EXPLORER */}
+      <div className="space-y-6 px-2 sm:px-0">
+          <div className="flex items-center gap-3 px-2">
+              <div className="w-10 h-10 rounded-full bg-brand-special/10 flex items-center justify-center text-brand-special">
+                  <Trophy size={20} />
+              </div>
+              <h3 className="text-xl md:text-3xl font-sports text-brand-text">Arena Kompetisi</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <CompetitionCard 
                   mode="league" title="Liga Reguler" 
                   desc="Kompetisi format liga satu musim penuh."

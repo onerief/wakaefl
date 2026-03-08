@@ -36,7 +36,11 @@
               'brand-gradient-end': '#fbbf24', 
             },
             fontFamily: {
-                sans: ['Outfit', 'sans-serif'],
+                sans: ['Inter', 'Outfit', 'sans-serif'],
+            },
+            borderRadius: {
+              'deepin': '24px',
+              'deepin-lg': '32px',
             },
             animation: {
                 'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
@@ -54,27 +58,59 @@
     </script>
     <style>
       :root {
-        /* Dark Mode - Midnight Luxury (Deep Blue/Black & Gold) */
-        --brand-primary: #020617; /* Slate 950 */
-        --brand-secondary: #0f172a; /* Slate 900 */
-        --brand-accent: #1e293b; /* Slate 800 */
-        --brand-light: #94a3b8; /* Slate 400 */
-        --brand-text: #f8fafc; /* Slate 50 */
-        --brand-vibrant: #3b82f6; /* Blue 500 */
-        --brand-special: #eab308; /* Yellow 500 */
-        --brand-shadow-color: rgba(0, 0, 0, 0.9);
+        /* Deepin OS Dark Theme - Elegant Glass */
+        --brand-primary: #121212; 
+        --brand-secondary: rgba(30, 30, 30, 0.7);
+        --brand-accent: rgba(45, 45, 45, 0.5);
+        --brand-light: #94a3b8;
+        --brand-text: #ffffff;
+        --brand-vibrant: #0078d4; /* Deepin Blue */
+        --brand-special: #ffcc00;
+        --brand-shadow-color: rgba(0, 0, 0, 0.3);
+        --glass-bg: rgba(25, 25, 25, 0.6);
+        --glass-border: rgba(255, 255, 255, 0.1);
       }
 
       [data-theme="light"] {
-        /* Light Mode - Oceanic Clarity (Sky Blue & Navy) */
-        --brand-primary: #f0f9ff; /* Sky 50 */
-        --brand-secondary: #ffffff; /* White */
-        --brand-accent: #e0f2fe; /* Sky 100 */
-        --brand-light: #64748b; /* Slate 500 */
-        --brand-text: #0c4a6e; /* Sky 900 */
-        --brand-vibrant: #0284c7; /* Sky 600 */
-        --brand-special: #d97706; /* Amber 600 */
-        --brand-shadow-color: rgba(148, 163, 184, 0.3);
+        /* Deepin OS Light Theme - Frosted Glass */
+        --brand-primary: #f5f5f7;
+        --brand-secondary: rgba(255, 255, 255, 0.7);
+        --brand-accent: rgba(240, 240, 245, 0.5);
+        --brand-light: #64748b;
+        --brand-text: #1d1d1f;
+        --brand-vibrant: #0078d4;
+        --brand-special: #d97706;
+        --brand-shadow-color: rgba(0, 0, 0, 0.1);
+        --glass-bg: rgba(255, 255, 255, 0.6);
+        --glass-border: rgba(0, 0, 0, 0.05);
+      }
+
+      /* Deepin Glassmorphism */
+      .deepin-glass {
+        background: var(--glass-bg);
+        backdrop-filter: blur(25px) saturate(180%);
+        -webkit-backdrop-filter: blur(25px) saturate(180%);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 8px 32px 0 var(--brand-shadow-color);
+      }
+
+      .deepin-card {
+        border-radius: 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .deepin-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 40px 0 var(--brand-shadow-color);
+      }
+
+      /* Background Atmosphere */
+      body {
+        background: radial-gradient(circle at top right, rgba(0, 120, 212, 0.15), transparent 40%),
+                    radial-gradient(circle at bottom left, rgba(234, 179, 8, 0.1), transparent 40%),
+                    var(--brand-primary);
+        background-attachment: fixed;
+        min-height: 100vh;
       }
 
       /* Mobile optimization fixes */
@@ -100,7 +136,7 @@
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <script type="importmap">
 {
   "imports": {

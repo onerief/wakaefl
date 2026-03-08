@@ -41,7 +41,7 @@ export const StoreFront: React.FC<StoreFrontProps> = ({ products = [], categorie
     return (
         <div className="space-y-6 sm:space-y-10 animate-in fade-in duration-700 pb-20">
             {/* Header */}
-            <div className="relative rounded-[1.5rem] sm:rounded-[2rem] overflow-hidden bg-gradient-to-br from-emerald-900 via-brand-primary to-brand-primary p-6 sm:p-12 border border-emerald-500/20 shadow-2xl">
+            <div className="relative rounded-deepin overflow-hidden bg-gradient-to-br from-emerald-900 via-brand-primary to-brand-primary p-6 sm:p-12 border border-emerald-500/20 shadow-2xl">
                 <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
                 <div className="relative z-10 text-center sm:text-left">
                     <h1 className="text-3xl sm:text-6xl font-black text-white italic uppercase tracking-tighter mb-2 flex flex-col sm:flex-row items-center gap-2 sm:gap-4 justify-center sm:justify-start">
@@ -55,7 +55,7 @@ export const StoreFront: React.FC<StoreFrontProps> = ({ products = [], categorie
             </div>
 
             {/* Filter Bar */}
-            <div className="flex flex-col gap-4 bg-brand-secondary/40 p-3 sm:p-5 rounded-2xl border border-white/5 backdrop-blur-md">
+            <div className="flex flex-col gap-4 deepin-glass p-3 sm:p-5 rounded-deepin border border-white/5">
                 <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                     {availableCategories.map(cat => (
                         <button

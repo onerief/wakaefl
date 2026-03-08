@@ -55,7 +55,7 @@ const IndividualToast: React.FC<{ toast: ToastMessage, onDismiss: (id: number) =
 
     return (
         <div 
-            className={`pointer-events-auto flex items-center gap-4 w-full max-w-sm p-4 text-brand-text bg-brand-secondary rounded-lg shadow-lg border-l-4 ${TOAST_COLORS[toast.type]} transition-all duration-300 ease-in-out transform ${isExiting ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'}`}
+            className={`pointer-events-auto flex items-center gap-4 w-full max-w-sm p-4 text-brand-text deepin-glass rounded-deepin shadow-lg border-l-4 ${TOAST_COLORS[toast.type]} transition-all duration-300 ease-in-out transform ${isExiting ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'}`}
             role="alert"
         >
             <div>{ICONS[toast.type]}</div>
