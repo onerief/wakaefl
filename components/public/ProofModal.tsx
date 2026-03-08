@@ -12,7 +12,7 @@ export const ProofModal: React.FC<ProofModalProps> = ({ isOpen, onClose, imageUr
 
   return (
     <div
-      className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] backdrop-blur-sm p-4 animate-fade-in"
+      className="fixed inset-0 bg-black/95 flex items-center justify-center z-[150] backdrop-blur-md animate-fade-in p-4"
       onClick={onClose}
     >
       <style>{`
@@ -25,20 +25,20 @@ export const ProofModal: React.FC<ProofModalProps> = ({ isOpen, onClose, imageUr
         }
       `}</style>
       <div
-        className="relative max-w-4xl w-full"
+        className="relative flex items-center justify-center max-w-full max-h-full"
         onClick={(e) => e.stopPropagation()}
       >
         <img
           src={imageUrl}
           alt="Match Proof Screenshot"
-          className="w-full h-auto object-contain rounded-lg shadow-2xl max-h-[90vh]"
+          className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
         />
         <button
           onClick={onClose}
-          className="absolute -top-3 -right-3 bg-brand-primary text-brand-light rounded-full p-1.5 hover:bg-brand-accent hover:text-brand-text transition-colors shadow-lg"
+          className="absolute -top-3 -right-3 bg-brand-primary text-brand-light rounded-full p-1.5 hover:bg-brand-accent hover:text-white transition-colors shadow-2xl z-50 border border-brand-accent"
           aria-label="Close proof image"
         >
-          <X size={24} />
+          <X size={20} />
         </button>
       </div>
     </div>

@@ -152,85 +152,85 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
 
       {/* BENTO GRID DASHBOARD */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 px-2 sm:px-0">
-          {/* Main News Spotlight (Bento Large) */}
-          <div className="md:col-span-3 md:row-span-2">
-            <div 
-                className="relative w-full group h-full"
-                onMouseEnter={() => setIsPaused(true)}
-                onMouseLeave={() => setIsPaused(false)}
-            >
-                {latestNews.length > 0 ? (
-                    <div className="relative overflow-hidden rounded-[2.5rem] border border-brand-accent glass-card h-full aspect-[4/3] md:aspect-auto">
-                        <div 
-                            className="flex h-full transition-transform duration-1000 ease-in-out"
-                            style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-                        >
-                            {latestNews.map((item) => (
-                                <div 
-                                    key={item.id} 
-                                    className="relative flex-shrink-0 w-full h-full cursor-pointer"
-                                    onClick={() => onSelectMode('news')}
-                                >
-                                    <img 
-                                        src={item.imageUrl} 
-                                        alt={item.title} 
-                                        className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110" 
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-                                    
-                                    <div className="absolute inset-0 p-6 md:p-12 flex flex-col justify-end">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <span className="px-3 py-1 bg-brand-vibrant text-white text-[9px] font-black uppercase rounded-lg border border-white/20">
-                                                {item.category}
-                                            </span>
-                                        </div>
-                                        <h4 className="text-xl md:text-4xl font-sports text-white leading-tight mb-4 line-clamp-2">
-                                            {item.title}
-                                        </h4>
-                                        <div className="flex items-center gap-2 text-brand-vibrant text-[10px] font-black uppercase tracking-widest">
-                                            <span>Baca Selengkapnya</span>
-                                            <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        {latestNews.length > 1 && (
-                            <div className="absolute bottom-6 right-6 flex gap-2 z-20">
-                                <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="w-10 h-10 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-brand-vibrant transition-all">
-                                    <ChevronLeft size={20} />
-                                </button>
-                                <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="w-10 h-10 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-brand-vibrant transition-all">
-                                    <ChevronRight size={20} />
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div className="h-full py-12 bg-brand-secondary/40 rounded-[2.5rem] border border-dashed border-brand-accent flex flex-col items-center justify-center text-center gap-4">
-                        <EmptyNewsIllustration className="w-24 h-16 opacity-30" />
-                        <span className="text-brand-light font-black uppercase tracking-widest text-[10px]">Belum Ada Berita</span>
-                    </div>
-                )}
-            </div>
-          </div>
-
-          {/* Quick Stats (Bento Small) */}
-          <div className="md:col-span-1 grid grid-cols-2 md:grid-cols-1 gap-4">
+          {/* Quick Stats (Horizontal Bar) */}
+          <div className="md:col-span-4 flex flex-col sm:flex-row gap-4">
               {[
                   { label: 'Peserta', val: teamCount, icon: Users, color: 'text-blue-500' },
                   { label: 'Sponsors', val: partnerCount, icon: Star, color: 'text-yellow-500' }
               ].map((stat, i) => (
-                  <div key={i} className="glass-card p-5 rounded-[2rem] flex flex-col justify-between hover:border-brand-vibrant/30 transition-all group">
-                      <div className={`w-10 h-10 rounded-xl bg-brand-primary/50 flex items-center justify-center ${stat.color}`}>
-                          <stat.icon size={20} />
+                  <div key={i} className="glass-card p-4 sm:p-6 rounded-[2rem] flex items-center gap-4 flex-1 hover:border-brand-vibrant/30 transition-all group">
+                      <div className={`w-12 h-12 rounded-2xl bg-brand-primary/50 flex items-center justify-center shrink-0 ${stat.color}`}>
+                          <stat.icon size={24} />
                       </div>
-                      <div className="mt-4">
-                          <p className="text-3xl font-sports text-brand-text leading-none">{stat.val}</p>
-                          <p className="text-[9px] font-black text-brand-light uppercase tracking-widest mt-1 opacity-60">{stat.label}</p>
+                      <div>
+                          <p className="text-2xl sm:text-4xl font-sports text-brand-text leading-none">{stat.val}</p>
+                          <p className="text-[10px] sm:text-xs font-black text-brand-light uppercase tracking-widest mt-1 opacity-60">{stat.label}</p>
                       </div>
                   </div>
               ))}
+          </div>
+
+          {/* Main News Spotlight (Bento Large) */}
+          <div className="md:col-span-4">
+              <div 
+                  className="relative w-full group h-full"
+                  onMouseEnter={() => setIsPaused(true)}
+                  onMouseLeave={() => setIsPaused(false)}
+              >
+                  {latestNews.length > 0 ? (
+                      <div className="relative overflow-hidden rounded-[2.5rem] border border-brand-accent glass-card h-full aspect-[4/3] md:aspect-[21/9]">
+                          <div 
+                              className="flex h-full transition-transform duration-1000 ease-in-out"
+                              style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                          >
+                              {latestNews.map((item) => (
+                                  <div 
+                                      key={item.id} 
+                                      className="relative flex-shrink-0 w-full h-full cursor-pointer"
+                                      onClick={() => onSelectMode('news')}
+                                  >
+                                      <img 
+                                          src={item.imageUrl} 
+                                          alt={item.title} 
+                                          className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110" 
+                                      />
+                                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                                      
+                                      <div className="absolute inset-0 p-6 md:p-12 flex flex-col justify-end">
+                                          <div className="flex items-center gap-2 mb-3">
+                                              <span className="px-3 py-1 bg-brand-vibrant text-white text-[9px] font-black uppercase rounded-lg border border-white/20">
+                                                  {item.category}
+                                              </span>
+                                          </div>
+                                          <h4 className="text-xl md:text-4xl font-sports text-white leading-tight mb-4 line-clamp-2">
+                                              {item.title}
+                                          </h4>
+                                          <div className="flex items-center gap-2 text-brand-vibrant text-[10px] font-black uppercase tracking-widest">
+                                              <span>Baca Selengkapnya</span>
+                                              <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
+                                          </div>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                          {latestNews.length > 1 && (
+                              <div className="absolute bottom-6 right-6 flex gap-2 z-20">
+                                  <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="w-10 h-10 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-brand-vibrant transition-all">
+                                      <ChevronLeft size={20} />
+                                  </button>
+                                  <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="w-10 h-10 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-brand-vibrant transition-all">
+                                      <ChevronRight size={20} />
+                                  </button>
+                              </div>
+                          )}
+                      </div>
+                  ) : (
+                      <div className="h-full py-12 bg-brand-secondary/40 rounded-[2.5rem] border border-dashed border-brand-accent flex flex-col items-center justify-center text-center gap-4">
+                          <EmptyNewsIllustration className="w-24 h-16 opacity-30" />
+                          <span className="text-brand-light font-black uppercase tracking-widest text-[10px]">Belum Ada Berita</span>
+                      </div>
+                  )}
+              </div>
           </div>
 
           {/* Next Match Spotlight (Bento Medium) */}

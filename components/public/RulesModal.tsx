@@ -13,12 +13,12 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, rules }
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 flex items-center justify-center z-[100] backdrop-blur-md p-4 animate-in fade-in duration-300">
+    <div className="fixed inset-0 bg-slate-950/80 flex items-center justify-center z-[100] backdrop-blur-md sm:p-4 animate-in fade-in duration-300">
       <div 
-        className="w-full max-w-2xl relative max-h-[85vh] flex flex-col"
+        className="w-full h-full sm:h-auto sm:max-w-2xl relative sm:max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <Card className="!p-0 !bg-brand-primary/95 border-brand-accent shadow-2xl flex flex-col overflow-hidden h-full rounded-[2rem]">
+        <Card className="!p-0 !bg-brand-primary/95 border-brand-accent shadow-2xl flex flex-col overflow-hidden h-full rounded-none sm:rounded-[2rem]">
             {/* Header */}
             <div className="bg-brand-secondary/50 p-5 border-b border-white/5 flex justify-between items-center shrink-0">
                 <div className="flex items-center gap-3">
