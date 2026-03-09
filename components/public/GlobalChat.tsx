@@ -170,7 +170,7 @@ export const GlobalChat: React.FC<GlobalChatProps> = ({ currentUser, isAdmin, on
                             value={newMessage}
                             onChange={(e) => setNewMessage(e.target.value)}
                             placeholder="Kirim pesan..."
-                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-brand-light/30 focus:border-brand-vibrant outline-none transition-all"
+                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-brand-text placeholder:text-brand-light/50 focus:border-brand-vibrant outline-none transition-all"
                         />
                         <button 
                             type="submit" 

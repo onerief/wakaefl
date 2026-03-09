@@ -137,14 +137,16 @@ export const updateUserProfile = async (user: User, displayName: string) => {
 // --- STORAGE FUNCTIONS ---
 export const uploadTeamLogo = async (file: File): Promise<string> => {
   if (!storage) throw new Error("Storage not initialized");
-  const storageRef = ref(storage, `logos/${Date.now()}-${file.name}`);
+  const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+  const storageRef = ref(storage, `logos/${Date.now()}-${safeName}`);
   await uploadBytes(storageRef, file);
   return getDownloadURL(storageRef);
 };
 
 export const uploadMatchProof = async (file: File): Promise<string> => {
   if (!storage) throw new Error("Storage not initialized");
-  const storageRef = ref(storage, `match-proofs/${Date.now()}-${file.name}`);
+  const safeName = file.name.replace(/[^a-zA-Z0-9.]/g, '_');
+  const storageRef = ref(storage, `logos/proof-${Date.now()}-${safeName}`);
   await uploadBytes(storageRef, file);
   return getDownloadURL(storageRef);
 };
