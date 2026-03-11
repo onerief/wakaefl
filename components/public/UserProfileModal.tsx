@@ -7,7 +7,7 @@ import type { User as FirebaseUser } from 'firebase/auth';
 import type { Team, TournamentMode, Notification } from '../../types';
 import { TeamLogo } from '../shared/TeamLogo';
 import { useToast } from '../shared/Toast';
-import { getTournamentData, submitTeamClaimRequest, getUserTeams, updateUserTeamData, updateUserProfile, subscribeToNotifications, deleteNotification } from '../../services/firebaseService';
+import { getTournamentData, submitTeamClaimRequest, getUserTeams, updateUserTeamData, updateUserProfile, subscribeToNotifications, deleteNotification, markNotificationAsRead } from '../../services/firebaseService';
 import { Spinner } from '../shared/Spinner';
 import { UserTeamEditor } from './UserTeamEditor';
 
@@ -87,6 +87,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
   const availableTeams = useMemo(() => claimableTeams.filter(t => !t.ownerEmail && t.id !== pendingTeamInClaimMode?.id), [claimableTeams, pendingTeamInClaimMode]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  useEffect(() => {
+    if (activeTab === 'notifications' && unreadCount > 0) {
+        notifications.forEach(n => {
+            if (!n.read) markNotificationAsRead(n.id);
+        });
+    }
+  }, [activeTab, notifications, unreadCount]);
 
   const handleUpdateName = async () => {
       if (!newName.trim() || newName === currentUser.displayName) {

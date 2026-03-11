@@ -21,7 +21,7 @@ import { ToastProvider } from './components/shared/Toast';
 import { TeamProfileModal } from './components/public/TeamProfileModal';
 import { UserProfileModal } from './components/public/UserProfileModal';
 import { TeamRegistrationModal } from './components/public/TeamRegistrationModal';
-import { onAuthChange, signOutUser, getGlobalStats, getUserTeams, addMatchCommentToFirestore, subscribeToGlobalNotifications } from './services/firebaseService';
+import { onAuthChange, signOutUser, getGlobalStats, getUserTeams, addMatchCommentToFirestore, subscribeToGlobalNotifications, subscribeToNotifications } from './services/firebaseService';
 import { useToast } from './components/shared/Toast';
 import { Spinner } from './components/shared/Spinner';
 import { DashboardSkeleton } from './components/shared/Skeleton';
@@ -62,6 +62,7 @@ function AppContent() {
   const [globalStats, setGlobalStats] = useState({ teamCount: 0, partnerCount: 0 });
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' | null;
@@ -201,6 +202,17 @@ function AppContent() {
     }
   }, [view, tournament.isLoading]);
 
+  useEffect(() => {
+    if (currentUser?.email) {
+        const unsub = subscribeToNotifications(currentUser.email, (notifs) => {
+            setHasUnreadNotifications(notifs.some(n => !n.read));
+        });
+        return () => unsub();
+    } else {
+        setHasUnreadNotifications(false);
+    }
+  }, [currentUser]);
+
   const handleLogout = async () => {
     await signOutUser();
     handleSetView('home');
@@ -281,6 +293,7 @@ function AppContent() {
         resetCycle={tournament.scheduleSettings?.resetCycleHours}
         lastResetTime={tournament.scheduleSettings?.lastResetTime}
         onResetCycleChange={tournament.setResetCycle}
+        hasUnreadNotifications={hasUnreadNotifications}
       />
 
       {showBanners && (

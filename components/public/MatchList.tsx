@@ -325,7 +325,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         </p>
                                     </div>
                                     <form onSubmit={handleSubmitComment} className="flex gap-2">
-                                        <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Type a message..." className="flex-grow bg-brand-primary/40 border border-brand-accent/20 rounded-xl px-4 py-2 text-[10px] text-brand-text focus:border-brand-vibrant outline-none transition-all placeholder:text-brand-light/20" />
+                                        <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Type a message..." className="flex-grow bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-brand-text placeholder:text-brand-light/50 focus:border-brand-vibrant outline-none transition-all" />
                                         <button type="submit" disabled={!newComment.trim()} className="p-2 bg-brand-vibrant text-white rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"><Send size={16} /></button>
                                     </form>
                                 </div>

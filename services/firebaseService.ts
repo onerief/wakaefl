@@ -16,7 +16,8 @@ import {
   getFirestore,
   where,
   writeBatch,
-  arrayUnion
+  arrayUnion,
+  updateDoc
 } from "firebase/firestore";
 import { 
   getAuth, 
@@ -598,6 +599,11 @@ export const subscribeToNotifications = (email: string, callback: (notifs: Notif
 export const deleteNotification = async (id: string) => {
     if (!firestore) return;
     await deleteDoc(doc(firestore, NOTIFICATIONS_COLLECTION, id));
+};
+
+export const markNotificationAsRead = async (id: string) => {
+    if (!firestore) return;
+    await updateDoc(doc(firestore, NOTIFICATIONS_COLLECTION, id), { read: true });
 };
 
 export const subscribeToGlobalChat = (callback: (messages: ChatMessage[]) => void) => {

@@ -20,6 +20,7 @@ interface HeaderProps {
   resetCycle?: 24 | 48;
   lastResetTime?: number;
   onResetCycleChange?: (cycle: 24 | 48) => void;
+  hasUnreadNotifications?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -33,7 +34,8 @@ export const Header: React.FC<HeaderProps> = ({
     headerLogoUrl,
     resetCycle,
     lastResetTime,
-    onResetCycleChange
+    onResetCycleChange,
+    hasUnreadNotifications
 }) => {
   return (
     <header className="sticky top-0 z-40 deepin-glass border-b border-white/5 pt-safe">
@@ -101,6 +103,9 @@ export const Header: React.FC<HeaderProps> = ({
                             </div>
                         )}
                     </div>
+                    {hasUnreadNotifications && (
+                        <span className="absolute top-0 right-0 w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 bg-red-500 border-2 border-brand-primary rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"></span>
+                    )}
                 </button>
             ) : (
                 <button
