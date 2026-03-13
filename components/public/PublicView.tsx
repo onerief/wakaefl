@@ -62,6 +62,7 @@ interface PublicViewProps {
   onAddMatchComment?: (matchId: string, text: string) => void;
   isAdmin?: boolean;
   onUpdateMatchScore?: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => void;
+  onUpdateMatch?: (matchId: string, updates: Partial<Match>) => void;
   onUpdateKnockoutScore?: (matchId: string, data: Partial<KnockoutMatch> & { round: keyof KnockoutStageRounds }) => void;
   userOwnedTeamIds?: string[];
   clubStats?: any[];
@@ -171,7 +172,7 @@ const MatchdayTimer: React.FC<{ settings: ScheduleSettings }> = ({ settings }) =
 
 export const PublicView: React.FC<PublicViewProps> = ({ 
     mode, groups, matches, knockoutStage, rules, history, onSelectTeam, 
-    currentUser, onAddMatchComment, isAdmin, onUpdateMatchScore, onUpdateKnockoutScore,
+    currentUser, onAddMatchComment, isAdmin, onUpdateMatchScore, onUpdateMatch, onUpdateKnockoutScore,
     userOwnedTeamIds = [], clubStats = [], playerStats = { topScorers: [], topAssists: [] },
     scheduleSettings
 }) => {
@@ -275,6 +276,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
                                     onSelectTeam={onSelectTeam} 
                                     isAdminMode={isAdminModeActive} 
                                     onUpdateScore={onUpdateMatchScore} 
+                                    onUpdateMatch={onUpdateMatch}
                                     currentUser={currentUser} 
                                     onAddComment={onAddMatchComment} 
                                     isAdmin={isAdmin} 
@@ -363,6 +365,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
                                                     onSelectTeam={onSelectTeam} 
                                                     isAdminMode={isAdminModeActive} 
                                                     onUpdateScore={onUpdateMatchScore} 
+                                                    onUpdateMatch={onUpdateMatch}
                                                     currentUser={currentUser} 
                                                     onAddComment={onAddMatchComment} 
                                                     isAdmin={isAdmin} 

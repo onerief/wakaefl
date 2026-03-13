@@ -17,6 +17,7 @@ interface MatchCardProps {
     onAddComment?: (matchId: string, text: string) => void;
     isAdminMode?: boolean;
     onUpdateScore?: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => void;
+    onUpdateMatch?: (matchId: string, updates: Partial<Match>) => void;
     isAdmin?: boolean;
     userOwnedTeamIds?: string[];
     mode?: TournamentMode;
@@ -26,7 +27,7 @@ interface MatchCardProps {
 }
 
 export const MatchCard: React.FC<MatchCardProps> = ({ 
-    match, onSelectTeam, currentUser, onAddComment, isAdminMode, onUpdateScore, isAdmin,
+    match, onSelectTeam, currentUser, onAddComment, isAdminMode, onUpdateScore, onUpdateMatch, isAdmin,
     userOwnedTeamIds = [], mode, scheduleSettings, teamAStanding, teamBStanding
 }) => {
     const [showProof, setShowProof] = useState(false);
@@ -86,7 +87,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file || !onUpdateScore) return;
+        if (!file) return;
         if (file.size > 2 * 1024 * 1024) {
             addToast('Ukuran file maksimal 2MB', 'error');
             return;
@@ -94,7 +95,9 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         setIsUploading(true);
         try {
             const url = await uploadMatchProof(file);
-            await onUpdateScore(match.id, match.scoreA ?? 0, match.scoreB ?? 0, url);
+            if (onUpdateMatch) {
+                onUpdateMatch(match.id, { proofUrl: url });
+            }
             if (mode) {
                 await updateMatchProof(mode, match.id, url);
             }
@@ -325,7 +328,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                         </p>
                                     </div>
                                     <form onSubmit={handleSubmitComment} className="flex gap-2">
-                                        <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Type a message..." className="flex-grow bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-brand-text placeholder:text-brand-light/50 focus:border-brand-vibrant outline-none transition-all" />
+                                        <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Type a message..." className="flex-grow bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-brand-light/50 focus:border-brand-vibrant outline-none transition-all" />
                                         <button type="submit" disabled={!newComment.trim()} className="p-2 bg-brand-vibrant text-white rounded-xl hover:scale-105 active:scale-95 transition-all disabled:opacity-50"><Send size={16} /></button>
                                     </form>
                                 </div>

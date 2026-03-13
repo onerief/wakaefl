@@ -365,6 +365,7 @@ function AppContent() {
                     onAddMatchComment={handleAddCommentWrapper} 
                     isAdmin={isAdminAuthenticated} 
                     onUpdateMatchScore={tournament.updateMatchScore} 
+                    onUpdateMatch={tournament.updateMatch}
                     onUpdateKnockoutScore={tournament.updateKnockoutMatch} 
                     userOwnedTeamIds={userOwnedTeams.map(t => t.team.id)} 
                     clubStats={tournament.clubStats}
