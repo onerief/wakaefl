@@ -102,6 +102,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             if (mode) {
                 await updateMatchProof(mode, match.id, proofUrlInput.trim());
             }
+            setEditProofUrl(proofUrlInput.trim());
             addToast('Bukti berhasil diupload!', 'success');
             setShowProofInput(false);
             setProofUrlInput('');
@@ -258,7 +259,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 <div className="flex flex-col border-t border-brand-accent/10">
                     <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-brand-primary/40">
                         <div className="flex items-center gap-2 sm:gap-4">
-                            {match.proofUrl ? (
+                            {(match.proofUrl || editProofUrl) ? (
                                 <button onClick={() => setShowProof(true)} className="flex items-center gap-1.5 sm:gap-2 text-[7px] sm:text-[8px] font-black text-brand-vibrant uppercase hover:text-brand-text transition-colors">
                                     <MonitorPlay size={12} className="sm:w-3.5 sm:h-3.5" />
                                     <span>Bukti</span>

@@ -84,7 +84,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] backdrop-blur-md p-4 animate-in fade-in duration-300">
       <Card className="w-full max-w-md sm:max-w-lg relative !p-0 overflow-hidden shadow-2xl !bg-brand-primary border-brand-vibrant/20">
         <button onClick={onClose} className="absolute top-4 right-4 text-brand-light hover:text-white transition-colors z-10" aria-label="Close modal">
-          <X size={20} sm:size={24} />
+          <X className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
         
         <div className="flex">
@@ -122,7 +122,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
                         disabled={isLoading}
                         className="w-full bg-white text-black hover:bg-gray-100 font-bold py-2 sm:py-3 px-4 rounded-xl flex items-center justify-center gap-2 sm:gap-3 transition-all active:scale-95 group text-xs sm:text-sm"
                     >
-                        {isLoading ? <Spinner size={16} sm:size={20} /> : (
+                        {isLoading ? <Spinner className="w-4 h-4 sm:w-5 sm:h-5" /> : (
                             <>
                                 <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
                                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -144,7 +144,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
                     <form onSubmit={handleEmailAuth} className="space-y-3 sm:space-y-4">
                         {!isLogin && (
                              <div className="relative">
-                                <User size={16} sm:size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" />
+                                <User className="w-4 h-4 sm:w-[18px] sm:h-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" />
                                 <input
                                     type="text"
                                     placeholder="Nama Lengkap"
@@ -156,7 +156,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
                             </div>
                         )}
                         <div className="relative">
-                            <Mail size={16} sm:size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" />
+                            <Mail className="w-4 h-4 sm:w-[18px] sm:h-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" />
                             <input
                                 type="email"
                                 placeholder="Alamat Email"
@@ -167,7 +167,7 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
                             />
                         </div>
                         <div className="relative">
-                            <Lock size={16} sm:size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" />
+                            <Lock className="w-4 h-4 sm:w-[18px] sm:h-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" />
                             <input
                                 type="password"
                                 placeholder="Password"
@@ -179,10 +179,10 @@ export const UserAuthModal: React.FC<UserAuthModalProps> = ({ onClose, onSuccess
                         </div>
 
                         <Button type="submit" className="w-full !rounded-xl !py-2.5 sm:!py-3 !text-xs sm:!text-sm !font-bold" disabled={isLoading}>
-                            {isLoading ? <Spinner size={16} sm:size={18} /> : (
+                            {isLoading ? <Spinner className="w-4 h-4 sm:w-[18px] sm:h-[18px]" /> : (
                                 <span className="flex items-center gap-2">
                                     {isLogin ? 'Masuk Sekarang' : 'Buat Akun'} 
-                                    <ChevronRight size={14} sm:size={16} />
+                                    <ChevronRight className="w-[14px] h-[14px] sm:w-4 sm:h-4" />
                                 </span>
                             )}
                         </Button>

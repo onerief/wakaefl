@@ -103,14 +103,14 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                             <p className="text-[10px] sm:text-xs text-brand-light">Daftarkan tim untuk kompetisi baru.</p>
                         </div>
                         <button onClick={onClose} className="text-brand-light hover:text-white transition-colors">
-                            <X size={20} sm:size={24} />
+                            <X className="w-5 h-5 sm:w-6 sm:h-6" />
                         </button>
                     </div>
 
                     <div className="p-4 sm:p-6 overflow-y-auto max-h-[70vh] sm:max-h-[80vh] custom-scrollbar">
                         {submitError && (
                             <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3 text-red-400">
-                                <AlertCircle size={16} sm:size={20} />
+                                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                                 <p className="text-[10px] sm:text-xs font-bold">{submitError}</p>
                             </div>
                         )}
@@ -119,7 +119,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                         {uniqueExistingTeams.length > 0 && (
                             <div className="mb-6 sm:mb-8 p-3 sm:p-4 bg-brand-vibrant/5 border border-brand-vibrant/20 rounded-xl sm:rounded-2xl animate-in fade-in slide-in-from-top-2 duration-500">
                                 <label className="block text-[9px] sm:text-[10px] font-black text-brand-vibrant uppercase tracking-widest mb-1.5 sm:mb-2 flex items-center gap-2">
-                                    <Check size={12} sm:size={14} className="bg-brand-vibrant text-white rounded-full p-0.5" />
+                                    <Check className="w-3 h-3 sm:w-[14px] sm:h-[14px] bg-brand-vibrant text-white rounded-full p-0.5" />
                                     Gunakan Data Tim Sebelumnya
                                 </label>
                                 <div className="relative">
@@ -134,7 +134,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                         ))}
                                     </select>
                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-light">
-                                        <ChevronDown size={14} sm:size={16} />
+                                        <ChevronDown className="w-[14px] h-[14px] sm:w-4 sm:h-4" />
                                     </div>
                                 </div>
                             </div>
@@ -170,7 +170,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                 <div>
                                     <label className="block text-[10px] sm:text-xs font-bold text-brand-light uppercase mb-1">Kompetisi *</label>
                                     <div className="relative">
-                                        <Trophy size={14} sm:size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-vibrant" />
+                                        <Trophy className="w-[14px] h-[14px] sm:w-[18px] sm:h-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-brand-vibrant" />
                                         <select
                                             value={preferredMode}
                                             onChange={(e) => setPreferredMode(e.target.value as TournamentMode)}
@@ -182,7 +182,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                             <option value="wakacl">WAKACL (Champions League)</option>
                                         </select>
                                         <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-brand-light">
-                                            <ChevronDown size={14} sm:size={16} />
+                                            <ChevronDown className="w-[14px] h-[14px] sm:w-4 sm:h-4" />
                                         </div>
                                     </div>
                                 </div>
@@ -202,7 +202,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                 <div>
                                     <label className="block text-[10px] sm:text-xs font-bold text-brand-light uppercase mb-1">Nama Manager *</label>
                                     <div className="relative">
-                                        <UserCircle size={14} sm:size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" />
+                                        <UserCircle className="w-[14px] h-[14px] sm:w-[18px] sm:h-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" />
                                         <input
                                             type="text"
                                             value={manager}
@@ -218,7 +218,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                     <div>
                                         <label className="block text-[10px] sm:text-xs font-bold text-brand-light uppercase mb-1">No. WhatsApp *</label>
                                         <div className="relative">
-                                            <MessageCircle size={14} sm:size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500" />
+                                            <MessageCircle className="w-[14px] h-[14px] sm:w-[18px] sm:h-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-green-500" />
                                             <input
                                                 type="text"
                                                 value={whatsappNumber}
@@ -233,7 +233,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                                     <div>
                                         <label className="block text-[10px] sm:text-xs font-bold text-brand-light uppercase mb-1">Instagram</label>
                                         <div className="relative">
-                                            <Instagram size={14} sm:size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-pink-500" />
+                                            <Instagram className="w-[14px] h-[14px] sm:w-[18px] sm:h-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-pink-500" />
                                             <input
                                                 type="text"
                                                 value={socialMediaUrl}
@@ -248,7 +248,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
 
                             <div className="pt-2">
                                 <Button type="submit" className="w-full justify-center py-2.5 sm:py-3 text-[11px] sm:text-sm font-bold" disabled={isSubmitting}>
-                                    {isSubmitting ? <Loader className="animate-spin" /> : <><Send size={14} sm:size={16} /> Kirim Pendaftaran</>}
+                                    {isSubmitting ? <Loader className="animate-spin" /> : <><Send className="w-[14px] h-[14px] sm:w-4 sm:h-4" /> Kirim Pendaftaran</>}
                                 </Button>
                             </div>
                         </form>

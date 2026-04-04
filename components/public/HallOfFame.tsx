@@ -142,7 +142,7 @@ export const HallOfFame: React.FC<HallOfFameProps> = ({ history, currentStatus, 
                            <div key={season.seasonId} className="deepin-glass deepin-card p-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-white/5 transition-all duration-300 group gap-4 relative overflow-hidden">
                                <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                                    <div className="flex flex-col items-center justify-center w-8 sm:w-12 text-yellow-500 shrink-0">
-                                       <Trophy size={18} className="sm:size-24" />
+                                       <Trophy className="w-[18px] h-[18px] sm:w-6 sm:h-6" />
                                        <span className="text-[7px] sm:text-[10px] font-black mt-1 uppercase tracking-tighter">WINNER</span>
                                    </div>
                                    <TeamLogo logoUrl={season.champion.logoUrl} teamName={season.champion.name} className="w-12 h-12 sm:w-16 sm:h-16 shadow-xl shrink-0" />

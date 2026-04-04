@@ -181,7 +181,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ currentUser,
                     <img src={currentUser.photoURL} alt="Profile" className="w-full h-full rounded-full object-cover" />
                 ) : (
                     <div className="w-full h-full rounded-full bg-brand-primary flex items-center justify-center text-brand-vibrant">
-                        <UserCircle size={28} sm:size={40} />
+                        <UserCircle className="w-7 h-7 sm:w-10 sm:h-10" />
                     </div>
                 )}
             </div>

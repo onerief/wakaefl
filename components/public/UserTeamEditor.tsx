@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import type { Team } from '../../types';
 import { Button } from '../shared/Button';
-import { Save, UserCircle, Instagram, MessageCircle, ArrowLeft, Loader, Upload, X, ImageIcon, Layout, Shield, Link as LinkIcon } from 'lucide-react';
+import { Save, UserCircle, Instagram, MessageCircle, ArrowLeft, Loader, Upload, X, Image as ImageIcon, Layout, Shield, Link as LinkIcon } from 'lucide-react';
 import { TeamLogo } from '../shared/TeamLogo';
 import { useToast } from '../shared/Toast';
 import { ImageUploadTutorial } from '../shared/ImageUploadTutorial';
@@ -14,12 +14,12 @@ interface UserTeamEditorProps {
 }
 
 export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, onCancel }) => {
-  const [name, setName] = useState(team.name || '');
-  const [manager, setManager] = useState(team.manager || '');
-  const [whatsappNumber, setWhatsappNumber] = useState(team.whatsappNumber || '');
-  const [socialMediaUrl, setSocialMediaUrl] = useState(team.socialMediaUrl || '');
-  const [logoUrl, setLogoUrl] = useState(team.logoUrl || '');
-  const [squadPhotoUrl, setSquadPhotoUrl] = useState(team.squadPhotoUrl || '');
+  const [name, setName] = useState(team?.name || '');
+  const [manager, setManager] = useState(team?.manager || '');
+  const [whatsappNumber, setWhatsappNumber] = useState(team?.whatsappNumber || '');
+  const [socialMediaUrl, setSocialMediaUrl] = useState(team?.socialMediaUrl || '');
+  const [logoUrl, setLogoUrl] = useState(team?.logoUrl || '');
+  const [squadPhotoUrl, setSquadPhotoUrl] = useState(team?.squadPhotoUrl || '');
   
   const [isSaving, setIsSaving] = useState(false);
   
@@ -52,9 +52,9 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
     <div className="space-y-4 sm:space-y-6 animate-in slide-in-from-right duration-300">
       <div className="flex items-center gap-2 mb-2 sm:mb-4">
         <button onClick={onCancel} className="p-1.5 sm:p-2 rounded-full hover:bg-white/5 text-brand-light transition-colors">
-            <ArrowLeft size={18} sm:size={20} />
+            <ArrowLeft className="w-[18px] h-[18px] sm:w-[20px] sm:h-[20px]" />
         </button>
-        <h3 className="text-sm sm:text-xl font-bold text-white truncate">Edit: {team.name}</h3>
+        <h3 className="text-sm sm:text-xl font-bold text-white truncate">Edit: {team?.name}</h3>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
@@ -95,7 +95,7 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
                     <img src={squadPhotoUrl} alt="Squad" className="w-full h-full object-cover" />
                 ) : (
                     <div className="flex flex-col items-center gap-2 text-brand-light/20">
-                        <ImageIcon size={32} sm:size={40} />
+                        <ImageIcon className="w-8 h-8 sm:w-10 sm:h-10" />
                         <span className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest">Belum ada foto</span>
                     </div>
                 )}
@@ -126,7 +126,7 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
                     Nama Tim
                 </label>
                 <div className="relative">
-                    <Shield size={16} sm:size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-vibrant" />
+                    <Shield className="w-4 h-4 sm:w-[18px] sm:h-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-brand-vibrant" />
                     <input 
                         type="text" 
                         value={name}
@@ -142,7 +142,7 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
                     Nama Manager
                 </label>
                 <div className="relative">
-                    <UserCircle size={16} sm:size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" />
+                    <UserCircle className="w-4 h-4 sm:w-[18px] sm:h-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" />
                     <input 
                         type="text" 
                         value={manager}
@@ -158,7 +158,7 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
                     Nomor WhatsApp
                 </label>
                 <div className="relative">
-                    <MessageCircle size={16} sm:size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500" />
+                    <MessageCircle className="w-4 h-4 sm:w-[18px] sm:h-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-green-500" />
                     <input 
                         type="text" 
                         value={whatsappNumber}
@@ -174,7 +174,7 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
                     Link Instagram
                 </label>
                 <div className="relative">
-                    <Instagram size={16} sm:size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-pink-500" />
+                    <Instagram className="w-4 h-4 sm:w-[18px] sm:h-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-pink-500" />
                     <input 
                         type="text" 
                         value={socialMediaUrl}
@@ -187,7 +187,7 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
         </div>
 
         <Button type="submit" disabled={isSaving} className="w-full !py-2.5 sm:!py-3 !rounded-xl text-[11px] sm:text-sm font-bold shadow-lg">
-            {isSaving ? <Loader className="animate-spin" size={16} sm:size={18} /> : <span className="flex items-center gap-2"><Save size={16} sm:size={18} /> Simpan Perubahan</span>}
+            {isSaving ? <Loader className="animate-spin w-4 h-4 sm:w-[18px] sm:h-[18px]" /> : <span className="flex items-center gap-2"><Save className="w-4 h-4 sm:w-[18px] sm:h-[18px]" /> Simpan Perubahan</span>}
         </Button>
       </form>
     </div>

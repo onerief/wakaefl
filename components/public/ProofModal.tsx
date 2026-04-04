@@ -10,6 +10,10 @@ interface ProofModalProps {
 export const ProofModal: React.FC<ProofModalProps> = ({ isOpen, onClose, imageUrl }) => {
   const [imageError, setImageError] = useState(false);
 
+  React.useEffect(() => {
+    setImageError(false);
+  }, [imageUrl]);
+
   if (!isOpen) return null;
 
   return (
