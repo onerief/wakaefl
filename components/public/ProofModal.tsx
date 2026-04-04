@@ -1,5 +1,5 @@
-import React from 'react';
-import { X } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, ExternalLink, Image as ImageIcon } from 'lucide-react';
 
 interface ProofModalProps {
   isOpen: boolean;
@@ -8,6 +8,8 @@ interface ProofModalProps {
 }
 
 export const ProofModal: React.FC<ProofModalProps> = ({ isOpen, onClose, imageUrl }) => {
+  const [imageError, setImageError] = useState(false);
+
   if (!isOpen) return null;
 
   return (
@@ -35,14 +37,36 @@ export const ProofModal: React.FC<ProofModalProps> = ({ isOpen, onClose, imageUr
       </button>
 
       <div
-        className="relative w-full h-full max-h-[100dvh] flex items-center justify-center"
+        className="relative w-full h-full max-h-[100dvh] flex flex-col items-center justify-center gap-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <img
-          src={imageUrl}
-          alt="Match Proof Screenshot"
-          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-        />
+        {!imageError ? (
+            <img
+              src={imageUrl}
+              alt="Match Proof Screenshot"
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              onError={() => setImageError(true)}
+            />
+        ) : (
+            <div className="bg-brand-secondary/80 p-6 sm:p-8 rounded-2xl border border-brand-accent/30 flex flex-col items-center text-center max-w-sm mx-auto shadow-2xl">
+                <div className="w-16 h-16 bg-brand-vibrant/20 rounded-full flex items-center justify-center mb-4 text-brand-vibrant">
+                    <ImageIcon size={32} />
+                </div>
+                <h3 className="text-lg font-black text-white uppercase tracking-widest mb-2">Bukti Pertandingan</h3>
+                <p className="text-xs text-brand-light/70 mb-6 leading-relaxed">
+                    Link bukti yang diberikan tidak dapat dimuat sebagai gambar langsung. Silakan buka link di tab baru untuk melihat bukti.
+                </p>
+                <a 
+                    href={imageUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-6 py-3 bg-brand-vibrant text-white rounded-xl font-bold hover:scale-105 active:scale-95 transition-all shadow-lg shadow-brand-vibrant/20"
+                >
+                    <span>Buka Link Bukti</span>
+                    <ExternalLink size={16} />
+                </a>
+            </div>
+        )}
       </div>
     </div>
   );

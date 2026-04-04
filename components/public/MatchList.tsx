@@ -263,7 +263,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     <MonitorPlay size={12} className="sm:w-3.5 sm:h-3.5" />
                                     <span>Bukti</span>
                                 </button>
-                            ) : isMyMatch && !isFinished && (
+                            ) : (isMyMatch || isAdminMode) && (
                                 <button onClick={() => setShowProofInput(!showProofInput)} disabled={isUploading} className={`flex items-center gap-1.5 sm:gap-2 text-[7px] sm:text-[8px] font-black uppercase transition-colors disabled:opacity-50 ${showProofInput ? 'text-brand-vibrant' : 'text-brand-light/60 hover:text-brand-text'}`}>
                                     {isUploading ? <Loader className="animate-spin" size={12} /> : <Camera size={12} />}
                                     <span>SS</span>
