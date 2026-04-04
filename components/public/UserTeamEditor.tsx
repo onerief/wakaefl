@@ -1,11 +1,11 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import type { Team } from '../../types';
 import { Button } from '../shared/Button';
-import { Save, UserCircle, Instagram, MessageCircle, ArrowLeft, Loader, Upload, X, ImageIcon, Layout, Shield } from 'lucide-react';
+import { Save, UserCircle, Instagram, MessageCircle, ArrowLeft, Loader, Upload, X, ImageIcon, Layout, Shield, Link as LinkIcon } from 'lucide-react';
 import { TeamLogo } from '../shared/TeamLogo';
-import { uploadTeamLogo } from '../../services/firebaseService';
 import { useToast } from '../shared/Toast';
+import { ImageUploadTutorial } from '../shared/ImageUploadTutorial';
 
 interface UserTeamEditorProps {
   team: Team;
@@ -22,38 +22,8 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
   const [squadPhotoUrl, setSquadPhotoUrl] = useState(team.squadPhotoUrl || '');
   
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isUploadingSquad, setIsUploadingSquad] = useState(false);
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const squadInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'squad') => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      if (file.size > 2 * 1024 * 1024) { // 2MB Limit
-          addToast('Ukuran file maksimal 2MB', 'error');
-          return;
-      }
-
-      if (type === 'logo') setIsUploading(true);
-      else setIsUploadingSquad(true);
-
-      try {
-          const downloadUrl = await uploadTeamLogo(file);
-          if (type === 'logo') setLogoUrl(downloadUrl);
-          else setSquadPhotoUrl(downloadUrl);
-          addToast(`${type === 'logo' ? 'Logo' : 'Foto Skuad'} berhasil diupload!`, 'success');
-      } catch (error: any) {
-          addToast(error.message || 'Gagal mengupload gambar.', 'error');
-          console.error(error);
-      } finally {
-          if (type === 'logo') setIsUploading(false);
-          else setIsUploadingSquad(false);
-      }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,35 +61,27 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
         
         {/* Logo Upload Section */}
         <div className="bg-black/20 p-3 sm:p-4 rounded-xl border border-white/5 flex flex-col items-center gap-3 sm:gap-4">
+            <ImageUploadTutorial />
             <label className="block w-full text-[8px] sm:text-[10px] font-black text-brand-light uppercase tracking-widest text-center">
                 Logo Tim
             </label>
             <div className="relative group">
                 <TeamLogo logoUrl={logoUrl} teamName={name || "New Team"} className="w-16 h-16 sm:w-24 sm:h-24 shadow-2xl" />
-                {isUploading && (
-                    <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
-                        <Loader className="animate-spin text-white" size={20} sm:size={24} />
-                    </div>
-                )}
             </div>
             
-            <div className="flex gap-2 w-full">
-                <input 
-                    type="file" 
-                    ref={fileInputRef}
-                    onChange={(e) => handleFileChange(e, 'logo')}
-                    accept="image/*"
-                    className="hidden"
-                />
-                <Button 
-                    type="button" 
-                    onClick={() => fileInputRef.current?.click()} 
-                    variant="secondary" 
-                    disabled={isUploading}
-                    className="w-full flex justify-center !py-2 !text-[10px] sm:!text-xs !bg-brand-vibrant/10 hover:!bg-brand-vibrant/20 border-brand-vibrant/30 text-brand-vibrant"
-                >
-                    <Upload size={12} sm:size={14} /> Upload Logo
-                </Button>
+            <div className="w-full">
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <LinkIcon size={14} className="text-brand-light/50" />
+                    </div>
+                    <input 
+                        type="url" 
+                        value={logoUrl}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                        placeholder="https://i.ibb.co/..."
+                        className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-brand-primary border border-brand-accent rounded-xl text-brand-text text-[11px] sm:text-xs placeholder-brand-light/30 focus:ring-2 focus:ring-brand-vibrant outline-none"
+                    />
+                </div>
             </div>
         </div>
 
@@ -137,40 +99,21 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
                         <span className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest">Belum ada foto</span>
                     </div>
                 )}
-                {isUploadingSquad && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                        <Loader className="animate-spin text-white" size={20} sm:size={24} />
-                    </div>
-                )}
             </div>
             
-            <div className="flex gap-2 w-full">
-                <input 
-                    type="file" 
-                    ref={squadInputRef}
-                    onChange={(e) => handleFileChange(e, 'squad')}
-                    accept="image/*"
-                    className="hidden"
-                />
-                <Button 
-                    type="button" 
-                    onClick={() => squadInputRef.current?.click()} 
-                    variant="secondary" 
-                    disabled={isUploadingSquad}
-                    className="w-full flex justify-center !py-2 !text-[10px] sm:!text-xs !bg-brand-special/10 hover:!bg-brand-special/20 border-brand-special/30 text-brand-special"
-                >
-                    <Layout size={12} sm:size={14} /> Upload Foto Skuad
-                </Button>
-                {squadPhotoUrl && (
-                    <Button 
-                        type="button" 
-                        onClick={() => setSquadPhotoUrl('')} 
-                        variant="secondary"
-                        className="!px-2 sm:!px-3 !bg-red-500/10 border-red-500/30 text-red-400 hover:!bg-red-500/20"
-                    >
-                        <X size={12} sm:size={14} />
-                    </Button>
-                )}
+            <div className="w-full">
+                <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <LinkIcon size={14} className="text-brand-light/50" />
+                    </div>
+                    <input 
+                        type="url" 
+                        value={squadPhotoUrl}
+                        onChange={(e) => setSquadPhotoUrl(e.target.value)}
+                        placeholder="https://i.ibb.co/..."
+                        className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-brand-primary border border-brand-accent rounded-xl text-brand-text text-[11px] sm:text-xs placeholder-brand-light/30 focus:ring-2 focus:ring-brand-vibrant outline-none"
+                    />
+                </div>
             </div>
         </div>
 

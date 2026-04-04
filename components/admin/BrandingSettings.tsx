@@ -1,11 +1,11 @@
 
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { Upload, X, Loader, Image as ImageIcon, Smartphone } from 'lucide-react';
+import { Upload, X, Loader, Image as ImageIcon, Smartphone, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '../shared/Toast';
-import { uploadTeamLogo } from '../../services/firebaseService';
 import { ConfirmationModal } from './ConfirmationModal';
+import { ImageUploadTutorial } from '../shared/ImageUploadTutorial';
 
 interface BrandingSettingsProps {
     headerLogoUrl: string;
@@ -15,37 +15,8 @@ interface BrandingSettingsProps {
 }
 
 export const BrandingSettings: React.FC<BrandingSettingsProps> = ({ headerLogoUrl, onUpdateHeaderLogo, pwaIconUrl, onUpdatePwaIcon }) => {
-    const headerInputRef = useRef<HTMLInputElement>(null);
-    const pwaInputRef = useRef<HTMLInputElement>(null);
-    const [isUploading, setIsUploading] = useState(false);
     const [showRemoveConfirm, setShowRemoveConfirm] = useState<'header' | 'pwa' | null>(null);
     const { addToast } = useToast();
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'header' | 'pwa') => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        if (file.size > 2 * 1024 * 1024) {
-            addToast('Maksimal ukuran file 2MB', 'error');
-            return;
-        }
-
-        setIsUploading(true);
-        try {
-            const downloadUrl = await uploadTeamLogo(file);
-            if (type === 'header') {
-                onUpdateHeaderLogo(downloadUrl);
-                addToast('Logo header berhasil diupload!', 'success');
-            } else {
-                onUpdatePwaIcon(downloadUrl);
-                addToast('Ikon aplikasi berhasil diupload! Refresh halaman untuk melihat efek.', 'success');
-            }
-        } catch (error: any) {
-            addToast(error.message || 'Gagal mengupload logo.', 'error');
-        } finally {
-            setIsUploading(false);
-        }
-    };
 
     const confirmRemove = () => {
         if (showRemoveConfirm === 'header') {
@@ -75,21 +46,27 @@ export const BrandingSettings: React.FC<BrandingSettingsProps> = ({ headerLogoUr
                             ) : (
                                 <div className="text-brand-light/30 text-xs italic">Default Text & Icon</div>
                             )}
-                            {isUploading && (
-                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                    <Loader size={20} className="animate-spin text-white" />
-                                </div>
-                            )}
                         </div>
                     </div>
                     <div className="flex-1 flex flex-col gap-3 w-full md:w-auto">
-                        <input type="file" ref={headerInputRef} onChange={(e) => handleFileChange(e, 'header')} accept="image/png, image/jpeg, image/webp" className="hidden" />
+                        <ImageUploadTutorial />
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <LinkIcon size={14} className="text-brand-light/50" />
+                            </div>
+                            <input 
+                                type="url" 
+                                value={headerLogoUrl}
+                                onChange={(e) => onUpdateHeaderLogo(e.target.value)}
+                                placeholder="URL Header Logo (https://i.ibb.co/...)"
+                                className="w-full pl-9 pr-3 py-2.5 bg-brand-primary border border-brand-accent rounded-lg text-brand-text text-xs placeholder-brand-light/30 focus:ring-1 focus:ring-brand-vibrant outline-none"
+                            />
+                        </div>
                         <div className="flex gap-2">
-                            <Button onClick={() => headerInputRef.current?.click()} disabled={isUploading} className="flex-1 justify-center text-xs">
-                                <Upload size={14} /> {headerLogoUrl ? 'Ganti Logo' : 'Upload Logo'}
-                            </Button>
                             {headerLogoUrl && (
-                                <Button onClick={() => setShowRemoveConfirm('header')} variant="danger" className="!p-2.5" title="Hapus Logo Custom"><X size={16} /></Button>
+                                <Button onClick={() => setShowRemoveConfirm('header')} variant="danger" className="w-full justify-center text-xs">
+                                    <X size={14} /> Hapus Logo Custom
+                                </Button>
                             )}
                         </div>
                         <p className="text-[10px] text-brand-light leading-relaxed">
@@ -108,21 +85,27 @@ export const BrandingSettings: React.FC<BrandingSettingsProps> = ({ headerLogoUr
                             ) : (
                                 <Smartphone className="text-brand-light/20" size={32} />
                             )}
-                            {isUploading && (
-                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                    <Loader size={20} className="animate-spin text-white" />
-                                </div>
-                            )}
                         </div>
                     </div>
                     <div className="flex-1 flex flex-col gap-3 w-full md:w-auto">
-                        <input type="file" ref={pwaInputRef} onChange={(e) => handleFileChange(e, 'pwa')} accept="image/png, image/jpeg" className="hidden" />
+                        <ImageUploadTutorial />
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <LinkIcon size={14} className="text-brand-light/50" />
+                            </div>
+                            <input 
+                                type="url" 
+                                value={pwaIconUrl}
+                                onChange={(e) => onUpdatePwaIcon(e.target.value)}
+                                placeholder="URL App Icon (https://i.ibb.co/...)"
+                                className="w-full pl-9 pr-3 py-2.5 bg-brand-primary border border-brand-accent rounded-lg text-brand-text text-xs placeholder-brand-light/30 focus:ring-1 focus:ring-brand-vibrant outline-none"
+                            />
+                        </div>
                         <div className="flex gap-2">
-                            <Button onClick={() => pwaInputRef.current?.click()} disabled={isUploading} className="flex-1 justify-center text-xs">
-                                <Upload size={14} /> {pwaIconUrl ? 'Ganti Icon' : 'Upload Icon'}
-                            </Button>
                             {pwaIconUrl && (
-                                <Button onClick={() => setShowRemoveConfirm('pwa')} variant="danger" className="!p-2.5" title="Hapus Icon Custom"><X size={16} /></Button>
+                                <Button onClick={() => setShowRemoveConfirm('pwa')} variant="danger" className="w-full justify-center text-xs">
+                                    <X size={14} /> Hapus Icon Custom
+                                </Button>
                             )}
                         </div>
                         <p className="text-[10px] text-brand-light leading-relaxed">

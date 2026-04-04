@@ -8,7 +8,8 @@ import { ProofModal } from './ProofModal';
 import { TeamLogo } from '../shared/TeamLogo';
 import type { User } from 'firebase/auth';
 import { useToast } from '../shared/Toast';
-import { uploadMatchProof, updateMatchProof } from '../../services/firebaseService';
+import { updateMatchProof } from '../../services/firebaseService';
+import { ImageUploadTutorial } from '../shared/ImageUploadTutorial';
 
 interface MatchCardProps {
     match: Match;
@@ -85,25 +86,27 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         }
     };
 
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        if (file.size > 2 * 1024 * 1024) {
-            addToast('Ukuran file maksimal 2MB', 'error');
+    const [showProofInput, setShowProofInput] = useState(false);
+    const [proofUrlInput, setProofUrlInput] = useState('');
+
+    const handleUrlSubmit = async () => {
+        if (!proofUrlInput.trim()) {
+            addToast('URL tidak boleh kosong', 'error');
             return;
         }
         setIsUploading(true);
         try {
-            const url = await uploadMatchProof(file);
             if (onUpdateMatch) {
-                onUpdateMatch(match.id, { proofUrl: url });
+                onUpdateMatch(match.id, { proofUrl: proofUrlInput.trim() });
             }
             if (mode) {
-                await updateMatchProof(mode, match.id, url);
+                await updateMatchProof(mode, match.id, proofUrlInput.trim());
             }
             addToast('Bukti berhasil diupload!', 'success');
+            setShowProofInput(false);
+            setProofUrlInput('');
         } catch (e: any) {
-            addToast(e.message || 'Gagal mengupload bukti.', 'error');
+            addToast(e.message || 'Gagal menyimpan bukti.', 'error');
         } finally {
             setIsUploading(false);
         }
@@ -252,42 +255,63 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                 </div>
 
                 {/* Bottom Actions Bar */}
-                <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-brand-primary/40 border-t border-brand-accent/10">
-                    <div className="flex items-center gap-2 sm:gap-4">
-                        {match.proofUrl ? (
-                            <button onClick={() => setShowProof(true)} className="flex items-center gap-1.5 sm:gap-2 text-[7px] sm:text-[8px] font-black text-brand-vibrant uppercase hover:text-brand-text transition-colors">
-                                <MonitorPlay size={12} className="sm:w-3.5 sm:h-3.5" />
-                                <span>Bukti</span>
-                            </button>
-                        ) : isMyMatch && !isFinished && (
-                            <>
-                                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
-                                <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="flex items-center gap-1.5 sm:gap-2 text-[7px] sm:text-[8px] font-black text-brand-light/60 uppercase hover:text-brand-text transition-colors disabled:opacity-50">
+                <div className="flex flex-col border-t border-brand-accent/10">
+                    <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-brand-primary/40">
+                        <div className="flex items-center gap-2 sm:gap-4">
+                            {match.proofUrl ? (
+                                <button onClick={() => setShowProof(true)} className="flex items-center gap-1.5 sm:gap-2 text-[7px] sm:text-[8px] font-black text-brand-vibrant uppercase hover:text-brand-text transition-colors">
+                                    <MonitorPlay size={12} className="sm:w-3.5 sm:h-3.5" />
+                                    <span>Bukti</span>
+                                </button>
+                            ) : isMyMatch && !isFinished && (
+                                <button onClick={() => setShowProofInput(!showProofInput)} disabled={isUploading} className={`flex items-center gap-1.5 sm:gap-2 text-[7px] sm:text-[8px] font-black uppercase transition-colors disabled:opacity-50 ${showProofInput ? 'text-brand-vibrant' : 'text-brand-light/60 hover:text-brand-text'}`}>
                                     {isUploading ? <Loader className="animate-spin" size={12} /> : <Camera size={12} />}
                                     <span>SS</span>
                                 </button>
-                            </>
-                        )}
-                        {hasComments && (
-                            <div className="flex items-center gap-1 sm:gap-1.5 text-[7px] sm:text-[8px] font-black text-brand-light/40 uppercase">
-                                <MessageCircle size={12} className="sm:w-3.5 sm:h-3.5" />
-                                <span>{match.comments?.length}</span>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                            {hasComments && (
+                                <div className="flex items-center gap-1 sm:gap-1.5 text-[7px] sm:text-[8px] font-black text-brand-light/40 uppercase">
+                                    <MessageCircle size={12} className="sm:w-3.5 sm:h-3.5" />
+                                    <span>{match.comments?.length}</span>
+                                </div>
+                            )}
+                        </div>
 
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                        {isMyMatch && <div className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-brand-special/10 border border-brand-special/30 rounded-lg flex items-center gap-1 sm:gap-1.5">
-                            <Star size={8} className="sm:w-2.5 sm:h-2.5 text-brand-special fill-brand-special" />
-                            <span className="text-[6px] sm:text-[7px] font-black text-brand-special uppercase tracking-widest">Mine</span>
-                        </div>}
-                        <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl text-[7px] sm:text-[8px] font-black uppercase transition-all border ${
-                            showComments ? 'bg-brand-vibrant text-white border-brand-vibrant shadow-lg' : 'bg-brand-secondary/40 text-brand-light/60 border-brand-accent/20 hover:border-brand-vibrant/40'
-                        }`}>
-                            <MessageSquare size={12} className="sm:w-3.5 sm:h-3.5" />
-                            <span>Chat</span>
-                        </button>
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                            {isMyMatch && <div className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-brand-special/10 border border-brand-special/30 rounded-lg flex items-center gap-1 sm:gap-1.5">
+                                <Star size={8} className="sm:w-2.5 sm:h-2.5 text-brand-special fill-brand-special" />
+                                <span className="text-[6px] sm:text-[7px] font-black text-brand-special uppercase tracking-widest">Mine</span>
+                            </div>}
+                            <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-xl text-[7px] sm:text-[8px] font-black uppercase transition-all border ${
+                                showComments ? 'bg-brand-vibrant text-white border-brand-vibrant shadow-lg' : 'bg-brand-secondary/40 text-brand-light/60 border-brand-accent/20 hover:border-brand-vibrant/40'
+                            }`}>
+                                <MessageSquare size={12} className="sm:w-3.5 sm:h-3.5" />
+                                <span>Chat</span>
+                            </button>
+                        </div>
                     </div>
+                    
+                    {showProofInput && (
+                        <div className="p-3 bg-brand-secondary/50 border-t border-brand-accent/10 animate-in slide-in-from-top-2 space-y-3">
+                            <ImageUploadTutorial />
+                            <div className="flex gap-2">
+                                <input 
+                                    type="url" 
+                                    value={proofUrlInput}
+                                    onChange={(e) => setProofUrlInput(e.target.value)}
+                                    placeholder="Paste URL Bukti SS (https://i.ibb.co/...)"
+                                    className="flex-grow px-3 py-2 bg-brand-primary border border-brand-accent rounded-lg text-[10px] sm:text-xs text-brand-text focus:ring-1 focus:ring-brand-vibrant outline-none"
+                                />
+                                <button 
+                                    onClick={handleUrlSubmit}
+                                    disabled={isUploading || !proofUrlInput.trim()}
+                                    className="px-4 py-2 bg-brand-vibrant text-white rounded-lg text-[10px] sm:text-xs font-bold disabled:opacity-50"
+                                >
+                                    {isUploading ? <Loader className="animate-spin" size={14} /> : 'Simpan'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Comments Section */}

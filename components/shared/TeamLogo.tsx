@@ -59,6 +59,7 @@ export const TeamLogo: React.FC<TeamLogoProps> = ({ logoUrl, teamName, className
             }}
             loading="lazy"
             decoding="async" // Helps with main thread performance
+            referrerPolicy="no-referrer"
           />
 
           {/* High-tech border glow overlay when loaded */}

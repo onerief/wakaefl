@@ -1,13 +1,13 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import type { Team } from '../../types';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { X, Copy, Check, UserCircle, Instagram, MessageCircle, Upload, Mail, Loader } from 'lucide-react';
+import { X, Copy, Check, UserCircle, Instagram, MessageCircle, Upload, Mail, Loader, Link as LinkIcon } from 'lucide-react';
 import { TeamLogo } from '../shared/TeamLogo';
 import { Spinner } from '../shared/Spinner';
-import { uploadTeamLogo } from '../../services/firebaseService';
 import { useToast } from '../shared/Toast';
+import { ImageUploadTutorial } from '../shared/ImageUploadTutorial';
 
 interface TeamFormProps {
   team: Team | null;
@@ -33,9 +33,7 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
   const [logoUrl, setLogoUrl] = useState(team?.logoUrl ?? '');
   const [ownerEmail, setOwnerEmail] = useState(team?.ownerEmail ?? '');
   const [copied, setCopied] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
 
   const handleCopyId = () => {
@@ -45,29 +43,6 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
         setTimeout(() => setCopied(false), 2000);
     }
   }
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      if (file.size > 2 * 1024 * 1024) { // 2MB Limit
-          addToast('File size must be under 2MB', 'error');
-          return;
-      }
-
-      setIsUploading(true);
-      try {
-          const downloadUrl = await uploadTeamLogo(file);
-          setLogoUrl(downloadUrl);
-          addToast('Logo uploaded successfully!', 'success');
-      } catch (error: any) {
-          // Use the specific error message from the service
-          addToast(error.message || 'Failed to upload logo.', 'error');
-          console.error(error);
-      } finally {
-          setIsUploading(false);
-      }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,45 +78,24 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
                 <div className="flex flex-col sm:flex-row items-center gap-6 bg-black/20 p-4 rounded-2xl border border-white/5">
                     <div className="relative group">
                         <TeamLogo logoUrl={logoUrl} teamName={name || "New Team"} className="w-24 h-24 flex-shrink-0" />
-                        {isUploading && (
-                            <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
-                                <Loader className="animate-spin text-white" size={24} />
-                            </div>
-                        )}
                     </div>
                     <div className="flex-grow w-full space-y-3">
-                    <div>
-                        <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5">Logo Tim</label>
-                        <div className="flex gap-2">
-                            <input 
-                                type="file" 
-                                ref={fileInputRef}
-                                onChange={handleFileChange}
-                                accept="image/*"
-                                className="hidden"
-                            />
-                            <Button 
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                variant="secondary"
-                                disabled={isUploading}
-                                className="w-full flex justify-center text-xs py-2.5"
-                            >
-                                <Upload size={14} /> {logoUrl ? 'Ganti Logo' : 'Upload Logo'}
-                            </Button>
+                        <ImageUploadTutorial />
+                        <div>
+                            <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5">URL Logo Tim</label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <LinkIcon size={14} className="text-brand-light/50" />
+                                </div>
+                                <input
+                                    type="url"
+                                    value={logoUrl}
+                                    onChange={(e) => setLogoUrl(e.target.value)}
+                                    className="w-full pl-9 pr-3 py-2.5 bg-brand-primary border border-brand-accent rounded-lg text-brand-light text-xs focus:ring-1 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/20"
+                                    placeholder="https://i.ibb.co/..."
+                                />
+                            </div>
                         </div>
-                    </div>
-                    
-                    {/* Manual URL Fallback */}
-                    <div>
-                        <input
-                            type="text"
-                            value={logoUrl}
-                            onChange={(e) => setLogoUrl(e.target.value)}
-                            className="w-full p-2.5 bg-brand-primary border border-brand-accent rounded-lg text-brand-light text-xs focus:ring-1 focus:ring-brand-vibrant outline-none placeholder:text-brand-light/20"
-                            placeholder="...atau tempel URL gambar manual"
-                        />
-                    </div>
                     </div>
                 </div>
 

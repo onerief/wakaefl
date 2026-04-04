@@ -1,11 +1,12 @@
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { X, Upload, UserCircle, MessageCircle, Instagram, Loader, Send, Trophy, ChevronDown, Phone, AlertCircle, Copy, Check } from 'lucide-react';
+import { X, UserCircle, MessageCircle, Instagram, Loader, Send, Trophy, ChevronDown, Phone, AlertCircle, Copy, Check, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '../shared/Toast';
-import { uploadTeamLogo, submitNewTeamRegistration } from '../../services/firebaseService';
+import { submitNewTeamRegistration } from '../../services/firebaseService';
 import { TeamLogo } from '../shared/TeamLogo';
+import { ImageUploadTutorial } from '../shared/ImageUploadTutorial';
 import type { User } from 'firebase/auth';
 import type { TournamentMode, Team } from '../../types';
 
@@ -22,11 +23,9 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
     const [socialMediaUrl, setSocialMediaUrl] = useState('');
     const [logoUrl, setLogoUrl] = useState('');
     const [preferredMode, setPreferredMode] = useState<TournamentMode>('league');
-    const [isUploading, setIsUploading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const { addToast } = useToast();
 
     // Unique list of teams owned by user (to avoid duplicates if same team in multiple modes)
@@ -46,27 +45,6 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
             setSocialMediaUrl(team.socialMediaUrl || '');
             setLogoUrl(team.logoUrl || '');
             addToast(`Data tim "${team.name}" berhasil dimuat!`, 'success');
-        }
-    };
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        if (file.size > 2 * 1024 * 1024) {
-            addToast('Ukuran file maksimal 2MB', 'error');
-            return;
-        }
-
-        setIsUploading(true);
-        try {
-            const downloadUrl = await uploadTeamLogo(file);
-            setLogoUrl(downloadUrl);
-            addToast('Logo berhasil diupload!', 'success');
-        } catch (error: any) {
-            addToast(error.message || 'Gagal mengupload logo.', 'error');
-        } finally {
-            setIsUploading(false);
         }
     };
 
@@ -166,31 +144,24 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                             
                             {/* Logo Upload */}
                             <div className="flex flex-col items-center gap-3 sm:gap-4 bg-black/20 p-3 sm:p-4 rounded-xl border border-white/5">
+                                <ImageUploadTutorial />
                                 <div className="relative group">
                                     <TeamLogo logoUrl={logoUrl} teamName={name || "New Team"} className="w-16 h-16 sm:w-24 sm:h-24" />
-                                    {isUploading && (
-                                        <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center">
-                                            <Loader className="animate-spin text-white" size={18} sm:size={24} />
-                                        </div>
-                                    )}
                                 </div>
-                                <div className="flex gap-2 w-full max-w-xs">
-                                    <input 
-                                        type="file" 
-                                        ref={fileInputRef}
-                                        onChange={handleFileChange}
-                                        accept="image/*"
-                                        className="hidden"
-                                    />
-                                    <Button 
-                                        type="button" 
-                                        onClick={() => fileInputRef.current?.click()} 
-                                        variant="secondary" 
-                                        disabled={isUploading}
-                                        className="w-full flex justify-center text-[10px] sm:text-xs py-2 sm:py-2.5"
-                                    >
-                                        <Upload size={12} sm:size={14} /> {logoUrl ? 'Ganti Logo' : 'Upload Logo'}
-                                    </Button>
+                                <div className="w-full">
+                                    <label className="block text-[10px] sm:text-xs font-bold text-brand-light uppercase mb-1">URL Logo Tim</label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <LinkIcon size={14} className="text-brand-light/50" />
+                                        </div>
+                                        <input 
+                                            type="url" 
+                                            value={logoUrl}
+                                            onChange={(e) => setLogoUrl(e.target.value)}
+                                            placeholder="https://i.ibb.co/..."
+                                            className="w-full pl-9 pr-3 py-2.5 sm:py-3 bg-brand-primary border border-brand-accent rounded-xl text-brand-text text-[11px] sm:text-xs placeholder-brand-light/30 focus:ring-2 focus:ring-brand-vibrant outline-none"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
