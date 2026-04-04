@@ -247,7 +247,7 @@ export const TeamRegistrationModal: React.FC<TeamRegistrationModalProps> = ({ cu
                             </div>
 
                             <div className="pt-2">
-                                <Button type="submit" className="w-full justify-center py-2.5 sm:py-3 text-[11px] sm:text-sm font-bold" disabled={isSubmitting || isUploading}>
+                                <Button type="submit" className="w-full justify-center py-2.5 sm:py-3 text-[11px] sm:text-sm font-bold" disabled={isSubmitting}>
                                     {isSubmitting ? <Loader className="animate-spin" /> : <><Send size={14} sm:size={16} /> Kirim Pendaftaran</>}
                                 </Button>
                             </div>

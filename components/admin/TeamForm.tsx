@@ -202,7 +202,7 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-white/5 sticky bottom-0 bg-brand-primary p-4 -mx-6 -mb-6 shadow-[0_-4px_10px_rgba(0,0,0,0.5)]">
                     <Button type="button" variant="secondary" onClick={onClose} disabled={isSaving} className="!rounded-xl px-6 py-3">Batal</Button>
-                    <Button type="submit" disabled={isSaving || isUploading} className="!rounded-xl px-8 min-w-[140px] py-3">
+                    <Button type="submit" disabled={isSaving} className="!rounded-xl px-8 min-w-[140px] py-3">
                     {isSaving ? <Spinner /> : (team ? 'Simpan Perubahan' : 'Tambah Tim')}
                     </Button>
                 </div>

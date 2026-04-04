@@ -186,7 +186,7 @@ export const UserTeamEditor: React.FC<UserTeamEditorProps> = ({ team, onSave, on
             </div>
         </div>
 
-        <Button type="submit" disabled={isSaving || isUploading || isUploadingSquad} className="w-full !py-2.5 sm:!py-3 !rounded-xl text-[11px] sm:text-sm font-bold shadow-lg">
+        <Button type="submit" disabled={isSaving} className="w-full !py-2.5 sm:!py-3 !rounded-xl text-[11px] sm:text-sm font-bold shadow-lg">
             {isSaving ? <Loader className="animate-spin" size={16} sm:size={18} /> : <span className="flex items-center gap-2"><Save size={16} sm:size={18} /> Simpan Perubahan</span>}
         </Button>
       </form>
