@@ -62,6 +62,13 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
                 Matchday {match.matchday}
             </span>
             <span className="text-[10px] font-bold text-brand-light/40 uppercase">Leg {match.leg}</span>
+            <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
+                match.status === 'finished' ? 'bg-brand-vibrant/20 text-brand-vibrant border border-brand-vibrant/30' :
+                match.status === 'live' ? 'bg-red-500/20 text-red-500 border border-red-500/30 animate-pulse' :
+                'bg-brand-light/10 text-brand-light/60 border border-brand-light/20'
+            }`}>
+                {match.status === 'finished' ? 'Selesai' : match.status === 'live' ? 'Live' : 'Belum Mulai'}
+            </span>
           </div>
           <div className="flex gap-2">
             <button onClick={() => onEditSchedule(match)} className="p-1.5 text-brand-light hover:text-white bg-white/5 rounded-lg transition-colors border border-transparent"><Pencil size={14} /></button>

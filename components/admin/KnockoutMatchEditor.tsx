@@ -68,9 +68,18 @@ export const KnockoutMatchEditor: React.FC<KnockoutMatchEditorProps> = ({ match,
   return (
     <Card className={`${!isEditable ? 'opacity-80' : ''} border border-brand-accent/50 bg-brand-primary/40`}>
       <div className="flex justify-between items-center mb-4 pb-2 border-b border-white/5">
-          <span className="text-[10px] font-black text-brand-light uppercase tracking-widest bg-white/5 px-2 py-1 rounded">
-            {match.round} - M{match.matchNumber}
-          </span>
+          <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-brand-light uppercase tracking-widest bg-white/5 px-2 py-1 rounded">
+                {match.round} - M{match.matchNumber}
+              </span>
+              <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${
+                  (isFinal ? (sA1 !== null && sB1 !== null) : (sA1 !== null && sB1 !== null && sA2 !== null && sB2 !== null)) ? 'bg-brand-vibrant/20 text-brand-vibrant border border-brand-vibrant/30' :
+                  (sA1 !== null && sB1 !== null) ? 'bg-red-500/20 text-red-500 border border-red-500/30 animate-pulse' :
+                  'bg-brand-light/10 text-brand-light/60 border border-brand-light/20'
+              }`}>
+                  {(isFinal ? (sA1 !== null && sB1 !== null) : (sA1 !== null && sB1 !== null && sA2 !== null && sB2 !== null)) ? 'Selesai' : (sA1 !== null && sB1 !== null) ? 'Live' : 'Belum Mulai'}
+              </span>
+          </div>
           <div className="flex gap-1">
              <button onClick={() => onEdit(match)} className="p-1.5 text-brand-light hover:text-white bg-white/5 rounded-lg"><Pencil size={12} /></button>
              <button onClick={onDelete} className="p-1.5 text-red-400 hover:text-red-300 bg-red-500/10 rounded-lg"><Trash2 size={12} /></button>
