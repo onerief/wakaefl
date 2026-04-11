@@ -212,7 +212,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                     </div>
                                 </div>
                                 <div className="mt-2 px-2 py-0.5 bg-brand-vibrant/20 rounded-full border border-brand-vibrant/30">
-                                    <span className="text-[7px] font-black text-brand-vibrant uppercase tracking-widest">FT</span>
+                                    <span className="text-[7px] font-black text-brand-vibrant uppercase tracking-widest">Selesai</span>
                                 </div>
                             </div>
                         ) : (
@@ -220,10 +220,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                                 <div className="px-4 py-2 bg-brand-primary/80 backdrop-blur-md rounded-lg border border-white/10 shadow-2xl">
                                     <span className="text-sm sm:text-xl font-sports text-brand-light/40 tracking-widest">VS</span>
                                 </div>
-                                {match.status === 'live' && (
+                                {match.status === 'live' ? (
                                     <div className="flex items-center gap-1 px-2 py-0.5 bg-red-500/20 border border-red-500/40 rounded-full animate-pulse">
                                         <div className="w-1 h-1 bg-red-500 rounded-full"></div>
                                         <span className="text-[7px] font-black text-red-500 uppercase tracking-widest">Live</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-1 px-2 py-0.5 bg-brand-light/10 border border-brand-light/20 rounded-full">
+                                        <span className="text-[7px] font-black text-brand-light/60 uppercase tracking-widest">Belum Mulai</span>
                                     </div>
                                 )}
                             </div>

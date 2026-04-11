@@ -81,10 +81,13 @@ const KnockoutMatchTeam: React.FC<KnockoutMatchTeamProps> = ({
                                 </span>
                             </div>
                             {isWinner && (
-                                <span className="text-[6px] sm:text-[7px] font-black text-brand-special uppercase tracking-[0.2em] mt-0.5 sm:mt-1 block animate-pulse">Qualified</span>
+                                <span className="text-[6px] sm:text-[7px] font-black text-brand-special uppercase tracking-[0.2em] mt-0.5 sm:mt-1 block animate-pulse">Selesai</span>
                             )}
                             {isOngoing && !isWinner && (
-                                <span className="text-[6px] sm:text-[7px] font-bold text-brand-vibrant/60 uppercase tracking-widest mt-0.5 sm:mt-1 block">Competing</span>
+                                <span className="text-[6px] sm:text-[7px] font-bold text-brand-vibrant/60 uppercase tracking-widest mt-0.5 sm:mt-1 block">Live</span>
+                            )}
+                            {!isOngoing && !isWinner && !isLoser && (
+                                <span className="text-[6px] sm:text-[7px] font-bold text-brand-light/60 uppercase tracking-widest mt-0.5 sm:mt-1 block">Belum Mulai</span>
                             )}
                         </div>
                     </>
