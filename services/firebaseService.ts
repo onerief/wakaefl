@@ -36,7 +36,7 @@ import {
   uploadBytes, 
   getDownloadURL 
 } from "firebase/storage";
-import type { TournamentState, TournamentMode, Team, ChatMessage, Notification, Match, MatchComment } from '../types';
+import type { TournamentState, TournamentMode, Team, ChatMessage, Notification, Match, MatchComment, Donation } from '../types';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCXZAvanJ8Ra-3oCRXvsaKBopGce4CPuXQ",
@@ -184,7 +184,8 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
         shopCategories: globalData.shopCategories || ['Coin'],
         marqueeMessages: globalData.marqueeMessages || [],
         history: combinedHistory, 
-        visibleModes: globalData.visibleModes || ['league', 'wakacl', 'two_leagues'],
+        visibleModes: globalData.visibleModes || ['league'],
+        hiddenViews: globalData.hiddenViews || [],
         banners: globalData.banners || [], 
         partners: globalData.partners || [], 
         rules: globalData.rules || '', 
@@ -240,7 +241,8 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
         shopCategories: state.shopCategories || [],
         marqueeMessages: state.marqueeMessages || [],
         history: cleanHistory, 
-        visibleModes: state.visibleModes || ['league', 'wakacl', 'two_leagues']
+        visibleModes: state.visibleModes || ['league'],
+        hiddenViews: state.hiddenViews || []
     });
 
     if (!globalData) return false;
@@ -291,7 +293,8 @@ export const subscribeToTournamentData = (
                 shopCategories: safeGlobal.shopCategories || ['Coin'],
                 marqueeMessages: safeGlobal.marqueeMessages || [],
                 history: combinedHistory, 
-                visibleModes: safeGlobal.visibleModes || ['league', 'wakacl', 'two_leagues'],
+                visibleModes: safeGlobal.visibleModes || ['league'],
+                hiddenViews: safeGlobal.hiddenViews || [],
                 banners: safeGlobal.banners || [], 
                 partners: safeGlobal.partners || [], 
                 rules: safeGlobal.rules || '', 
@@ -637,6 +640,17 @@ export const submitNewTeamRegistration = async (data: any, email: string) => {
         ownerEmail: email,
         timestamp: Date.now(),
         status: 'pending'
+    });
+};
+
+export const subscribeToDonations = (callback: (donations: Donation[]) => void) => {
+    if (!firestore) return () => {};
+    const colRef = collection(firestore, 'saweria_donations');
+    const q = query(colRef, orderBy('timestamp', 'desc'), limit(5));
+    return onSnapshot(q, (snap) => {
+        const donations: Donation[] = [];
+        snap.forEach(docSnap => donations.push({ ...docSnap.data(), id: docSnap.id } as Donation));
+        callback(donations);
     });
 };
 

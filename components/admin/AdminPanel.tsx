@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import type { Team, Group, Match, KnockoutStageRounds, KnockoutMatch, TournamentState, Partner, TournamentMode, TournamentStatus, SeasonHistory, NewsItem, Product, ScheduleSettings } from '../../types';
+import type { View, Team, Group, Match, KnockoutStageRounds, KnockoutMatch, TournamentState, Partner, TournamentMode, TournamentStatus, SeasonHistory, NewsItem, Product, ScheduleSettings } from '../../types';
 import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
@@ -45,6 +45,7 @@ interface AdminPanelProps {
   forceSave?: () => Promise<void>;
   isRegistrationOpen: boolean;
   visibleModes?: TournamentMode[];
+  hiddenViews?: View[];
   setMode: (mode: TournamentMode) => void;
   updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => void;
   updateMatch: (matchId: string, updates: Partial<Match>) => void;
@@ -83,6 +84,7 @@ interface AdminPanelProps {
   setRegistrationOpen: (open: boolean) => void;
   setTournamentStatus: (status: 'active' | 'completed') => void;
   updateVisibleModes: (modes: TournamentMode[]) => void;
+  updateHiddenViews?: (views: View[]) => void;
   resolveTeamClaim?: (teamId: string, approved: boolean) => void;
   // Schedule Control Actions
   startMatchday?: (duration: number) => void;
@@ -163,6 +165,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       }
       props.updateVisibleModes(updated);
       addToast(`Visibilitas ${modeToToggle.toUpperCase()} diperbarui.`, 'info');
+  };
+
+  const toggleViewVisibility = (viewToToggle: View) => {
+      const current = props.hiddenViews || [];
+      let updated: View[];
+      if (current.includes(viewToToggle)) {
+          updated = current.filter(v => v !== viewToToggle);
+      } else {
+          updated = [...current, viewToToggle];
+      }
+      props.updateHiddenViews?.(updated);
+      addToast(`Visibilitas menu diperbarui.`, 'info');
   };
 
   const handleForceSave = async () => {
@@ -387,6 +401,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                 <p className="text-[10px] text-brand-light mb-4 uppercase tracking-widest opacity-60">Pilih menu yang ingin ditampilkan di navigasi bar bawah (Publik).</p>
                 
                 <div className="space-y-3">
+                    <p className="text-[9px] font-black text-cyan-400 uppercase tracking-widest mt-4 mb-2">Mode Turnamen</p>
                     {(['league', 'two_leagues', 'wakacl'] as TournamentMode[]).map(m => {
                         const isVisible = (props.visibleModes || ['league', 'wakacl', 'two_leagues']).includes(m);
                         const label = m === 'league' ? 'Liga Reguler' : m === 'two_leagues' ? '2 Wilayah' : 'Championship';
@@ -398,6 +413,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                                 </div>
                                 <button 
                                     onClick={() => toggleVisibility(m)}
+                                    className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${isVisible ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-brand-light border border-white/10'}`}
+                                >
+                                    {isVisible ? 'Terlihat' : 'Tersembunyi'}
+                                </button>
+                            </div>
+                        );
+                    })}
+
+                    <p className="text-[9px] font-black text-cyan-400 uppercase tracking-widest mt-6 mb-2">Halaman Utama</p>
+                    {([{ v: 'news', l: 'Berita / News' }, { v: 'shop', l: 'Shop / Store' }, { v: 'hall_of_fame', l: 'Hall of Fame' }] as { v: View, l: string }[]).map(item => {
+                        const isHidden = (props.hiddenViews || []).includes(item.v);
+                        const isVisible = !isHidden;
+                        return (
+                            <div key={item.v} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5 group hover:border-cyan-500/30 transition-all">
+                                <div className="flex items-center gap-3">
+                                    {isVisible ? <Eye size={16} className="text-cyan-400" /> : <EyeOff size={16} className="text-red-400" />}
+                                    <span className={`text-[11px] font-black uppercase tracking-widest ${isVisible ? 'text-white' : 'text-brand-light opacity-40'}`}>{item.l}</span>
+                                </div>
+                                <button 
+                                    onClick={() => toggleViewVisibility(item.v)}
                                     className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all ${isVisible ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-brand-light border border-white/10'}`}
                                 >
                                     {isVisible ? 'Terlihat' : 'Tersembunyi'}

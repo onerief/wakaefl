@@ -29,6 +29,7 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
     const [content, setContent] = useState('');
     const [imageUrl, setImageUrl] = useState('');
     const [category, setCategory] = useState(categories[0] || 'Info');
+    const [hidden, setHidden] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
     const resetForm = () => {
@@ -36,6 +37,7 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
         setContent('');
         setImageUrl('');
         setCategory(categories[0] || 'Info');
+        setHidden(false);
         setEditingId(null);
         setIsFormOpen(false);
     };
@@ -54,7 +56,7 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
         if (editingId) {
             const index = newsItems.findIndex(n => n.id === editingId);
             if (index !== -1) {
-                newsItems[index] = { ...newsItems[index], title, content, imageUrl, category };
+                newsItems[index] = { ...newsItems[index], title, content, imageUrl, category, hidden };
             }
             addToast('Berita berhasil diperbarui!', 'success');
         } else {
@@ -63,7 +65,8 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
                 title, content, category,
                 imageUrl: imageUrl || 'https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&q=80&w=800',
                 date: Date.now(),
-                author: 'Admin'
+                author: 'Admin',
+                hidden
             };
             newsItems.push(newItem);
             addToast('Berita berhasil diterbitkan!', 'success');
@@ -87,6 +90,7 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
         setContent(item.content);
         setImageUrl(item.imageUrl);
         setCategory(item.category);
+        setHidden(!!item.hidden);
         setIsFormOpen(true);
     };
 
@@ -164,6 +168,15 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
                                         </div>
                                     </div>
                                 </div>
+                                <div className="flex items-center gap-3 p-4 bg-brand-primary/50 border border-brand-accent rounded-xl">
+                                    <input 
+                                        type="checkbox" id="news-hidden" checked={hidden} onChange={(e) => setHidden(e.target.checked)}
+                                        className="w-4 h-4 rounded border-white/10 bg-brand-primary text-brand-vibrant focus:ring-brand-vibrant"
+                                    />
+                                    <label htmlFor="news-hidden" className="text-[10px] font-black text-brand-light uppercase tracking-widest cursor-pointer">
+                                        Sembunyikan Berita (Archive)
+                                    </label>
+                                </div>
                             </div>
                             <div className="flex flex-col">
                                 <label className="block text-[10px] font-black text-brand-light uppercase tracking-widest mb-1.5">Isi Berita</label>
@@ -189,7 +202,12 @@ export const NewsManager: React.FC<NewsManagerProps> = ({ news = [], onUpdateNew
                     <div key={item.id} className="bg-brand-primary/40 border border-white/5 rounded-2xl overflow-hidden group hover:border-brand-vibrant/30 transition-all flex flex-col">
                         <div className="aspect-video relative overflow-hidden">
                             <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
-                            <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded text-[8px] font-black text-white uppercase">{item.category}</div>
+                            <div className="absolute top-2 left-2 flex gap-1">
+                                <div className="px-2 py-0.5 bg-black/60 backdrop-blur-md rounded text-[8px] font-black text-white uppercase">{item.category}</div>
+                                {item.hidden && (
+                                    <div className="px-2 py-0.5 bg-red-600/80 backdrop-blur-md rounded text-[8px] font-black text-white uppercase">HIDDEN</div>
+                                )}
+                            </div>
                         </div>
                         <div className="p-4 flex-grow">
                             <h4 className="font-black text-white italic uppercase text-xs line-clamp-2 mb-2">{item.title}</h4>

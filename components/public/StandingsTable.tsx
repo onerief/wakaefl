@@ -178,6 +178,11 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, match
                                 {standing.team.name || "TBD"}
                             </span>
                           </div>
+                          {standing.team.manager && (
+                              <span className="text-[7px] sm:text-[10px] text-brand-light/60 font-medium truncate leading-tight mt-0.5">
+                                  {standing.team.manager}
+                              </span>
+                          )}
                       </div>
                     </button>
                   </td>

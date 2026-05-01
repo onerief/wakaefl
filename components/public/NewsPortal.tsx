@@ -40,8 +40,9 @@ export const NewsPortal: React.FC<NewsPortalProps> = ({
     const filteredNews = useMemo(() => {
         return news
             .filter(item => {
+                if (item.hidden) return false;
                 const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                     item.content.toLowerCase().includes(searchTerm.toLowerCase());
+                                      item.content.toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesCat = selectedCategory === 'All' || item.category === selectedCategory;
                 return matchesSearch && matchesCat;
             })

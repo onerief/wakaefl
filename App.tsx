@@ -296,14 +296,13 @@ function AppContent() {
         hasUnreadNotifications={hasUnreadNotifications}
       />
 
-      {showBanners && (
+      <MarqueeBanner messages={tournament.marqueeMessages} />
+
+      {showBanners && tournament.banners && tournament.banners.length > 0 && (
           <div className="w-full flex flex-col z-10">
-              <MarqueeBanner messages={tournament.marqueeMessages} />
-              {tournament.banners && tournament.banners.length > 0 && (
-                  <div className="container mx-auto px-4 pt-4 md:pt-6">
-                      <BannerCarousel banners={tournament.banners} />
-                  </div>
-              )}
+              <div className="container mx-auto px-4 pt-4 md:pt-6 text-center">
+                  <BannerCarousel banners={tournament.banners} />
+              </div>
           </div>
       )}
 
@@ -312,6 +311,7 @@ function AppContent() {
               currentView={view} 
               setView={handleSetView} 
               visibleModes={tournament.visibleModes}
+              hiddenViews={tournament.hiddenViews}
               onToggleChat={() => setIsChatOpen(!isChatOpen)}
               isChatOpen={isChatOpen}
           />
@@ -336,6 +336,7 @@ function AppContent() {
                     allMatches={tournament.matches} 
                     news={tournament.news} 
                     visibleModes={tournament.visibleModes}
+                    hiddenViews={tournament.hiddenViews}
                     scheduleSettings={tournament.scheduleSettings}
                     isAdmin={isAdminAuthenticated}
                     onResetCycleChange={tournament.setResetCycle}
@@ -372,7 +373,15 @@ function AppContent() {
                     scheduleSettings={tournament.scheduleSettings}
                 />
               )}
-              {view === 'hall_of_fame' && <HallOfFame history={tournament.history} currentStatus={tournament.status} mode={activeMode} onBack={() => handleSetView('home')} />}
+              {view === 'hall_of_fame' && (
+                <HallOfFame 
+                    history={tournament.history} 
+                    currentStatus={tournament.status} 
+                    mode={activeMode} 
+                    currentLeader={tournament.groups?.[0]?.standings?.[0]?.team || null}
+                    onBack={() => handleSetView('home')} 
+                />
+              )}
               {view === 'admin' && (
                 isAdminAuthenticated ? (
                     <AdminPanel 
@@ -395,6 +404,7 @@ function AppContent() {
                         updateHeaderLogo={tournament.updateHeaderLogo}
                         updatePwaIcon={tournament.updatePwaIcon}
                         updateVisibleModes={tournament.updateVisibleModes}
+                        updateHiddenViews={tournament.updateHiddenViews}
                         updateMatch={tournament.updateMatch}
                         setResetCycle={tournament.setResetCycle}
                     />

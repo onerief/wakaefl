@@ -17,6 +17,7 @@ interface HomeDashboardProps {
   allMatches?: Match[];
   news?: NewsItem[];
   visibleModes?: TournamentMode[];
+  hiddenViews?: string[];
   scheduleSettings?: ScheduleSettings;
   isAdmin?: boolean;
   onResetCycleChange?: (cycle: 24 | 48) => void;
@@ -32,6 +33,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
     allMatches = [],
     news = [],
     visibleModes = ['league', 'wakacl', 'two_leagues'],
+    hiddenViews = [],
     scheduleSettings,
     isAdmin = false,
     onResetCycleChange
@@ -41,7 +43,10 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   const [timeLeft, setTimeLeft] = useState<string>('');
   
   const latestNews = useMemo(() => {
-      return [...news].sort((a, b) => b.date - a.date).slice(0, 5);
+      return [...news]
+        .filter(n => !n.hidden)
+        .sort((a, b) => b.date - a.date)
+        .slice(0, 5);
   }, [news]);
 
   useEffect(() => {
@@ -171,67 +176,70 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
           </div>
 
           {/* Main News Spotlight (Bento Large) */}
-          <div className="md:col-span-4">
-              <div 
-                  className="relative w-full group h-full"
-                  onMouseEnter={() => setIsPaused(true)}
-                  onMouseLeave={() => setIsPaused(false)}
-              >
-                  {latestNews.length > 0 ? (
-                      <div className="relative overflow-hidden rounded-[2.5rem] border border-brand-accent glass-card h-full aspect-[4/3] md:aspect-[21/9]">
-                          <div 
-                              className="flex h-full transition-transform duration-1000 ease-in-out"
-                              style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-                          >
-                              {latestNews.map((item) => (
-                                  <div 
-                                      key={item.id} 
-                                      className="relative flex-shrink-0 w-full h-full cursor-pointer"
-                                      onClick={() => onSelectMode('news')}
-                                  >
-                                      <img 
-                                          src={item.imageUrl} 
-                                          alt={item.title} 
-                                          className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110" 
-                                      />
-                                      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
-                                      
-                                      <div className="absolute inset-0 p-6 md:p-12 flex flex-col justify-end">
-                                          <div className="flex items-center gap-2 mb-3">
-                                              <span className="px-3 py-1 bg-brand-vibrant text-white text-[9px] font-black uppercase rounded-lg border border-white/20">
-                                                  {item.category}
-                                              </span>
-                                          </div>
-                                          <h4 className="text-xl md:text-4xl font-sports text-white leading-tight mb-4 line-clamp-2">
-                                              {item.title}
-                                          </h4>
-                                          <div className="flex items-center gap-2 text-brand-vibrant text-[10px] font-black uppercase tracking-widest">
-                                              <span>Baca Selengkapnya</span>
-                                              <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
-                                          </div>
-                                      </div>
-                                  </div>
-                              ))}
-                          </div>
-                          {latestNews.length > 1 && (
-                              <div className="absolute bottom-6 right-6 flex gap-2 z-20">
-                                  <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="w-10 h-10 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-brand-vibrant transition-all">
-                                      <ChevronLeft size={20} />
-                                  </button>
-                                  <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="w-10 h-10 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-brand-vibrant transition-all">
-                                      <ChevronRight size={20} />
-                                  </button>
-                              </div>
-                          )}
-                      </div>
-                  ) : (
-                      <div className="h-full py-12 bg-brand-secondary/40 rounded-[2.5rem] border border-dashed border-brand-accent flex flex-col items-center justify-center text-center gap-4">
-                          <EmptyNewsIllustration className="w-24 h-16 opacity-30" />
-                          <span className="text-brand-light font-black uppercase tracking-widest text-[10px]">Belum Ada Berita</span>
-                      </div>
-                  )}
-              </div>
-          </div>
+          {!hiddenViews.includes('news') && (
+            <div className="md:col-span-4">
+                <div 
+                    className="relative w-full group h-full"
+                    onMouseEnter={() => setIsPaused(true)}
+                    onMouseLeave={() => setIsPaused(false)}
+                >
+                    {latestNews.length > 0 ? (
+                        <div className="relative overflow-hidden rounded-[2.5rem] border border-brand-accent glass-card h-full aspect-[4/3] md:aspect-[21/9]">
+                            {/* ... existing slider code ... */}
+                            <div 
+                                className="flex h-full transition-transform duration-1000 ease-in-out"
+                                style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+                            >
+                                {latestNews.map((item) => (
+                                    <div 
+                                        key={item.id} 
+                                        className="relative flex-shrink-0 w-full h-full cursor-pointer"
+                                        onClick={() => onSelectMode('news')}
+                                    >
+                                        <img 
+                                            src={item.imageUrl} 
+                                            alt={item.title} 
+                                            className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110" 
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
+                                        
+                                        <div className="absolute inset-0 p-6 md:p-12 flex flex-col justify-end">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <span className="px-3 py-1 bg-brand-vibrant text-white text-[9px] font-black uppercase rounded-lg border border-white/20">
+                                                    {item.category}
+                                                </span>
+                                            </div>
+                                            <h4 className="text-xl md:text-4xl font-sports text-white leading-tight mb-4 line-clamp-2">
+                                                {item.title}
+                                            </h4>
+                                            <div className="flex items-center gap-2 text-brand-vibrant text-[10px] font-black uppercase tracking-widest">
+                                                <span>Baca Selengkapnya</span>
+                                                <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            {latestNews.length > 1 && (
+                                <div className="absolute bottom-6 right-6 flex gap-2 z-20">
+                                    <button onClick={(e) => { e.stopPropagation(); prevSlide(); }} className="w-10 h-10 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-brand-vibrant transition-all">
+                                        <ChevronLeft size={20} />
+                                    </button>
+                                    <button onClick={(e) => { e.stopPropagation(); nextSlide(); }} className="w-10 h-10 rounded-full bg-black/40 text-white backdrop-blur-xl border border-white/10 flex items-center justify-center hover:bg-brand-vibrant transition-all">
+                                        <ChevronRight size={20} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="h-full py-12 bg-brand-secondary/40 rounded-[2.5rem] border border-dashed border-brand-accent flex flex-col items-center justify-center text-center gap-4">
+                            <EmptyNewsIllustration className="w-24 h-16 opacity-30" />
+                            <span className="text-brand-light font-black uppercase tracking-widest text-[10px]">Belum Ada Berita</span>
+                        </div>
+                    )}
+                </div>
+            </div>
+          )}
 
           {/* Next Match Spotlight (Bento Medium) */}
           {nextMatchInfo && (
@@ -290,6 +298,52 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                   icon={ChampionshipIcon} colorClass="from-yellow-500" 
               />
           </div>
+      </div>
+
+      {/* ADDITIONAL FEATURES GRID (HOF, SHOP, NEWS IF NOT ACCESSED ABOVE) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 px-2 sm:px-0">
+          {!hiddenViews.includes('hall_of_fame') && (
+              <button 
+                onClick={() => onSelectMode('hall_of_fame')}
+                className="glass-card hover:bg-brand-secondary/80 p-6 rounded-[2rem] flex flex-col items-center text-center gap-3 border border-brand-accent transition-all hover:scale-[1.02] active:scale-95 group"
+              >
+                  <div className="w-12 h-12 rounded-2xl bg-orange-500/20 flex items-center justify-center text-orange-500 group-hover:scale-110 transition-transform">
+                      <Trophy size={24} />
+                  </div>
+                  <div>
+                      <h4 className="text-sm font-black text-white uppercase italic">Hall of Fame</h4>
+                      <p className="text-[10px] text-brand-light opacity-60">Riwayat Juara Abadi</p>
+                  </div>
+              </button>
+          )}
+          {!hiddenViews.includes('shop') && (
+              <button 
+                onClick={() => onSelectMode('shop')}
+                className="glass-card hover:bg-brand-secondary/80 p-6 rounded-[2rem] flex flex-col items-center text-center gap-3 border border-brand-accent transition-all hover:scale-[1.02] active:scale-95 group"
+              >
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+                      <ShoppingBag size={24} />
+                  </div>
+                  <div>
+                      <h4 className="text-sm font-black text-white uppercase italic">Waka Shop</h4>
+                      <p className="text-[10px] text-brand-light opacity-60">Top-up & Akun</p>
+                  </div>
+              </button>
+          )}
+          {!hiddenViews.includes('news') && (
+              <button 
+                onClick={() => onSelectMode('news')}
+                className="glass-card hover:bg-brand-secondary/80 p-6 rounded-[2rem] flex flex-col items-center text-center gap-3 border border-brand-accent transition-all hover:scale-[1.02] active:scale-95 group"
+              >
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/20 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+                      <Newspaper size={24} />
+                  </div>
+                  <div>
+                      <h4 className="text-sm font-black text-white uppercase italic">Portal Berita</h4>
+                      <p className="text-[10px] text-brand-light opacity-60">Info Terkini</p>
+                  </div>
+              </button>
+          )}
       </div>
 
       {/* USER REGISTRATION CTA */}

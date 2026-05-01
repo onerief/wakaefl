@@ -34,6 +34,7 @@ export interface NewsItem {
   date: number;
   category: string;
   author: string;
+  hidden?: boolean;
 }
 
 export interface Product {
@@ -191,8 +192,17 @@ export interface TournamentState {
   shopCategories?: string[];
   marqueeMessages?: string[];
   visibleModes?: TournamentMode[];
+  hiddenViews?: View[];
   scheduleSettings: ScheduleSettings; // NEW FIELD
   matchComments?: Record<string, MatchComment[]>; // External comments map
+}
+
+export interface Donation {
+  id?: string;
+  name: string;
+  amount: number;
+  message: string;
+  timestamp: number;
 }
 
 export type View = 'home' | 'league' | 'wakacl' | 'two_leagues' | 'admin' | 'hall_of_fame' | 'news' | 'privacy' | 'about' | 'terms' | 'shop';

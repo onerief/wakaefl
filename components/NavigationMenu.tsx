@@ -8,12 +8,23 @@ interface NavigationMenuProps {
   currentView: View;
   setView: (view: View) => void;
   visibleModes?: TournamentMode[];
+  hiddenViews?: View[];
   onToggleChat: () => void;
   isChatOpen: boolean;
 }
 
-export const NavigationMenu: React.FC<NavigationMenuProps> = ({ currentView, setView, visibleModes = ['league', 'wakacl', 'two_leagues'], onToggleChat, isChatOpen }) => {
+export const NavigationMenu: React.FC<NavigationMenuProps> = ({ 
+    currentView, 
+    setView, 
+    visibleModes = ['league', 'wakacl', 'two_leagues'], 
+    hiddenViews = [],
+    onToggleChat, 
+    isChatOpen 
+}) => {
   const NavItem = ({ view, label, icon: Icon, colorClass = "" }: { view: View, label: string, icon: any, colorClass?: string }) => {
+    const isHidden = (hiddenViews || []).includes(view);
+    if (isHidden && view !== 'home') return null; // Home is usually always visible or handled separately
+
     const isActive = currentView === view;
     return (
       <button
