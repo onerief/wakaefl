@@ -149,7 +149,8 @@ export interface Partner {
   websiteUrl?: string | null;
 }
 
-export type TournamentMode = 'league' | 'wakacl' | 'two_leagues';
+export type TournamentMode = 'league' | 'wakacl' | 'two_leagues' | 'custom';
+export type TournamentSystem = 'league' | 'cup' | 'wakacl';
 export type TournamentStatus = 'active' | 'completed';
 
 export interface SeasonHistory {
@@ -180,6 +181,8 @@ export interface TournamentState {
   banners: string[];
   partners: Partner[];
   mode: TournamentMode;
+  system?: TournamentSystem; // NEW FIELD
+  customName?: string; // NEW FIELD
   isDoubleRoundRobin: boolean;
   status: TournamentStatus;
   history: SeasonHistory[];
@@ -205,4 +208,4 @@ export interface Donation {
   timestamp: number;
 }
 
-export type View = 'home' | 'league' | 'wakacl' | 'two_leagues' | 'admin' | 'hall_of_fame' | 'news' | 'privacy' | 'about' | 'terms' | 'shop';
+export type View = 'home' | 'league' | 'wakacl' | 'two_leagues' | 'custom' | 'admin' | 'hall_of_fame' | 'news' | 'privacy' | 'about' | 'terms' | 'shop';

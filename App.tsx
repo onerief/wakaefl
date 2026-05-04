@@ -41,6 +41,7 @@ const VIEW_PATHS: Record<View, string> = {
     two_leagues: '/wilayah',
     hall_of_fame: '/legends',
     admin: '/admin',
+    custom: '/custom',
     privacy: '/privacy',
     about: '/about',
     terms: '/terms'
@@ -147,7 +148,7 @@ function AppContent() {
         const foundView = (Object.keys(VIEW_PATHS) as View[]).find(v => VIEW_PATHS[v] === path);
         if (foundView) {
             setView(foundView);
-            if (['league', 'wakacl', 'two_leagues'].includes(foundView)) {
+            if (['league', 'wakacl', 'two_leagues', 'custom'].includes(foundView)) {
                 setActiveMode(foundView as TournamentMode);
             }
         } else {
@@ -163,7 +164,7 @@ function AppContent() {
   const handleSetView = (newView: View, subId?: string) => {
     // 1. Update State FIRST (Immediate UI feedback)
     setView(newView);
-    if (['league', 'wakacl', 'two_leagues'].includes(newView)) {
+    if (['league', 'wakacl', 'two_leagues', 'custom'].includes(newView)) {
         setActiveMode(newView as TournamentMode);
     }
     setDeepLinkNewsId(subId || null);
@@ -314,6 +315,7 @@ function AppContent() {
               hiddenViews={tournament.hiddenViews}
               onToggleChat={() => setIsChatOpen(!isChatOpen)}
               isChatOpen={isChatOpen}
+              customName={tournament.customName}
           />
       )}
 
@@ -353,14 +355,16 @@ function AppContent() {
               )}
               {view === 'shop' && <StoreFront products={tournament.products || []} categories={tournament.shopCategories} />}
               {(view === 'privacy' || view === 'about' || view === 'terms') && <StaticPages type={view as any} onBack={() => handleSetView('home')} />}
-              {(['league', 'wakacl', 'two_leagues'] as View[]).includes(view) && (
+              {(['league', 'wakacl', 'two_leagues', 'custom'] as View[]).includes(view) && (
                 <PublicView 
                     mode={activeMode}
                     groups={tournament.groups} 
                     matches={tournament.matches} 
-                    knockoutStage={(view === 'wakacl' || view === 'two_leagues') ? tournament.knockoutStage : null} 
+                    knockoutStage={(view === 'wakacl' || view === 'two_leagues' || (view === 'custom' && tournament.system !== 'league')) ? tournament.knockoutStage : null} 
                     rules={tournament.rules} 
                     history={tournament.history}
+                    customName={tournament.customName}
+                    system={tournament.system}
                     onSelectTeam={setViewingTeam} 
                     currentUser={currentUser} 
                     onAddMatchComment={handleAddCommentWrapper} 
@@ -388,6 +392,10 @@ function AppContent() {
                         {...tournament} 
                         mode={activeMode} 
                         setMode={setActiveMode} 
+                        system={tournament.system}
+                        customName={tournament.customName}
+                        setTournamentSystem={tournament.setTournamentSystem}
+                        setCustomName={tournament.setCustomName}
                         onUpdateNews={tournament.updateNews} 
                         updateProducts={tournament.updateProducts} 
                         updateNewsCategories={tournament.updateNewsCategories} 

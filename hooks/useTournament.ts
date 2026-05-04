@@ -1,6 +1,6 @@
 
 import { useReducer, useCallback, useState, useEffect, useRef, useMemo } from 'react';
-import type { View, Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment, SeasonHistory, NewsItem, Product, PlayerStat, MatchPlayerStats, ScheduleSettings } from '../types';
+import type { View, Team, Group, Match, Standing, KnockoutStageRounds, KnockoutMatch, TournamentState as FullTournamentState, Partner, TournamentMode, MatchComment, SeasonHistory, NewsItem, Product, PlayerStat, MatchPlayerStats, ScheduleSettings, TournamentSystem } from '../types';
 import { generateSummary } from '../services/geminiService';
 import { subscribeToTournamentData, subscribeToMatchComments, saveTournamentData, sanitizeData, resolveTeamClaimInFirestore } from '../services/firebaseService';
 import { useToast } from '../components/shared/Toast';
@@ -16,6 +16,8 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
   banners: [],
   partners: [],
   mode: mode,
+  system: 'league',
+  customName: '',
   isDoubleRoundRobin: true,
   status: 'active',
   history: [],
@@ -33,7 +35,7 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
     "MAINKAN DENGAN SPORTIF, MENANG DENGAN ELEGAN!",
     "UPDATE SKOR DAN KLASEMEN SECARA REAL-TIME DI SINI!"
   ],
-  visibleModes: ['league'],
+  visibleModes: ['league', 'wakacl', 'two_leagues', 'custom'],
   hiddenViews: [],
   scheduleSettings: {
       isActive: false,
@@ -128,6 +130,8 @@ const hydrateTournamentData = (state: FullTournamentState): FullTournamentState 
 type Action =
   | { type: 'SET_STATE'; payload: FullTournamentState }
   | { type: 'SET_MODE'; payload: TournamentMode }
+  | { type: 'SET_SYSTEM'; payload: TournamentSystem }
+  | { type: 'SET_CUSTOM_NAME'; payload: string }
   | { type: 'ADD_TEAM'; payload: Team }
   | { type: 'UPDATE_TEAM'; payload: Team }
   | { type: 'DELETE_TEAM'; payload: string }
@@ -197,6 +201,8 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
         break;
     }
     case 'SET_MODE': newState = { ...state, mode: action.payload }; break;
+    case 'SET_SYSTEM': newState = { ...state, system: action.payload }; break;
+    case 'SET_CUSTOM_NAME': newState = { ...state, customName: action.payload }; break;
     case 'ADD_TEAM': newState = { ...state, teams: [...state.teams, action.payload] }; break;
     case 'UPDATE_TEAM': newState = { ...state, teams: state.teams.map(t => t.id === action.payload.id ? action.payload : t) }; break;
     case 'DELETE_TEAM': newState = { ...state, teams: state.teams.filter(t => t.id !== action.payload) }; break;
@@ -533,6 +539,8 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       setTournamentState: (s: FullTournamentState) => dispatch({ type: 'SET_STATE', payload: s }),
       updateVisibleModes: (modes: TournamentMode[]) => dispatch({ type: 'UPDATE_VISIBLE_MODES', payload: modes }),
       updateHiddenViews: (views: View[]) => dispatch({ type: 'UPDATE_HIDDEN_VIEWS', payload: views }),
+      setTournamentSystem: (system: TournamentSystem) => dispatch({ type: 'SET_SYSTEM', payload: system }),
+      setCustomName: (name: string) => dispatch({ type: 'SET_CUSTOM_NAME', payload: name }),
       resetTournament: () => dispatch({ type: 'RESET', payload: createInitialState(state.mode) }),
       archiveSeason: (historyEntry: SeasonHistory, keepTeams: boolean) => dispatch({ type: 'ARCHIVE_SEASON', payload: { historyEntry, keepTeams } }),
       manualAddGroup: (n: string) => dispatch({ type: 'GENERATE_GROUPS', payload: { groups: [...state.groups, { id: `g${Date.now()}`, name: n, teams: [], standings: [] }], matches: state.matches, knockoutStage: state.knockoutStage } }),

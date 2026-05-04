@@ -184,7 +184,7 @@ export const getTournamentData = async (mode: TournamentMode): Promise<Tournamen
         shopCategories: globalData.shopCategories || ['Coin'],
         marqueeMessages: globalData.marqueeMessages || [],
         history: combinedHistory, 
-        visibleModes: globalData.visibleModes || ['league'],
+        visibleModes: globalData.visibleModes || ['league', 'wakacl', 'two_leagues', 'custom'],
         hiddenViews: globalData.hiddenViews || [],
         banners: globalData.banners || [], 
         partners: globalData.partners || [], 
@@ -241,7 +241,7 @@ export const saveTournamentData = async (mode: TournamentMode, state: Tournament
         shopCategories: state.shopCategories || [],
         marqueeMessages: state.marqueeMessages || [],
         history: cleanHistory, 
-        visibleModes: state.visibleModes || ['league'],
+        visibleModes: state.visibleModes || ['league', 'wakacl', 'two_leagues', 'custom'],
         hiddenViews: state.hiddenViews || []
     });
 
@@ -293,7 +293,7 @@ export const subscribeToTournamentData = (
                 shopCategories: safeGlobal.shopCategories || ['Coin'],
                 marqueeMessages: safeGlobal.marqueeMessages || [],
                 history: combinedHistory, 
-                visibleModes: safeGlobal.visibleModes || ['league'],
+                visibleModes: safeGlobal.visibleModes || ['league', 'wakacl', 'two_leagues', 'custom'],
                 hiddenViews: safeGlobal.hiddenViews || [],
                 banners: safeGlobal.banners || [], 
                 partners: safeGlobal.partners || [], 
@@ -346,7 +346,7 @@ export const updateMatchProof = async (mode: TournamentMode, matchId: string, pr
 export const getGlobalStats = async () => {
     if (!firestore) return { teamCount: 0, partnerCount: 0 };
     try {
-        const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
+        const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues', 'custom'];
         let teamCount = 0;
         for (const mode of modes) {
             const snap = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, mode));
@@ -366,7 +366,7 @@ export const getGlobalStats = async () => {
 export const getUserTeams = async (email: string) => {
     if (!firestore || !email) return [];
     try {
-        const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
+        const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues', 'custom'];
         const owned: { mode: TournamentMode, team: Team }[] = [];
         for (const m of modes) {
             const snap = await getDoc(doc(firestore, TOURNAMENT_COLLECTION, m));
@@ -498,7 +498,7 @@ export const sendNotification = async (email: string, title: string, message: st
 
 export const getAllGlobalTeams = async (): Promise<Team[]> => {
     if (!firestore) return [];
-    const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues'];
+    const modes: TournamentMode[] = ['league', 'wakacl', 'two_leagues', 'custom'];
     const allTeams: Team[] = [];
     const seenNames = new Set<string>();
     for (const m of modes) {

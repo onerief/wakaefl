@@ -1,7 +1,7 @@
 
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import type { Group, Match, KnockoutStageRounds, Team, KnockoutMatch, TournamentMode, SeasonHistory, ScheduleSettings } from '../../types';
+import type { Group, Match, KnockoutStageRounds, Team, KnockoutMatch, TournamentMode, SeasonHistory, ScheduleSettings, TournamentSystem } from '../../types';
 import { GroupStage } from './GroupStage';
 import { MatchCard } from './MatchList';
 import { KnockoutStageView } from './KnockoutStageView';
@@ -67,7 +67,9 @@ interface PublicViewProps {
   userOwnedTeamIds?: string[];
   clubStats?: any[];
   playerStats?: { topScorers: any[], topAssists: any[] };
-  scheduleSettings?: ScheduleSettings; // NEW PROP
+  scheduleSettings?: ScheduleSettings;
+  customName?: string;
+  system?: TournamentSystem;
 }
 
 type PublicTab = 'groups' | 'fixtures' | 'knockout' | 'stats'; 
@@ -174,7 +176,7 @@ export const PublicView: React.FC<PublicViewProps> = ({
     mode, groups, matches, knockoutStage, rules, history, onSelectTeam, 
     currentUser, onAddMatchComment, isAdmin, onUpdateMatchScore, onUpdateMatch, onUpdateKnockoutScore,
     userOwnedTeamIds = [], clubStats = [], playerStats = { topScorers: [], topAssists: [] },
-    scheduleSettings
+    scheduleSettings, customName, system
 }) => {
   const [activeTab, setActiveTab] = useState<PublicTab>('groups');
   const [selectedMatchdays, setSelectedMatchdays] = useState<Record<string, string>>({});
@@ -183,8 +185,14 @@ export const PublicView: React.FC<PublicViewProps> = ({
   const [showRules, setShowRules] = useState(false); 
   
   const hasMyTeam = userOwnedTeamIds.length > 0;
-  const supportsKnockout = mode === 'two_leagues' || mode === 'wakacl';
-  const isChampionsMode = mode === 'wakacl';
+  const supportsKnockout = mode === 'two_leagues' || mode === 'wakacl' || (mode === 'custom' && (system === 'cup' || system === 'wakacl'));
+  const isChampionsMode = mode === 'wakacl' || (mode === 'custom' && system === 'wakacl');
+
+  useEffect(() => {
+    if (mode === 'custom' && system === 'cup') {
+        setActiveTab('knockout');
+    }
+  }, [mode, system]);
 
   const getTeamStanding = (teamId: string) => {
     for (const group of groups) {
@@ -409,10 +417,11 @@ export const PublicView: React.FC<PublicViewProps> = ({
   };
 
   const renderContent = () => {
+    const activeCustomName = (mode === 'custom' && customName) ? customName : null;
     switch(activeTab) {
-      case 'groups': return (<div className="space-y-6"><h2 className="text-base sm:text-3xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>Group Standings</span><div className="h-px flex-grow bg-gradient-to-r from-brand-vibrant/50 to-transparent"></div></h2>{groups.length > 0 ? (<GroupStage groups={groups} matches={matches} onSelectTeam={onSelectTeam} userOwnedTeamIds={userOwnedTeamIds} history={history} />) : (<div className="text-center bg-brand-secondary/30 border border-brand-accent p-16 rounded-[2rem] opacity-30">Menyiapkan data...</div>)}</div>);
-      case 'fixtures': return (<div className="space-y-6"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 px-1"><div className="flex items-center gap-4"><h2 className="text-base sm:text-3xl font-black text-brand-text italic uppercase tracking-tighter">Match Fixtures</h2><div className="px-2 py-0.5 bg-brand-vibrant/10 border border-brand-vibrant/30 rounded-full"><span className="text-[7px] font-black text-brand-vibrant uppercase tracking-widest animate-pulse">Live</span></div></div>{hasMyTeam && (<button onClick={() => setFocusMyTeam(!focusMyTeam)} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all shadow-xl border ${focusMyTeam ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-brand-secondary text-brand-light border-brand-accent hover:border-brand-vibrant/40'}`}><Star size={14} className={focusMyTeam ? 'fill-white' : ''} /> {focusMyTeam ? 'Lihat Semua' : 'Fokus Tim Saya'}</button>)}</div>{groups.length > 0 ? renderFixtures() : <div className="text-center py-32 opacity-30 font-black italic">Jadwal Belum Dirilis</div>}</div>);
-      case 'knockout': return (<div className="space-y-6"><h2 className="text-base sm:text-3xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>{mode === 'two_leagues' ? 'Semi Final & Final' : 'Knockout Stage'}</span><div className="h-px flex-grow bg-gradient-to-r from-brand-special/50 to-transparent"></div></h2><KnockoutStageView knockoutStage={knockoutStage || {}} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateKnockoutScore} userOwnedTeamIds={userOwnedTeamIds} /></div>);
+      case 'groups': return (<div className="space-y-6"><h2 className="text-base sm:text-3xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>{activeCustomName || 'Group Standings'}</span><div className="h-px flex-grow bg-gradient-to-r from-brand-vibrant/50 to-transparent"></div></h2>{groups.length > 0 ? (<GroupStage groups={groups} matches={matches} onSelectTeam={onSelectTeam} userOwnedTeamIds={userOwnedTeamIds} history={history} />) : (<div className="text-center bg-brand-secondary/30 border border-brand-accent p-16 rounded-[2rem] opacity-30">Menyiapkan data...</div>)}</div>);
+      case 'fixtures': return (<div className="space-y-6"><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 px-1"><div className="flex items-center gap-4"><h2 className="text-base sm:text-3xl font-black text-brand-text italic uppercase tracking-tighter">{activeCustomName ? `${activeCustomName} Fixtures` : 'Match Fixtures'}</h2><div className="px-2 py-0.5 bg-brand-vibrant/10 border border-brand-vibrant/30 rounded-full"><span className="text-[7px] font-black text-brand-vibrant uppercase tracking-widest animate-pulse">Live</span></div></div>{hasMyTeam && (<button onClick={() => setFocusMyTeam(!focusMyTeam)} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all shadow-xl border ${focusMyTeam ? 'bg-brand-vibrant text-white border-brand-vibrant' : 'bg-brand-secondary text-brand-light border-brand-accent hover:border-brand-vibrant/40'}`}><Star size={14} className={focusMyTeam ? 'fill-white' : ''} /> {focusMyTeam ? 'Lihat Semua' : 'Fokus Tim Saya'}</button>)}</div>{groups.length > 0 ? renderFixtures() : <div className="text-center py-32 opacity-30 font-black italic">Jadwal Belum Dirilis</div>}</div>);
+      case 'knockout': return (<div className="space-y-6"><h2 className="text-base sm:text-3xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><span>{activeCustomName || (mode === 'two_leagues' ? 'Semi Final & Final' : 'Knockout Stage')}</span><div className="h-px flex-grow bg-gradient-to-r from-brand-special/50 to-transparent"></div></h2><KnockoutStageView knockoutStage={knockoutStage || {}} onSelectTeam={onSelectTeam} isAdminMode={isAdminModeActive} onUpdateScore={onUpdateKnockoutScore} userOwnedTeamIds={userOwnedTeamIds} /></div>);
       case 'stats': return (<div className="space-y-6"><h2 className="text-base sm:text-3xl font-black text-brand-text italic uppercase tracking-tighter px-1 flex items-center gap-4"><BarChart3 className="text-brand-special" size={24} /><span>Peringkat Statistik</span></h2><StatsStandings clubStats={clubStats} playerStats={playerStats} /></div>);
       default: return null;
     }

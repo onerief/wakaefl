@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import type { Team, Group, Match, TournamentMode } from '../../types';
+import type { Team, Group, Match, TournamentMode, TournamentSystem } from '../../types';
 import { Button } from '../shared/Button';
 import { Plus, Trash2, Shuffle, Users, X, Wand2, Calculator, LayoutList, AlertTriangle, ArrowRight } from 'lucide-react';
 import { useToast } from '../shared/Toast';
@@ -20,6 +20,7 @@ interface ManualGroupManagerProps {
     autoGenerateGroups?: (numberOfGroups: number) => void;
     initializeLeague?: () => void;
     mode?: TournamentMode;
+    system?: TournamentSystem;
 }
 
 const GroupCard: React.FC<{
@@ -104,7 +105,7 @@ const GroupCard: React.FC<{
 
 export const ManualGroupManager: React.FC<ManualGroupManagerProps> = ({ 
     teams, groups, matches, addGroup, deleteGroup, addTeamToGroup, removeTeamFromGroup, 
-    generateMatches, onGenerationSuccess, autoGenerateGroups, initializeLeague, mode 
+    generateMatches, onGenerationSuccess, autoGenerateGroups, initializeLeague, mode, system 
 }) => {
     const { addToast } = useToast();
     const [showFixtureModal, setShowFixtureModal] = useState(false);
@@ -173,7 +174,7 @@ export const ManualGroupManager: React.FC<ManualGroupManagerProps> = ({
     return (
         <div className="space-y-8">
             {/* Conditional Generator Section */}
-            {mode === 'league' ? (
+            {(mode === 'league' || (mode === 'custom' && system === 'league')) ? (
                 <div className="bg-blue-600/10 p-5 rounded-2xl border border-blue-500/30 relative overflow-hidden">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
                         <div>

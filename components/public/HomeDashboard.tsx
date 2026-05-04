@@ -297,6 +297,11 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
                   desc="Kasta tertinggi. Format UCL penuh gengsi."
                   icon={ChampionshipIcon} colorClass="from-yellow-500" 
               />
+              <CompetitionCard 
+                  mode="custom" title="Mode Kustom" 
+                  desc="Turnamen dengan pengaturan sesukamu."
+                  icon={Zap} colorClass="from-brand-vibrant" 
+              />
           </div>
       </div>
 

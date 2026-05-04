@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import type { View, Team, Group, Match, KnockoutStageRounds, KnockoutMatch, TournamentState, Partner, TournamentMode, TournamentStatus, SeasonHistory, NewsItem, Product, ScheduleSettings } from '../../types';
+import type { View, Team, Group, Match, KnockoutStageRounds, KnockoutMatch, TournamentState, Partner, TournamentMode, TournamentStatus, SeasonHistory, NewsItem, Product, ScheduleSettings, TournamentSystem } from '../../types';
 import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
@@ -36,6 +36,8 @@ interface AdminPanelProps {
   shopCategories?: string[];
   marqueeMessages?: string[];
   mode: TournamentMode;
+  system?: TournamentSystem;
+  customName?: string;
   status: TournamentStatus;
   history: SeasonHistory[];
   scheduleSettings: ScheduleSettings;
@@ -85,6 +87,8 @@ interface AdminPanelProps {
   setTournamentStatus: (status: 'active' | 'completed') => void;
   updateVisibleModes: (modes: TournamentMode[]) => void;
   updateHiddenViews?: (views: View[]) => void;
+  setTournamentSystem?: (system: TournamentSystem) => void;
+  setCustomName?: (name: string) => void;
   resolveTeamClaim?: (teamId: string, approved: boolean) => void;
   // Schedule Control Actions
   startMatchday?: (duration: number) => void;
@@ -141,22 +145,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
   };
 
   const ModeSwitcher = () => (
-      <div className="flex bg-black/40 p-1 rounded-xl border border-white/10 shrink-0">
-          {(['league', 'two_leagues', 'wakacl'] as TournamentMode[]).map(m => (
+      <div className="flex bg-black/40 p-1 rounded-xl border border-white/10 shrink-0 flex-wrap gap-1">
+          {(['league', 'two_leagues', 'wakacl', 'custom'] as TournamentMode[]).map(m => (
               <button
                 key={m}
                 onClick={() => props.setMode(m)}
                 className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${props.mode === m ? 'bg-brand-vibrant text-white shadow-lg' : 'text-brand-light hover:text-white'}`}
               >
-                  {m === 'league' ? <LayoutGrid size={10}/> : m === 'two_leagues' ? <Globe size={10}/> : <Trophy size={10}/>}
-                  <span className="hidden sm:inline">{m === 'league' ? 'Liga' : m === 'two_leagues' ? '2 Wilayah' : 'Championship'}</span>
+                  {m === 'league' ? <LayoutGrid size={10}/> : m === 'two_leagues' ? <Globe size={10}/> : m === 'wakacl' ? <Trophy size={10}/> : <Sparkles size={10}/>}
+                  <span className="hidden sm:inline">
+                      {m === 'league' ? 'Liga' : m === 'two_leagues' ? '2 Wilayah' : m === 'wakacl' ? 'Championship' : 'Kustom'}
+                  </span>
               </button>
           ))}
       </div>
   );
 
   const toggleVisibility = (modeToToggle: TournamentMode) => {
-      const current = props.visibleModes || ['league', 'wakacl', 'two_leagues'];
+      const current = props.visibleModes || ['league', 'wakacl', 'two_leagues', 'custom'];
       let updated: TournamentMode[];
       if (current.includes(modeToToggle)) {
           updated = current.filter(m => m !== modeToToggle);
@@ -188,7 +194,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
 
   const renderContent = () => {
     switch(activeTab) {
-      case 'teams': return <TeamManager {...props as any} onGenerationSuccess={() => setActiveTab('group-fixtures')} autoGenerateGroups={props.autoGenerateGroups} initializeLeague={props.initializeLeague} />;
+      case 'teams': return <TeamManager {...props as any} mode={props.mode} onGenerationSuccess={() => setActiveTab('group-fixtures')} autoGenerateGroups={props.autoGenerateGroups} initializeLeague={props.initializeLeague} system={props.system} />;
       case 'marquee': return (
           <MarqueeSettings 
               messages={props.marqueeMessages || []} 
@@ -379,6 +385,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                     <Settings className="text-brand-vibrant" size={24} /> System Control
                 </h3>
                 <div className="space-y-4">
+                    {props.mode === 'custom' && (
+                        <div className="p-6 bg-brand-vibrant/5 rounded-2xl border border-brand-vibrant/20 space-y-6">
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-brand-vibrant">Nama Turnamen Kustom</label>
+                                <input 
+                                    type="text" 
+                                    value={props.customName || ''} 
+                                    onChange={(e) => props.setCustomName?.(e.target.value)}
+                                    placeholder="Misal: Waka Cup 2024"
+                                    className="bg-brand-primary border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-brand-vibrant transition-all"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-brand-vibrant">Sistem Pertandingan</label>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {(['league', 'cup', 'wakacl'] as TournamentSystem[]).map(s => (
+                                        <button 
+                                            key={s}
+                                            onClick={() => props.setTournamentSystem?.(s)}
+                                            className={`py-3 rounded-xl text-[10px] font-black uppercase transition-all flex flex-col items-center gap-2 border ${props.system === s ? 'bg-brand-vibrant border-brand-vibrant text-white' : 'bg-white/5 border-white/10 text-brand-light hover:border-white/20'}`}
+                                        >
+                                            {s === 'league' ? <ListChecks size={16}/> : s === 'cup' ? <Plus size={16}/> : <Trophy size={16}/>}
+                                            <span>{s === 'league' ? 'Liga' : s === 'cup' ? 'Cup/KO' : 'Grup + KO'}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
                         <div className="flex items-center gap-3">
                             <Users size={16} className="text-brand-light"/>
@@ -402,9 +437,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                 
                 <div className="space-y-3">
                     <p className="text-[9px] font-black text-cyan-400 uppercase tracking-widest mt-4 mb-2">Mode Turnamen</p>
-                    {(['league', 'two_leagues', 'wakacl'] as TournamentMode[]).map(m => {
-                        const isVisible = (props.visibleModes || ['league', 'wakacl', 'two_leagues']).includes(m);
-                        const label = m === 'league' ? 'Liga Reguler' : m === 'two_leagues' ? '2 Wilayah' : 'Championship';
+                    {(['league', 'two_leagues', 'wakacl', 'custom'] as TournamentMode[]).map(m => {
+                        const isVisible = (props.visibleModes || ['league', 'wakacl', 'two_leagues', 'custom']).includes(m);
+                        const label = m === 'league' ? 'Liga Reguler' : m === 'two_leagues' ? '2 Wilayah' : m === 'wakacl' ? 'Championship' : 'Mode Kustom';
                         return (
                             <div key={m} className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/5 group hover:border-cyan-500/30 transition-all">
                                 <div className="flex items-center gap-3">

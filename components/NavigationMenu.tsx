@@ -1,7 +1,7 @@
 
 import React from 'react';
 import type { View, TournamentMode } from '../types';
-import { Trophy, Globe, LayoutGrid, Newspaper, ShoppingBag, Home, Crown, MessageCircle } from 'lucide-react';
+import { Trophy, Globe, LayoutGrid, Newspaper, ShoppingBag, Home, Crown, MessageCircle, Zap } from 'lucide-react';
 import { CustomTrophy } from './shared/Icons';
 
 interface NavigationMenuProps {
@@ -11,6 +11,7 @@ interface NavigationMenuProps {
   hiddenViews?: View[];
   onToggleChat: () => void;
   isChatOpen: boolean;
+  customName?: string;
 }
 
 export const NavigationMenu: React.FC<NavigationMenuProps> = ({ 
@@ -19,7 +20,8 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({
     visibleModes = ['league', 'wakacl', 'two_leagues'], 
     hiddenViews = [],
     onToggleChat, 
-    isChatOpen 
+    isChatOpen,
+    customName
 }) => {
   const NavItem = ({ view, label, icon: Icon, colorClass = "" }: { view: View, label: string, icon: any, colorClass?: string }) => {
     const isHidden = (hiddenViews || []).includes(view);
@@ -93,6 +95,7 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({
             {isModeVisible('league') && <NavItem view="league" label="Liga" icon={LayoutGrid} />}
             {isModeVisible('two_leagues') && <NavItem view="two_leagues" label="Wilayah" icon={Globe} colorClass="bg-purple-600 shadow-[0_0_15px_rgba(147,51,234,0.5)]" />}
             {isModeVisible('wakacl') && <NavItem view="wakacl" label="Champ" icon={CustomTrophy} colorClass="bg-brand-special text-brand-primary shadow-[0_0_15px_rgba(253,224,71,0.5)]" />}
+            {isModeVisible('custom') && <NavItem view="custom" label={customName || "Kustom"} icon={Zap} colorClass="bg-brand-vibrant shadow-[0_0_15px_rgba(37,99,235,0.5)]" />}
             
             <NavItem view="hall_of_fame" label="Hall" icon={Crown} colorClass="bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.5)]" />
             <NavItem view="news" label="Berita" icon={Newspaper} colorClass="bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.4)]" />
