@@ -154,7 +154,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
               >
                   {m === 'league' ? <LayoutGrid size={10}/> : m === 'two_leagues' ? <Globe size={10}/> : m === 'wakacl' ? <Trophy size={10}/> : <Sparkles size={10}/>}
                   <span className="hidden sm:inline">
-                      {m === 'league' ? 'Liga' : m === 'two_leagues' ? '2 Wilayah' : m === 'wakacl' ? 'Championship' : 'Kustom'}
+                      {m === 'league' ? 'Liga' : m === 'two_leagues' ? '2 Wilayah' : m === 'wakacl' ? 'Championship' : (props.customName || 'Kustom')}
                   </span>
               </button>
           ))}

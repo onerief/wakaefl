@@ -348,7 +348,38 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
           </div>
       )}
 
-      {showForm && <TeamForm team={editingTeam} onSave={(details) => { props.updateTeam(editingTeam?.id || `t${Date.now()}`, details.name, details.logoUrl, details.manager, details.socialMediaUrl, details.whatsappNumber, editingTeam?.isTopSeed, details.ownerEmail); setShowForm(false); }} onClose={() => setShowForm(false)} isSaving={isSavingTeam} />}
+      {showForm && (
+          <TeamForm 
+            team={editingTeam} 
+            onSave={(details) => { 
+              if (editingTeam) {
+                updateTeam(
+                    editingTeam.id, 
+                    details.name, 
+                    details.logoUrl, 
+                    details.manager, 
+                    details.socialMediaUrl, 
+                    details.whatsappNumber, 
+                    editingTeam.isTopSeed, 
+                    details.ownerEmail
+                );
+              } else {
+                addTeam(
+                    `t${Date.now()}`, 
+                    details.name, 
+                    details.logoUrl, 
+                    details.manager, 
+                    details.socialMediaUrl, 
+                    details.whatsappNumber, 
+                    details.ownerEmail
+                );
+              }
+              setShowForm(false); 
+            }} 
+            onClose={() => setShowForm(false)} 
+            isSaving={isSavingTeam} 
+          />
+      )}
       {showResetConfirm && <ResetConfirmationModal onConfirm={() => { resetTournament(); setShowResetConfirm(false); }} onCancel={() => setShowResetConfirm(false)} />}
       
       {showImportModal && <ImportTeamModal teams={globalTeams} onImport={handleImportTeams} onClose={() => setShowImportModal(false)} />}
