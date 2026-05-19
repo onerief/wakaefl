@@ -108,12 +108,17 @@ const hydrateTournamentData = (state: FullTournamentState): FullTournamentState 
     state.teams.forEach(t => { if (t && t.id) teamMap.set(t.id, t); });
     
     const getFullTeam = (val: any): Team => {
-        if (val && typeof val === 'object' && val.name && val.name !== 'TBD') {
+        const id = (val && typeof val === 'object') ? val.id : val;
+        if (!id || id === 'tbd') return { id: 'tbd', name: 'TBD' } as Team;
+        
+        // Always try to get the freshest data from teamMap, fallback to the object itself if needed
+        const freshTeam = teamMap.get(id);
+        if (freshTeam) return freshTeam;
+        
+        if (val && typeof val === 'object' && val.name) {
             return val;
         }
-        const id = (val && typeof val === 'object') ? val.id : val;
-        if (!id) return { id: 'tbd', name: 'TBD' } as Team;
-        return teamMap.get(id) || { id, name: 'TBD' } as Team;
+        return { id, name: 'TBD' } as Team;
     };
 
     const hydratedMatches = (state.matches || []).map(m => ({ ...m, teamA: getFullTeam(m.teamA), teamB: getFullTeam(m.teamB) }));
@@ -150,7 +155,7 @@ type Action =
   | { type: 'UPDATE_TEAM'; payload: Team }
   | { type: 'DELETE_TEAM'; payload: string }
   | { type: 'GENERATE_GROUPS'; payload: { groups: Group[], matches: Match[], knockoutStage: KnockoutStageRounds | null } }
-  | { type: 'UPDATE_MATCH_SCORE'; payload: { matchId: string; scoreA: number; scoreB: number; proofUrl?: string; playerStats?: MatchPlayerStats; isWO?: boolean } }
+  | { type: 'UPDATE_MATCH_SCORE'; payload: { matchId: string; scoreA: number; scoreB: number; proofUrl?: string; playerStats?: MatchPlayerStats; isWO?: boolean; woTeamId?: string } }
   | { type: 'UPDATE_MATCH'; payload: { matchId: string; updates: Partial<Match> } }
   | { type: 'UPDATE_KNOCKOUT_MATCH'; payload: KnockoutMatch }
   | { type: 'UPDATE_NEWS'; payload: NewsItem[] }
@@ -176,10 +181,10 @@ type Action =
   | { type: 'UPDATE_HIDDEN_VIEWS'; payload: View[] }
   | { type: 'ADD_MATCH_COMMENT'; payload: { matchId: string, comment: MatchComment } }
   | { type: 'UPDATE_SCHEDULE_SETTINGS'; payload: Partial<ScheduleSettings> }
-  | { type: 'PROCESS_AUTO_WO'; payload: Match[] }
   | { type: 'SET_COMMENTS'; payload: Record<string, MatchComment[]> }
   | { type: 'UPDATE_WO_PENALTY'; payload: number }
-  | { type: 'UPDATE_PREVIOUS_RANKS' };
+  | { type: 'UPDATE_PREVIOUS_RANKS' }
+  | { type: 'SET_ALL_TEAMS_SALDO'; payload: number };
 
 const tournamentReducer = (state: FullTournamentState, action: Action): FullTournamentState => {
   let newState: FullTournamentState;
@@ -224,24 +229,43 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'DELETE_TEAM': newState = { ...state, teams: state.teams.filter(t => t.id !== action.payload) }; break;
     case 'GENERATE_GROUPS': newState = { ...state, ...action.payload }; break;
     case 'UPDATE_MATCH_SCORE': {
-        const { matchId, scoreA, scoreB, isWO } = action.payload;
+        const { matchId, scoreA, scoreB, proofUrl, playerStats, isWO, woTeamId } = action.payload;
         const match = state.matches.find(m => m.id === matchId);
         if (!match) return state;
         
-        let updatedTeams = [...state.teams];
+        // Capture previous ranks automatically before the score updates
+        const allTeamsRanked: { id: string; rank: number }[] = [];
+        state.groups.forEach(g => {
+            g.standings.forEach((s, idx) => {
+                allTeamsRanked.push({ id: s.team.id, rank: idx + 1 });
+            });
+        });
+
+        let updatedTeams = state.teams.map(t => {
+            const rankData = allTeamsRanked.find(r => r.id === t.id);
+            return rankData ? { ...t, previousRank: rankData.rank } : t;
+        });
+
         if (isWO) {
             const penalty = state.woPenalty || 0;
             updatedTeams = updatedTeams.map(t => {
-                // If scoreA < scoreB and it's WO, Team A is likely the one who WO'd
-                // Or if it's explicitly marked as WO, we can check which team lost
-                if (scoreA < scoreB && t.id === match.teamA.id) {
+                if (woTeamId === 'both' && (t.id === match.teamA.id || t.id === match.teamB.id)) {
                     return { ...t, saldo: (t.saldo || 0) - penalty };
                 }
-                if (scoreB < scoreA && t.id === match.teamB.id) {
+                if (woTeamId && woTeamId !== 'both' && t.id === woTeamId) {
                     return { ...t, saldo: (t.saldo || 0) - penalty };
                 }
-                if (scoreA === 0 && scoreB === 0 && (t.id === match.teamA.id || t.id === match.teamB.id)) {
-                    return { ...t, saldo: (t.saldo || 0) - penalty };
+                // Fallback to score inference if woTeamId is not provided
+                if (!woTeamId) {
+                    if (scoreA < scoreB && t.id === match.teamA.id) {
+                        return { ...t, saldo: (t.saldo || 0) - penalty };
+                    }
+                    if (scoreB < scoreA && t.id === match.teamB.id) {
+                        return { ...t, saldo: (t.saldo || 0) - penalty };
+                    }
+                    if (scoreA === 0 && scoreB === 0 && (t.id === match.teamA.id || t.id === match.teamB.id)) {
+                        return { ...t, saldo: (t.saldo || 0) - penalty };
+                    }
                 }
                 return t;
             });
@@ -249,6 +273,7 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
 
         newState = { 
             ...state, 
+            lastRankUpdate: Date.now(),
             teams: updatedTeams,
             matches: state.matches.map(m => m.id === matchId ? { ...m, ...action.payload, status: 'finished' as const } : m) 
         }; 
@@ -302,26 +327,8 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
         break;
     }
     case 'UPDATE_SCHEDULE_SETTINGS': newState = { ...state, scheduleSettings: { ...state.scheduleSettings, ...action.payload } }; break;
-    case 'PROCESS_AUTO_WO': {
-        const updatedMatchIds = new Set(action.payload.map(m => m.id));
-        const penalty = state.woPenalty || 0;
-        let updatedTeams = [...state.teams];
-
-        action.payload.forEach(m => {
-            if (m.scoreA! < m.scoreB!) {
-                updatedTeams = updatedTeams.map(t => t.id === m.teamA.id ? { ...t, saldo: (t.saldo || 0) - penalty } : t);
-            } else if (m.scoreB! < m.scoreA!) {
-                updatedTeams = updatedTeams.map(t => t.id === m.teamB.id ? { ...t, saldo: (t.saldo || 0) - penalty } : t);
-            } else if (m.scoreA === 0 && m.scoreB === 0) {
-                updatedTeams = updatedTeams.map(t => (t.id === m.teamA.id || t.id === m.teamB.id) ? { ...t, saldo: (t.saldo || 0) - penalty } : t);
-            }
-        });
-
-        const newMatches = state.matches.map(m => updatedMatchIds.has(m.id) ? (action.payload.find(up => up.id === m.id) || { ...m, isWO: true }) : m);
-        newState = { ...state, matches: newMatches, teams: updatedTeams };
-        break;
-    }
     case 'UPDATE_WO_PENALTY': newState = { ...state, woPenalty: action.payload }; break;
+    case 'SET_ALL_TEAMS_SALDO': newState = { ...state, teams: state.teams.map(t => ({ ...t, saldo: action.payload })) }; break;
     case 'UPDATE_PREVIOUS_RANKS': {
         // Flatten all standings to get absolute rank
         const allTeamsRanked: { id: string; rank: number }[] = [];
@@ -445,39 +452,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
     return () => clearInterval(autoSaveInterval);
   }, [isAdmin, isLoading, isSyncing, forceSave]);
 
-  const processMatchdayTimeouts = useCallback(() => {
-      const settings = state.scheduleSettings;
-      if (!settings.isActive || !settings.matchdayStartTime) return { processedCount: 0, message: 'Jadwal tidak aktif.' };
-      const now = Date.now();
-      const deadline = settings.matchdayStartTime + (settings.matchdayDurationHours * 3600000);
-      if (now < deadline) return { processedCount: 0, message: 'Waktu matchday belum habis.' };
-      const currentMatches = state.matches.filter(m => (m.matchday === settings.currentMatchday) && (m.status !== 'finished'));
-      const updatedMatches: Match[] = [];
-      currentMatches.forEach(match => {
-          const comments = match.comments || [];
-          const teamAEmail = match.teamA.ownerEmail?.toLowerCase();
-          const teamBEmail = match.teamB.ownerEmail?.toLowerCase();
-          const teamAActive = comments.some(c => c.userEmail.toLowerCase() === teamAEmail);
-          const teamBActive = comments.some(c => c.userEmail.toLowerCase() === teamBEmail);
-          let newMatch = { ...match };
-          let changed = false;
-          if (teamAActive && !teamBActive) {
-              newMatch.scoreA = 3; newMatch.scoreB = 0; newMatch.status = 'finished'; newMatch.summary = 'Menang WO (Otomatis oleh Sistem)'; changed = true;
-          } else if (!teamAActive && teamBActive) {
-              newMatch.scoreA = 0; newMatch.scoreB = 3; newMatch.status = 'finished'; newMatch.summary = 'Menang WO (Otomatis oleh Sistem)'; changed = true;
-          } else if (!teamAActive && !teamBActive) {
-              newMatch.scoreA = 0; newMatch.scoreB = 0; newMatch.status = 'finished'; newMatch.summary = 'Imbang WO (Tidak ada aktivitas)'; changed = true;
-          }
-          if (changed) updatedMatches.push(newMatch);
-      });
-      if (updatedMatches.length > 0) {
-          dispatch({ type: 'PROCESS_AUTO_WO', payload: updatedMatches });
-          dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { isActive: false } }); 
-          return { processedCount: updatedMatches.length, message: `${updatedMatches.length} pertandingan diproses WO otomatis.` };
-      }
-      return { processedCount: 0, message: 'Tidak ada pertandingan yang memenuhi syarat WO.' };
-  }, [state.scheduleSettings, state.matches]);
-
   const startMatchday = (duration: number) => {
       dispatch({ type: 'UPDATE_SCHEDULE_SETTINGS', payload: { isActive: true, matchdayStartTime: Date.now(), matchdayDurationHours: duration } });
   };
@@ -594,8 +568,8 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       updateTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean, ownerEmail?: string) => 
         dispatch({ type: 'UPDATE_TEAM', payload: { id, name, logoUrl, manager, socialMediaUrl, whatsappNumber, isTopSeed, ownerEmail } }),
       deleteTeam: (id: string) => dispatch({ type: 'DELETE_TEAM', payload: id }),
-      updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string, playerStats?: MatchPlayerStats) => 
-        dispatch({ type: 'UPDATE_MATCH_SCORE', payload: { matchId, scoreA, scoreB, proofUrl, playerStats } }),
+      updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string, playerStats?: MatchPlayerStats, isWO?: boolean, woTeamId?: string) => 
+        dispatch({ type: 'UPDATE_MATCH_SCORE', payload: { matchId, scoreA, scoreB, proofUrl, playerStats, isWO, woTeamId } }),
       updateMatch: (matchId: string, updates: Partial<Match>) => dispatch({ type: 'UPDATE_MATCH', payload: { matchId, updates } }),
       updateKnockoutMatch: (id: string, m: KnockoutMatch) => dispatch({ type: 'UPDATE_KNOCKOUT_MATCH', payload: m }),
       addKnockoutMatch: (round: keyof KnockoutStageRounds, teamAId: string | null, teamBId: string | null, placeholderA: string, placeholderB: string, matchNumber: number) => {
@@ -635,6 +609,7 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           dispatch({ type: 'GENERATE_GROUPS', payload: { groups: newGroups, matches: state.matches, knockoutStage: state.knockoutStage } });
       },
       updateWoPenalty: (p: number) => dispatch({ type: 'UPDATE_WO_PENALTY', payload: p }),
+      setAllTeamsSaldo: (amount: number) => dispatch({ type: 'SET_ALL_TEAMS_SALDO', payload: amount }),
       updatePreviousRanks: () => dispatch({ type: 'UPDATE_PREVIOUS_RANKS' }),
       generateMatchesFromGroups: (roundRobinType: 'single' | 'double' = 'single') => {
           const newMatches: Match[] = [];
@@ -672,7 +647,6 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
       pauseSchedule,
       setMatchday,
       setResetCycle,
-      processMatchdayTimeouts,
       resolveTeamClaim
   };
 };

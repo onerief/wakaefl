@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../shared/Card';
 import { Button } from '../shared/Button';
-import { Clock, Play, Pause, FastForward, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Clock, Play, Pause, FastForward, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import type { ScheduleSettings } from '../../types';
 import { useToast } from '../shared/Toast';
 
@@ -11,13 +11,12 @@ interface ScheduleControlProps {
     onStart: (duration: number) => void;
     onPause: () => void;
     onSetMatchday: (day: number) => void;
-    onCheckTimeouts: () => { processedCount: number, message: string };
     totalMatchdays: number;
     onSetResetCycle?: (cycle: 24 | 48) => void;
 }
 
 export const ScheduleControl: React.FC<ScheduleControlProps> = ({ 
-    settings, onStart, onPause, onSetMatchday, onCheckTimeouts, totalMatchdays, onSetResetCycle
+    settings, onStart, onPause, onSetMatchday, totalMatchdays, onSetResetCycle
 }) => {
     // Guard against undefined settings (e.g., initial load or migration)
     const safeSettings = settings || {
@@ -56,13 +55,6 @@ export const ScheduleControl: React.FC<ScheduleControlProps> = ({
 
         return () => clearInterval(interval);
     }, [safeSettings]);
-
-    const handleForceCheck = () => {
-        if (window.confirm("Cek otomatis akan memberikan kemenangan WO kepada tim yang aktif chat jika lawannya tidak aktif. Lanjutkan?")) {
-            const result = onCheckTimeouts();
-            addToast(result.message, result.processedCount > 0 ? 'success' : 'info');
-        }
-    };
 
     const nextMatchday = safeSettings.currentMatchday + 1;
 
@@ -115,10 +107,6 @@ export const ScheduleControl: React.FC<ScheduleControlProps> = ({
                                 <Pause size={14} /> Jeda Jadwal
                             </Button>
                         )}
-                        
-                        <Button onClick={handleForceCheck} variant="secondary" className="!text-xs uppercase font-black tracking-widest border-brand-vibrant/30 hover:bg-brand-vibrant/10" title="Cek WO Otomatis">
-                            <RefreshCw size={14} /> Cek WO
-                        </Button>
                     </div>
 
                     {/* Navigation */}
@@ -167,7 +155,7 @@ export const ScheduleControl: React.FC<ScheduleControlProps> = ({
             <div className="mt-4 pt-3 border-t border-white/5 flex items-start gap-2 text-[10px] text-brand-light/60 italic">
                 <AlertTriangle size={12} className="shrink-0 mt-0.5" />
                 <p>
-                    Saat timer habis atau tombol "Cek WO" ditekan, sistem akan otomatis memenangkan tim yang aktif chat di kolom komentar pertandingan jika lawannya tidak merespon (Skor 3-0).
+                    Sesuaikan matchday dan durasi untuk mengirimkan notifikasi pergantian hari pertandingan.
                 </p>
             </div>
         </Card>

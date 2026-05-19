@@ -361,8 +361,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                     details.socialMediaUrl, 
                     details.whatsappNumber, 
                     editingTeam.isTopSeed, 
-                    details.ownerEmail,
-                    details.saldo
+                    details.ownerEmail
                 );
               } else {
                 addTeam(
@@ -372,8 +371,7 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                     details.manager, 
                     details.socialMediaUrl, 
                     details.whatsappNumber, 
-                    details.ownerEmail,
-                    details.saldo
+                    details.ownerEmail
                 );
               }
               setShowForm(false); 

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import type { View, Team, Group, Match, KnockoutStageRounds, KnockoutMatch, TournamentState, Partner, TournamentMode, TournamentStatus, SeasonHistory, NewsItem, Product, ScheduleSettings, TournamentSystem } from '../../types';
+import type { View, Team, Group, Match, KnockoutStageRounds, KnockoutMatch, TournamentState, Partner, TournamentMode, TournamentStatus, SeasonHistory, NewsItem, Product, ScheduleSettings, TournamentSystem, MatchPlayerStats } from '../../types';
 import { MatchEditor } from './MatchEditor';
 import { TeamManager } from './TeamManager';
 import { Button } from '../shared/Button';
@@ -49,7 +49,7 @@ interface AdminPanelProps {
   visibleModes?: TournamentMode[];
   hiddenViews?: View[];
   setMode: (mode: TournamentMode) => void;
-  updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string) => void;
+  updateMatchScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string, playerStats?: MatchPlayerStats, isWO?: boolean, woTeamId?: string) => void;
   updateMatch: (matchId: string, updates: Partial<Match>) => void;
   addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => void;
   updateTeam: (teamId: string, name: string, logoUrl: string, manager?: string | undefined, socialMediaUrl?: string | undefined, whatsappNumber?: string | undefined, isTopSeed?: boolean | undefined, ownerEmail?: string | undefined) => void;
@@ -91,6 +91,7 @@ interface AdminPanelProps {
   setCustomName?: (name: string) => void;
   resolveTeamClaim?: (teamId: string, approved: boolean) => void;
   updateWoPenalty?: (penalty: number) => void;
+  setAllTeamsSaldo?: (amount: number) => void;
   updatePreviousRanks?: () => void;
   woPenalty?: number;
   // Schedule Control Actions
@@ -268,13 +269,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
       );
       case 'group-fixtures': return (
         <div className="pb-20 space-y-6">
-            {props.startMatchday && props.pauseSchedule && props.setMatchday && props.processMatchdayTimeouts && (
+            {props.startMatchday && props.pauseSchedule && props.setMatchday && (
                 <ScheduleControl 
                     settings={props.scheduleSettings}
                     onStart={props.startMatchday}
                     onPause={props.pauseSchedule}
                     onSetMatchday={props.setMatchday}
-                    onCheckTimeouts={props.processMatchdayTimeouts}
                     onSetResetCycle={props.setResetCycle}
                     totalMatchdays={38} // Hardcoded or dynamic
                 />
@@ -401,6 +401,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                                 />
                             </div>
                             <p className="text-[8px] text-brand-light/60 uppercase font-bold italic">Saldo tim yang WO akan dikurangi sebesar nilai ini.</p>
+                        </div>
+                        <div className="pt-2 flex flex-col gap-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-brand-special">Set Saldo Awal Semua Tim</label>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-brand-special">Rp</span>
+                                <input 
+                                    type="number" 
+                                    id="set-all-saldo-input"
+                                    defaultValue={500000}
+                                    className="bg-brand-primary border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-brand-special transition-all flex-1"
+                                />
+                                <button 
+                                    onClick={() => {
+                                        const val = (document.getElementById('set-all-saldo-input') as HTMLInputElement).value;
+                                        if (window.confirm(`Set saldo semua tim menjadi Rp ${Number(val).toLocaleString('id-ID')}?`)) {
+                                            props.setAllTeamsSaldo?.(Number(val));
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-brand-special text-brand-primary hover:bg-brand-special/80 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                >
+                                    Terapkan
+                                </button>
+                            </div>
+                            <p className="text-[8px] text-brand-light/60 uppercase font-bold italic">Set nilai saldo yang sama untuk seluruh tim.</p>
                         </div>
                         <div className="pt-2">
                             <button 

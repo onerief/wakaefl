@@ -10,7 +10,7 @@ import { TeamLogo } from '../shared/TeamLogo';
 
 interface MatchEditorProps {
   match: Match;
-  onUpdateScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string, playerStats?: MatchPlayerStats, isWO?: boolean) => void;
+  onUpdateScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string, playerStats?: MatchPlayerStats, isWO?: boolean, woTeamId?: string) => void;
   onGenerateSummary: (matchId: string) => Promise<string>;
   onEditSchedule: (match: Match) => void;
 }
@@ -19,14 +19,16 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
   const [scoreA, setScoreA] = useState<number>(match.scoreA ?? 0);
   const [scoreB, setScoreB] = useState<number>(match.scoreB ?? 0);
   const [proofUrl, setProofUrl] = useState(match.proofUrl ?? '');
-  const [isWO, setIsWO] = useState(match.isWO ?? false);
+  const [woTeamId, setWoTeamId] = useState<string>(match.woTeamId ?? (match.isWO ? 'unknown' : ''));
   
+  const isWO = woTeamId !== '';
+
   const [isGenerating, setIsGenerating] = useState(false);
   const { addToast } = useToast();
 
   const handleSave = () => {
     try {
-        onUpdateScore(match.id, scoreA, scoreB, proofUrl, undefined, isWO);
+        onUpdateScore(match.id, scoreA, scoreB, proofUrl, undefined, isWO, woTeamId === 'unknown' ? undefined : woTeamId);
         addToast('Skor berhasil disimpan!', 'success');
     } catch (e) {
         console.error(e);
@@ -103,25 +105,27 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
         </div>
 
         <div className="space-y-3 pt-4 border-t border-white/5">
-            <div className="flex items-center gap-3 bg-black/30 p-2 rounded-xl border border-white/5">
-                <label className="flex items-center gap-2 cursor-pointer flex-1">
-                    <input 
-                        type="checkbox" 
-                        checked={isWO} 
-                        onChange={(e) => {
-                            setIsWO(e.target.checked);
-                            if (e.target.checked) {
-                                // Default WO is 3-0 or 0-3 based on current scores
-                                if (scoreA > scoreB) { setScoreA(3); setScoreB(0); }
-                                else if (scoreB > scoreA) { setScoreA(0); setScoreB(3); }
-                                else { setScoreA(0); setScoreB(0); }
-                            }
-                        }}
-                        className="w-4 h-4 rounded border-brand-accent text-brand-vibrant focus:ring-brand-vibrant bg-brand-primary"
-                    />
-                    <span className="text-[10px] font-black uppercase text-brand-light">Status Walkover (WO)</span>
-                </label>
-                {isWO && <span className="text-[8px] font-black text-red-500 uppercase animate-pulse">Penalty Applied</span>}
+            <div className="flex flex-col gap-2 bg-black/30 p-3 rounded-xl border border-white/5 relative">
+                <label className="text-[10px] font-black uppercase text-brand-light">Status Walkover (WO)</label>
+                <select
+                    value={woTeamId}
+                    onChange={(e) => {
+                        const val = e.target.value;
+                        setWoTeamId(val);
+                        if (val !== '') {
+                             if (val === match.teamA.id) { setScoreA(0); setScoreB(3); }
+                             else if (val === match.teamB.id) { setScoreA(3); setScoreB(0); }
+                             else if (val === 'both') { setScoreA(0); setScoreB(0); }
+                        }
+                    }}
+                    className="w-full bg-brand-primary border border-brand-accent rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-brand-vibrant"
+                >
+                    <option value="">Tidak Ada WO</option>
+                    <option value={match.teamA.id}>{match.teamA.name} (Kalah WO)</option>
+                    <option value={match.teamB.id}>{match.teamB.name} (Kalah WO)</option>
+                    <option value="both">Keduanya (Kalah WO)</option>
+                </select>
+                {isWO && <span className="absolute top-3 right-3 text-[8px] font-black text-red-500 uppercase animate-pulse">Penalty Applies</span>}
             </div>
 
             <div className="relative">

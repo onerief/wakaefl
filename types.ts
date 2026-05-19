@@ -117,6 +117,7 @@ export interface Match {
   comments?: MatchComment[];
   playerStats?: MatchPlayerStats;
   isWO?: boolean;
+  woTeamId?: string;
 }
 
 export interface KnockoutMatch {

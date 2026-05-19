@@ -433,6 +433,7 @@ function AppContent() {
                         updateMatch={tournament.updateMatch}
                         setResetCycle={tournament.setResetCycle}
                         updateWoPenalty={tournament.updateWoPenalty}
+                        setAllTeamsSaldo={tournament.setAllTeamsSaldo}
                         updatePreviousRanks={tournament.updatePreviousRanks}
                         woPenalty={tournament.woPenalty}
                     />
