@@ -39,31 +39,34 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="sticky top-0 z-40 deepin-glass border-b border-white/5 pt-safe">
-      <div className="container mx-auto px-3 sm:px-8 h-14 sm:h-24 flex justify-between items-center relative">
+      <div className="container mx-auto px-3 sm:px-8 h-16 sm:h-24 flex justify-between items-center relative">
         
         {/* LEFT: LOGO */}
         <div 
-            className="flex items-center group cursor-pointer z-30 min-w-0 relative" 
+            className="flex items-center group cursor-pointer z-30 min-w-0 relative flex-shrink-0" 
             onClick={() => setView('home')}
         >
-            <div className="relative flex-shrink-0">
+            <div className="relative">
                 {headerLogoUrl ? (
                     <img 
                         src={headerLogoUrl} 
                         alt="Logo" 
-                        className="h-8 sm:h-24 w-auto object-contain drop-shadow-[0_0_20px_rgba(37,99,235,0.7)] group-hover:scale-105 transition-transform duration-500" 
+                        className="h-10 sm:h-20 w-auto max-w-[120px] sm:max-w-none object-contain drop-shadow-[0_0_15px_rgba(37,99,235,0.4)] group-hover:scale-105 transition-transform duration-500" 
                     />
                 ) : (
-                    <div className="relative scale-75 sm:scale-100">
-                        <WakaLogo className="w-8 h-8 sm:w-20 sm:h-20 drop-shadow-[0_0_20px_rgba(37,99,235,0.6)] group-hover:scale-105 transition-transform duration-500" />
+                    <div className="relative scale-90 sm:scale-100 flex items-center gap-2">
+                        <WakaLogo className="w-9 h-9 sm:w-20 sm:h-20 drop-shadow-[0_0_20px_rgba(37,99,235,0.6)] group-hover:scale-105 transition-transform duration-500" />
+                        <div className="flex flex-col sm:hidden">
+                            <span className="text-[10px] font-black text-white italic leading-none truncate">WAY KANAN</span>
+                            <span className="text-[6px] font-bold text-brand-vibrant uppercase">eFootball</span>
+                        </div>
                     </div>
                 )}
             </div>
         </div>
 
-        {/* CENTER: BRANDING TEXT - POINTER EVENTS FIX */}
-        {/* The container is pointer-events-none so it doesn't block clicks on the sides. The inner content is pointer-events-auto to be clickable. */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+        {/* CENTER: BRANDING TEXT - HIDDEN ON SMALL MOBILE IF LOGO IS CUSTOM TO PREVENT OVERLAP */}
+        <div className={`absolute inset-0 flex items-center justify-center pointer-events-none z-20 ${headerLogoUrl ? 'hidden sm:flex' : 'flex'}`}>
             <div 
                 className="flex flex-col items-center cursor-pointer group pointer-events-auto"
                 onClick={() => setView('home')}

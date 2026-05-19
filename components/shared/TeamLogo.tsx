@@ -34,7 +34,7 @@ export const TeamLogo: React.FC<TeamLogoProps> = ({ logoUrl, teamName, className
   }
 
   return (
-    <div className={`${className} relative flex-shrink-0 flex items-center justify-center rounded-full bg-brand-secondary/20 overflow-hidden border border-brand-accent shadow-inner`}>
+    <div className={`${className} relative flex-shrink-0 flex items-center justify-center rounded-2xl bg-brand-secondary/20 overflow-hidden border border-brand-accent shadow-inner`}>
         
         {/* Placeholder / Skeleton while loading */}
         {!isLoaded && (
@@ -64,7 +64,7 @@ export const TeamLogo: React.FC<TeamLogoProps> = ({ logoUrl, teamName, className
 
           {/* High-tech border glow overlay when loaded */}
           {isLoaded && !hasError && (
-              <div className="absolute inset-0 rounded-full ring-1 ring-inset ring-brand-accent pointer-events-none"></div>
+              <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-brand-accent pointer-events-none"></div>
           )}
     </div>
   );

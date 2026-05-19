@@ -10,9 +10,10 @@ interface StandingsTableProps {
   groupName?: string;
   onSelectTeam: (team: Team) => void;
   history?: SeasonHistory[];
+  userOwnedTeamIds?: string[];
 }
 
-export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, matches = [], groupName = '', onSelectTeam, history = [] }) => {
+export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, matches = [], groupName = '', onSelectTeam, history = [], userOwnedTeamIds = [] }) => {
   const latestChampionId = history && history.length > 0 ? history[0].champion.id : null;
 
   // --- LOGIC FOR RANK TRENDS (UP/DOWN) ---
@@ -129,6 +130,8 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, match
           <tbody className="divide-y divide-brand-accent/50">
             {standings.map((standing, index) => {
               const isQualifier = index < 2;
+              const isTop = index === 0;
+              const isMyTeam = userOwnedTeamIds.includes(standing.team.id);
               const isDefendingChamp = standing.team.id === latestChampionId;
               const change = standing.rankChange || 0;
 
@@ -178,6 +181,14 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, match
                             <span className="text-[8px] sm:text-sm font-black text-brand-text group-hover:text-brand-vibrant transition-colors leading-none tracking-tight uppercase italic truncate">
                                 {standing.team.name || "TBD"}
                             </span>
+                            <div className="flex items-center gap-0.5">
+                                {isTop && (
+                                    <span className="px-1 py-0.5 bg-brand-special text-brand-primary text-[6px] sm:text-[7px] font-black rounded-sm uppercase leading-none">Top</span>
+                                )}
+                                {isMyTeam && (
+                                    <span className="px-1 py-0.5 bg-brand-vibrant text-white text-[6px] sm:text-[7px] font-black rounded-sm uppercase leading-none animate-pulse">Saya</span>
+                                )}
+                            </div>
                           </div>
                       </div>
                     </button>

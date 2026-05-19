@@ -103,7 +103,7 @@ export const GroupStage: React.FC<GroupStageProps> = ({ groups, matches, onSelec
               <div className={`transition-all duration-500 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[1500px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 <div ref={el => { groupRefs.current[group.id] = el; }} className="p-4 sm:p-6 pt-0 sm:pt-0">
                     <div className="h-px bg-brand-accent/30 mb-6"></div>
-                    <StandingsTable standings={group.standings} matches={matches} groupName={group.name} onSelectTeam={onSelectTeam} history={history} />
+                    <StandingsTable standings={group.standings} matches={matches} groupName={group.name} onSelectTeam={onSelectTeam} history={history} userOwnedTeamIds={userOwnedTeamIds} />
                     <div className="sm:hidden mt-4 flex justify-center"><button onClick={(e) => handleExport(e, group.id, group.name)} className="flex items-center gap-2 px-4 py-2 bg-brand-secondary/40 rounded-xl text-[10px] font-black uppercase text-brand-light"><Download size={14} /> Simpan Klasemen</button></div>
                 </div>
               </div>

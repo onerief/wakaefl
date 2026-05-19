@@ -110,8 +110,8 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
             
             {/* Logo with Animated Ring */}
             <div className="relative group">
-                <div className="absolute -inset-1 bg-gradient-to-tr from-brand-vibrant to-brand-gradient-end rounded-full blur group-hover:opacity-100 opacity-75 transition-opacity"></div>
-                <div className="relative p-1 bg-brand-primary rounded-full">
+                <div className="absolute -inset-1 bg-gradient-to-tr from-brand-vibrant to-brand-gradient-end rounded-[2rem] blur group-hover:opacity-100 opacity-75 transition-opacity"></div>
+                <div className="relative p-1 bg-brand-primary rounded-[2rem]">
                     <TeamLogo 
                         logoUrl={team.logoUrl} 
                         teamName={team.name} 
