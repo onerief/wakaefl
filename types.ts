@@ -13,6 +13,8 @@ export interface Team {
   requestedOwnerEmail?: string;
   ovr?: number;
   rating?: number;
+  saldo?: number;
+  previousRank?: number;
 }
 
 export interface PlayerStat {
@@ -57,6 +59,7 @@ export interface Standing {
   goalDifference: number;
   points: number;
   form: ('W' | 'D' | 'L')[];
+  rankChange?: number;
 }
 
 export interface Group {
@@ -113,6 +116,7 @@ export interface Match {
   matchday?: number;
   comments?: MatchComment[];
   playerStats?: MatchPlayerStats;
+  isWO?: boolean;
 }
 
 export interface KnockoutMatch {
@@ -198,6 +202,8 @@ export interface TournamentState {
   hiddenViews?: View[];
   scheduleSettings: ScheduleSettings; // NEW FIELD
   matchComments?: Record<string, MatchComment[]>; // External comments map
+  woPenalty?: number;
+  lastRankUpdate?: number;
 }
 
 export interface Donation {

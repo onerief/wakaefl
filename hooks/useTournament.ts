@@ -45,14 +45,16 @@ const createInitialState = (mode: TournamentMode): FullTournamentState => ({
       autoProcessEnabled: false,
       resetCycleHours: 24
   },
-  matchComments: {}
+  matchComments: {},
+  woPenalty: 50000,
+  lastRankUpdate: Date.now()
 });
 
 const calculateStandings = (teams: Team[], matches: Match[], groupId: string, groupName: string): Standing[] => {
   const standings: { [key: string]: Standing } = {};
   teams.forEach(team => {
       if (team && team.id) {
-        standings[team.id] = { team: { ...team }, played: 0, wins: 0, draws: 0, losses: 0, goalDifference: 0, points: 0, form: [] };
+        standings[team.id] = { team: { ...team }, played: 0, wins: 0, draws: 0, losses: 0, goalDifference: 0, points: 0, form: [], rankChange: 0 };
       }
   });
   const groupLetter = (groupName || '').replace('Group ', '').trim();
@@ -85,7 +87,19 @@ const calculateStandings = (teams: Team[], matches: Match[], groupId: string, gr
       s.form = s.form.slice(-5);
   });
 
-  return Object.values(standings).sort((a, b) => (b.points - a.points) || (b.goalDifference - a.goalDifference));
+  const sortedStandings = Object.values(standings).sort((a, b) => (b.points - a.points) || (b.goalDifference - a.goalDifference));
+  
+  // Calculate rank change
+  return sortedStandings.map((s, index) => {
+    const currentRank = index + 1;
+    const prevRank = s.team.previousRank;
+    if (prevRank) {
+      s.rankChange = prevRank - currentRank;
+    } else {
+      s.rankChange = 0;
+    }
+    return s;
+  });
 };
 
 const hydrateTournamentData = (state: FullTournamentState): FullTournamentState => {
@@ -136,7 +150,7 @@ type Action =
   | { type: 'UPDATE_TEAM'; payload: Team }
   | { type: 'DELETE_TEAM'; payload: string }
   | { type: 'GENERATE_GROUPS'; payload: { groups: Group[], matches: Match[], knockoutStage: KnockoutStageRounds | null } }
-  | { type: 'UPDATE_MATCH_SCORE'; payload: { matchId: string; scoreA: number; scoreB: number; proofUrl?: string; playerStats?: MatchPlayerStats } }
+  | { type: 'UPDATE_MATCH_SCORE'; payload: { matchId: string; scoreA: number; scoreB: number; proofUrl?: string; playerStats?: MatchPlayerStats; isWO?: boolean } }
   | { type: 'UPDATE_MATCH'; payload: { matchId: string; updates: Partial<Match> } }
   | { type: 'UPDATE_KNOCKOUT_MATCH'; payload: KnockoutMatch }
   | { type: 'UPDATE_NEWS'; payload: NewsItem[] }
@@ -163,7 +177,9 @@ type Action =
   | { type: 'ADD_MATCH_COMMENT'; payload: { matchId: string, comment: MatchComment } }
   | { type: 'UPDATE_SCHEDULE_SETTINGS'; payload: Partial<ScheduleSettings> }
   | { type: 'PROCESS_AUTO_WO'; payload: Match[] }
-  | { type: 'SET_COMMENTS'; payload: Record<string, MatchComment[]> };
+  | { type: 'SET_COMMENTS'; payload: Record<string, MatchComment[]> }
+  | { type: 'UPDATE_WO_PENALTY'; payload: number }
+  | { type: 'UPDATE_PREVIOUS_RANKS' };
 
 const tournamentReducer = (state: FullTournamentState, action: Action): FullTournamentState => {
   let newState: FullTournamentState;
@@ -204,10 +220,40 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'SET_SYSTEM': newState = { ...state, system: action.payload }; break;
     case 'SET_CUSTOM_NAME': newState = { ...state, customName: action.payload }; break;
     case 'ADD_TEAM': newState = { ...state, teams: [...state.teams, action.payload] }; break;
-    case 'UPDATE_TEAM': newState = { ...state, teams: state.teams.map(t => t.id === action.payload.id ? action.payload : t) }; break;
+    case 'UPDATE_TEAM': newState = { ...state, teams: state.teams.map(t => t.id === action.payload.id ? { ...t, ...action.payload } : t) }; break;
     case 'DELETE_TEAM': newState = { ...state, teams: state.teams.filter(t => t.id !== action.payload) }; break;
     case 'GENERATE_GROUPS': newState = { ...state, ...action.payload }; break;
-    case 'UPDATE_MATCH_SCORE': newState = { ...state, matches: state.matches.map(m => m.id === action.payload.matchId ? { ...m, ...action.payload, status: 'finished' as const } : m) }; break;
+    case 'UPDATE_MATCH_SCORE': {
+        const { matchId, scoreA, scoreB, isWO } = action.payload;
+        const match = state.matches.find(m => m.id === matchId);
+        if (!match) return state;
+        
+        let updatedTeams = [...state.teams];
+        if (isWO) {
+            const penalty = state.woPenalty || 0;
+            updatedTeams = updatedTeams.map(t => {
+                // If scoreA < scoreB and it's WO, Team A is likely the one who WO'd
+                // Or if it's explicitly marked as WO, we can check which team lost
+                if (scoreA < scoreB && t.id === match.teamA.id) {
+                    return { ...t, saldo: (t.saldo || 0) - penalty };
+                }
+                if (scoreB < scoreA && t.id === match.teamB.id) {
+                    return { ...t, saldo: (t.saldo || 0) - penalty };
+                }
+                if (scoreA === 0 && scoreB === 0 && (t.id === match.teamA.id || t.id === match.teamB.id)) {
+                    return { ...t, saldo: (t.saldo || 0) - penalty };
+                }
+                return t;
+            });
+        }
+
+        newState = { 
+            ...state, 
+            teams: updatedTeams,
+            matches: state.matches.map(m => m.id === matchId ? { ...m, ...action.payload, status: 'finished' as const } : m) 
+        }; 
+        break;
+    }
     case 'UPDATE_MATCH': newState = { ...state, matches: state.matches.map(m => m.id === action.payload.matchId ? { ...m, ...action.payload.updates } : m) }; break;
     case 'UPDATE_KNOCKOUT_MATCH': {
         if (!state.knockoutStage) return state;
@@ -258,8 +304,41 @@ const tournamentReducer = (state: FullTournamentState, action: Action): FullTour
     case 'UPDATE_SCHEDULE_SETTINGS': newState = { ...state, scheduleSettings: { ...state.scheduleSettings, ...action.payload } }; break;
     case 'PROCESS_AUTO_WO': {
         const updatedMatchIds = new Set(action.payload.map(m => m.id));
-        const newMatches = state.matches.map(m => updatedMatchIds.has(m.id) ? (action.payload.find(up => up.id === m.id) || m) : m);
-        newState = { ...state, matches: newMatches };
+        const penalty = state.woPenalty || 0;
+        let updatedTeams = [...state.teams];
+
+        action.payload.forEach(m => {
+            if (m.scoreA! < m.scoreB!) {
+                updatedTeams = updatedTeams.map(t => t.id === m.teamA.id ? { ...t, saldo: (t.saldo || 0) - penalty } : t);
+            } else if (m.scoreB! < m.scoreA!) {
+                updatedTeams = updatedTeams.map(t => t.id === m.teamB.id ? { ...t, saldo: (t.saldo || 0) - penalty } : t);
+            } else if (m.scoreA === 0 && m.scoreB === 0) {
+                updatedTeams = updatedTeams.map(t => (t.id === m.teamA.id || t.id === m.teamB.id) ? { ...t, saldo: (t.saldo || 0) - penalty } : t);
+            }
+        });
+
+        const newMatches = state.matches.map(m => updatedMatchIds.has(m.id) ? (action.payload.find(up => up.id === m.id) || { ...m, isWO: true }) : m);
+        newState = { ...state, matches: newMatches, teams: updatedTeams };
+        break;
+    }
+    case 'UPDATE_WO_PENALTY': newState = { ...state, woPenalty: action.payload }; break;
+    case 'UPDATE_PREVIOUS_RANKS': {
+        // Flatten all standings to get absolute rank
+        const allTeamsRanked: { id: string; rank: number }[] = [];
+        state.groups.forEach(g => {
+            g.standings.forEach((s, idx) => {
+                allTeamsRanked.push({ id: s.team.id, rank: idx + 1 });
+            });
+        });
+
+        newState = {
+            ...state,
+            lastRankUpdate: Date.now(),
+            teams: state.teams.map(t => {
+                const rankData = allTeamsRanked.find(r => r.id === t.id);
+                return rankData ? { ...t, previousRank: rankData.rank } : t;
+            })
+        };
         break;
     }
     case 'RESET': {
@@ -555,6 +634,8 @@ export const useTournament = (activeMode: TournamentMode, isAdmin: boolean) => {
           const newGroups = state.groups.map(g => g.id === gid ? { ...g, teams: g.teams.filter(x => x.id !== tid) } : g);
           dispatch({ type: 'GENERATE_GROUPS', payload: { groups: newGroups, matches: state.matches, knockoutStage: state.knockoutStage } });
       },
+      updateWoPenalty: (p: number) => dispatch({ type: 'UPDATE_WO_PENALTY', payload: p }),
+      updatePreviousRanks: () => dispatch({ type: 'UPDATE_PREVIOUS_RANKS' }),
       generateMatchesFromGroups: (roundRobinType: 'single' | 'double' = 'single') => {
           const newMatches: Match[] = [];
           state.groups.forEach(g => {

@@ -64,6 +64,23 @@ function AppContent() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    });
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as 'dark' | 'light' | null;
@@ -415,6 +432,9 @@ function AppContent() {
                         updateHiddenViews={tournament.updateHiddenViews}
                         updateMatch={tournament.updateMatch}
                         setResetCycle={tournament.setResetCycle}
+                        updateWoPenalty={tournament.updateWoPenalty}
+                        updatePreviousRanks={tournament.updatePreviousRanks}
+                        woPenalty={tournament.woPenalty}
                     />
                 ) : (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -455,7 +475,13 @@ function AppContent() {
       {viewingTeam && <TeamProfileModal team={viewingTeam} matches={tournament.matches} onClose={() => setViewingTeam(null)} />}
       
       {/* Footer ensures z-index > 20 to be clickable over main, but < 50 (nav) */}
-      <Footer partners={tournament.partners} onAdminLogin={() => setShowAdminLogin(true)} setView={handleSetView} />
+      <Footer 
+          partners={tournament.partners} 
+          onAdminLogin={() => setShowAdminLogin(true)} 
+          setView={handleSetView} 
+          isInstallable={!!deferredPrompt}
+          onInstallPWA={handleInstallClick}
+      />
     </div>
   );
 }

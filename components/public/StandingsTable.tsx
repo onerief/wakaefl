@@ -118,18 +118,19 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, match
           <thead className="text-[8px] sm:text-[10px] text-brand-light uppercase bg-brand-secondary border-b border-brand-accent sticky top-0 z-20 shadow-md">
             <tr>
               <th scope="col" className="py-3 font-black tracking-wider text-center w-[16%] sm:w-[10%] bg-brand-secondary pl-1">#</th>
-              <th scope="col" className="py-3 font-black tracking-wider text-left pl-1 w-[44%] sm:w-[35%] bg-brand-secondary">Club</th>
-              <th scope="col" className="py-3 font-black tracking-wider text-center w-[12%] sm:w-[8%] bg-brand-secondary">P</th>
-              <th scope="col" className="py-3 font-black tracking-wider text-center hidden sm:table-cell w-[24%] bg-brand-secondary">Form</th>
-              <th scope="col" className="py-3 font-black tracking-wider text-center w-[14%] sm:w-[10%] bg-brand-secondary">GD</th>
-              <th scope="col" className="py-3 font-black tracking-wider text-center w-[14%] sm:w-[15%] bg-brand-secondary">Pts</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-left pl-1 w-[34%] sm:w-[30%] bg-brand-secondary">Club</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center w-[10%] sm:w-[7%] bg-brand-secondary">P</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center hidden sm:table-cell w-[15%] bg-brand-secondary">Form</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center w-[10%] sm:w-[8%] bg-brand-secondary">GD</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center w-[10%] sm:w-[10%] bg-brand-secondary">Pts</th>
+              <th scope="col" className="py-3 font-black tracking-wider text-center w-[20%] sm:w-[15%] bg-brand-secondary">Saldo</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-brand-accent/50">
             {standings.map((standing, index) => {
               const isQualifier = index < 2;
               const isDefendingChamp = standing.team.id === latestChampionId;
-              const trend = rankChanges[standing.team.id] || 'same';
+              const change = standing.rankChange || 0;
 
               return (
                 <tr 
@@ -144,15 +145,15 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, match
                     {isQualifier && (
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 h-4/5 w-0.5 sm:w-1 bg-brand-vibrant rounded-r-full shadow-[0_0_10px_var(--brand-vibrant)]"></div>
                     )}
-                    <div className="flex items-center justify-center gap-1">
-                        <div className="w-3 flex justify-center">
-                            {trend === 'up' && <ChevronUp size={10} className="text-green-500 animate-bounce" />}
-                            {trend === 'down' && <ChevronDown size={10} className="text-red-500" />}
-                            {trend === 'same' && <Minus size={8} className="text-brand-light/40" />}
-                        </div>
-                        <span className={`font-black text-[10px] sm:text-sm ${isQualifier ? 'text-brand-vibrant' : 'text-brand-light/70'}`}>
+                    <div className="flex flex-col items-center justify-center -gap-0.5">
+                        <span className={`font-black text-[10px] sm:text-sm leading-none ${isQualifier ? 'text-brand-vibrant' : 'text-brand-light/70'}`}>
                             {index + 1}
                         </span>
+                        <div className="flex items-center justify-center gap-0.5">
+                            {change > 0 && <span className="text-[7px] font-black text-green-500">+{change}</span>}
+                            {change < 0 && <span className="text-[7px] font-black text-red-500">{change}</span>}
+                            {change === 0 && <Minus size={6} className="text-brand-light/20" />}
+                        </div>
                     </div>
                   </td>
                   <td className="py-2.5 sm:py-3 pl-1 font-medium text-brand-text">
@@ -164,7 +165,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, match
                           <TeamLogo 
                             logoUrl={standing.team.logoUrl} 
                             teamName={standing.team.name} 
-                            className="w-6 h-6 sm:w-10 sm:h-10 shadow-lg"
+                            className="w-5 h-5 sm:w-10 sm:h-10 shadow-lg"
                           />
                           {isDefendingChamp && (
                               <div className="absolute -top-1 -right-1 bg-brand-special rounded-full p-0.5 shadow-lg border border-brand-primary z-10">
@@ -174,19 +175,14 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, match
                       </div>
                       <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-1">
-                            <span className="text-[9px] sm:text-sm font-black text-brand-text group-hover:text-brand-vibrant transition-colors leading-none tracking-tight uppercase italic truncate">
+                            <span className="text-[8px] sm:text-sm font-black text-brand-text group-hover:text-brand-vibrant transition-colors leading-none tracking-tight uppercase italic truncate">
                                 {standing.team.name || "TBD"}
                             </span>
                           </div>
-                          {standing.team.manager && (
-                              <span className="text-[7px] sm:text-[10px] text-brand-light/60 font-medium truncate leading-tight mt-0.5">
-                                  {standing.team.manager}
-                              </span>
-                          )}
                       </div>
                     </button>
                   </td>
-                  <td className="py-2.5 sm:py-3 text-center text-brand-light/90 text-[10px] sm:text-sm font-bold">{standing.played}</td>
+                  <td className="py-2.5 sm:py-3 text-center text-brand-light/90 text-[9px] sm:text-sm font-bold">{standing.played}</td>
                   
                   {/* Form Column */}
                   <td className="py-2.5 sm:py-3 text-center hidden sm:table-cell">
@@ -195,7 +191,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, match
                               <div 
                                   key={i} 
                                   className={`
-                                      w-4 h-4 rounded flex items-center justify-center text-[8px] font-black
+                                      w-3.5 h-3.5 rounded flex items-center justify-center text-[7px] font-black
                                       ${result === 'W' ? 'bg-green-500 text-white' : 
                                         result === 'D' ? 'bg-gray-500 text-white' : 
                                         'bg-red-500 text-white'}
@@ -209,17 +205,22 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, match
                       </div>
                   </td>
 
-                  <td className="py-2.5 sm:py-3 text-center text-[10px] sm:text-xs">
+                  <td className="py-2.5 sm:py-3 text-center text-[9px] sm:text-xs">
                     <span className={`font-black ${standing.goalDifference > 0 ? 'text-green-500' : standing.goalDifference < 0 ? 'text-red-500' : 'text-brand-light/50'}`}>
                         {standing.goalDifference > 0 ? '+' : ''}{standing.goalDifference}
                     </span>
                   </td>
                   <td className="py-2.5 sm:py-3 text-center">
-                    <div className="inline-flex items-center justify-center min-w-[20px] sm:min-w-[32px] h-5 sm:h-8 bg-brand-vibrant/10 rounded-md sm:rounded-lg border border-brand-vibrant/30 transition-colors">
-                        <span className="font-black text-brand-text text-[10px] sm:text-sm px-1 italic">
+                    <div className="inline-flex items-center justify-center min-w-[18px] sm:min-w-[32px] h-5 sm:h-8 bg-brand-vibrant/10 rounded-md sm:rounded-lg border border-brand-vibrant/30 transition-colors">
+                        <span className="font-black text-brand-text text-[9px] sm:text-sm px-1 italic">
                             {standing.points}
                         </span>
                     </div>
+                  </td>
+                  <td className="py-2.5 sm:py-3 text-center">
+                    <span className="text-[8px] sm:text-[11px] font-black text-brand-special whitespace-nowrap">
+                        Rp {(standing.team.saldo || 0).toLocaleString('id-ID')}
+                    </span>
                   </td>
                 </tr>
               );

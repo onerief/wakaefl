@@ -90,6 +90,9 @@ interface AdminPanelProps {
   setTournamentSystem?: (system: TournamentSystem) => void;
   setCustomName?: (name: string) => void;
   resolveTeamClaim?: (teamId: string, approved: boolean) => void;
+  updateWoPenalty?: (penalty: number) => void;
+  updatePreviousRanks?: () => void;
+  woPenalty?: number;
   // Schedule Control Actions
   startMatchday?: (duration: number) => void;
   pauseSchedule?: () => void;
@@ -385,6 +388,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                     <Settings className="text-brand-vibrant" size={24} /> System Control
                 </h3>
                 <div className="space-y-4">
+                    <div className="p-4 bg-brand-special/10 rounded-2xl border border-brand-special/20 space-y-4">
+                        <div className="flex flex-col gap-2">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-brand-special">WO Penalty (Saldo)</label>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-brand-special">Rp</span>
+                                <input 
+                                    type="number" 
+                                    value={props.woPenalty || 0} 
+                                    onChange={(e) => props.updateWoPenalty?.(Number(e.target.value))}
+                                    className="bg-brand-primary border border-white/10 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-brand-special transition-all flex-1"
+                                />
+                            </div>
+                            <p className="text-[8px] text-brand-light/60 uppercase font-bold italic">Saldo tim yang WO akan dikurangi sebesar nilai ini.</p>
+                        </div>
+                        <div className="pt-2">
+                            <button 
+                                onClick={() => { if(window.confirm("Simpan peringkat saat ini sebagai baseline tren?")) props.updatePreviousRanks?.(); }}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-brand-primary/60 hover:bg-brand-special text-brand-light hover:text-brand-primary border border-brand-special/30 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                            >
+                                <RefreshCw size={14} /> Snapshot Peringkat Baru
+                            </button>
+                            <p className="text-[8px] text-brand-light/60 uppercase font-bold italic mt-2 text-center">Klik ini setelah matchday selesai untuk mengupdate tren naik/turun di klasemen.</p>
+                        </div>
+                    </div>
+
                     {props.mode === 'custom' && (
                         <div className="p-6 bg-brand-vibrant/5 rounded-2xl border border-brand-vibrant/20 space-y-6">
                             <div className="flex flex-col gap-2">

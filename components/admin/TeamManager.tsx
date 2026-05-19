@@ -20,8 +20,8 @@ interface TeamManagerProps {
   knockoutStage: KnockoutStageRounds | null;
   mode: TournamentMode;
   system?: TournamentSystem;
-  addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string) => void;
-  updateTeam: (teamId: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean, ownerEmail?: string) => void;
+  addTeam: (id: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, ownerEmail?: string, saldo?: number) => void;
+  updateTeam: (teamId: string, name: string, logoUrl: string, manager?: string, socialMediaUrl?: string, whatsappNumber?: string, isTopSeed?: boolean, ownerEmail?: string, saldo?: number) => void;
   deleteTeam: (teamId: string) => void;
   unbindTeam: (teamId: string) => void;
   onGenerationSuccess: () => void;
@@ -361,7 +361,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                     details.socialMediaUrl, 
                     details.whatsappNumber, 
                     editingTeam.isTopSeed, 
-                    details.ownerEmail
+                    details.ownerEmail,
+                    details.saldo
                 );
               } else {
                 addTeam(
@@ -371,7 +372,8 @@ export const TeamManager: React.FC<TeamManagerProps> = (props) => {
                     details.manager, 
                     details.socialMediaUrl, 
                     details.whatsappNumber, 
-                    details.ownerEmail
+                    details.ownerEmail,
+                    details.saldo
                 );
               }
               setShowForm(false); 

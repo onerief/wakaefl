@@ -8,9 +8,11 @@ interface FooterProps {
     partners?: Partner[];
     onAdminLogin?: () => void;
     setView?: (view: View) => void;
+    onInstallPWA?: () => void;
+    isInstallable?: boolean;
 }
 
-export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin, setView }) => {
+export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin, setView, onInstallPWA, isInstallable }) => {
   const hasPartners = partners && partners.length > 0;
 
   return (
@@ -120,6 +122,14 @@ export const Footer: React.FC<FooterProps> = ({ partners, onAdminLogin, setView 
         <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-brand-light/40 font-medium">
             <p>&copy; 2024 Way Kanan eFootball Community.</p>
             <div className="flex gap-6 items-center">
+                {isInstallable && onInstallPWA && (
+                    <button 
+                        onClick={onInstallPWA} 
+                        className="px-4 py-2 bg-brand-vibrant/10 hover:bg-brand-vibrant text-brand-vibrant hover:text-white border border-brand-vibrant rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-lg hover:shadow-brand-vibrant/20"
+                    >
+                        Install App
+                    </button>
+                )}
                 <button onClick={() => setView?.('privacy')} className="hover:text-brand-light transition-colors">Privacy Policy</button>
                 <button onClick={() => setView?.('terms')} className="hover:text-brand-light transition-colors">Terms</button>
                 {onAdminLogin && (

@@ -10,7 +10,7 @@ import { TeamLogo } from '../shared/TeamLogo';
 
 interface MatchEditorProps {
   match: Match;
-  onUpdateScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string, playerStats?: MatchPlayerStats) => void;
+  onUpdateScore: (matchId: string, scoreA: number, scoreB: number, proofUrl?: string, playerStats?: MatchPlayerStats, isWO?: boolean) => void;
   onGenerateSummary: (matchId: string) => Promise<string>;
   onEditSchedule: (match: Match) => void;
 }
@@ -19,13 +19,14 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
   const [scoreA, setScoreA] = useState<number>(match.scoreA ?? 0);
   const [scoreB, setScoreB] = useState<number>(match.scoreB ?? 0);
   const [proofUrl, setProofUrl] = useState(match.proofUrl ?? '');
+  const [isWO, setIsWO] = useState(match.isWO ?? false);
   
   const [isGenerating, setIsGenerating] = useState(false);
   const { addToast } = useToast();
 
   const handleSave = () => {
     try {
-        onUpdateScore(match.id, scoreA, scoreB, proofUrl, undefined);
+        onUpdateScore(match.id, scoreA, scoreB, proofUrl, undefined, isWO);
         addToast('Skor berhasil disimpan!', 'success');
     } catch (e) {
         console.error(e);
@@ -101,8 +102,28 @@ export const MatchEditor: React.FC<MatchEditorProps> = ({ match, onUpdateScore, 
             </div>
         </div>
 
-        {/* Proof URL & Summary Button */}
         <div className="space-y-3 pt-4 border-t border-white/5">
+            <div className="flex items-center gap-3 bg-black/30 p-2 rounded-xl border border-white/5">
+                <label className="flex items-center gap-2 cursor-pointer flex-1">
+                    <input 
+                        type="checkbox" 
+                        checked={isWO} 
+                        onChange={(e) => {
+                            setIsWO(e.target.checked);
+                            if (e.target.checked) {
+                                // Default WO is 3-0 or 0-3 based on current scores
+                                if (scoreA > scoreB) { setScoreA(3); setScoreB(0); }
+                                else if (scoreB > scoreA) { setScoreA(0); setScoreB(3); }
+                                else { setScoreA(0); setScoreB(0); }
+                            }
+                        }}
+                        className="w-4 h-4 rounded border-brand-accent text-brand-vibrant focus:ring-brand-vibrant bg-brand-primary"
+                    />
+                    <span className="text-[10px] font-black uppercase text-brand-light">Status Walkover (WO)</span>
+                </label>
+                {isWO && <span className="text-[8px] font-black text-red-500 uppercase animate-pulse">Penalty Applied</span>}
+            </div>
+
             <div className="relative">
                 <Link size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light" />
                 <input

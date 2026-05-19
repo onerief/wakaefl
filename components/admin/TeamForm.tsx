@@ -19,6 +19,7 @@ interface TeamFormProps {
       whatsappNumber?: string; 
       logoUrl: string;
       ownerEmail?: string;
+      saldo: number;
     }
   ) => void;
   onClose: () => void;
@@ -32,6 +33,7 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
   const [whatsappNumber, setWhatsappNumber] = useState(team?.whatsappNumber ?? '');
   const [logoUrl, setLogoUrl] = useState(team?.logoUrl ?? '');
   const [ownerEmail, setOwnerEmail] = useState(team?.ownerEmail ?? '');
+  const [saldo, setSaldo] = useState(team?.saldo ?? 0);
   const [copied, setCopied] = useState(false);
 
   const { addToast } = useToast();
@@ -54,7 +56,8 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
           socialMediaUrl: socialMediaUrl.trim(),
           whatsappNumber: whatsappNumber.trim(),
           logoUrl: logoUrl.trim(),
-          ownerEmail: ownerEmail.trim()
+          ownerEmail: ownerEmail.trim(),
+          saldo: Number(saldo)
         }
       );
     }
@@ -163,6 +166,21 @@ export const TeamForm: React.FC<TeamFormProps> = ({ team, onSave, onClose, isSav
                             onChange={(e) => setWhatsappNumber(e.target.value)}
                             className="w-full p-3 pl-10 bg-brand-primary border border-brand-accent rounded-xl text-brand-text text-sm focus:ring-2 focus:ring-green-500 outline-none"
                             placeholder="628..."
+                        />
+                    </div>
+                    </div>
+
+                    <div>
+                    <label htmlFor="team-saldo" className="block text-[10px] font-black text-brand-vibrant uppercase tracking-widest mb-1.5 italic">Saldo Tim (Rp)</label>
+                    <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-vibrant font-black text-xs">Rp</span>
+                        <input
+                            id="team-saldo"
+                            type="number"
+                            value={saldo}
+                            onChange={(e) => setSaldo(Number(e.target.value))}
+                            className="w-full p-3 pl-10 bg-brand-primary border border-brand-accent rounded-xl text-brand-text text-sm font-black focus:ring-2 focus:ring-brand-vibrant outline-none"
+                            placeholder="0"
                         />
                     </div>
                     </div>
