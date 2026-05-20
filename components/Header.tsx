@@ -38,8 +38,8 @@ export const Header: React.FC<HeaderProps> = ({
     hasUnreadNotifications
 }) => {
   return (
-    <header className="sticky top-0 z-40 deepin-glass border-b border-white/5 pt-safe">
-      <div className="container mx-auto px-3 sm:px-8 h-16 sm:h-24 flex justify-between items-center relative">
+    <header className="sticky top-0 z-40 bg-brand-primary/95 backdrop-blur-md border-b border-white/5 pt-safe">
+      <div className="px-4 h-14 sm:h-16 flex justify-between items-center relative">
         
         {/* LEFT: LOGO */}
         <div 
@@ -51,39 +51,22 @@ export const Header: React.FC<HeaderProps> = ({
                     <img 
                         src={headerLogoUrl} 
                         alt="Logo" 
-                        className="h-10 sm:h-20 w-auto max-w-[120px] sm:max-w-none object-contain drop-shadow-[0_0_15px_rgba(37,99,235,0.4)] group-hover:scale-105 transition-transform duration-500" 
+                        className="h-8 sm:h-10 w-auto object-contain transition-transform duration-300" 
                     />
                 ) : (
-                    <div className="relative scale-90 sm:scale-100 flex items-center gap-2">
-                        <WakaLogo className="w-9 h-9 sm:w-20 sm:h-20 drop-shadow-[0_0_20px_rgba(37,99,235,0.6)] group-hover:scale-105 transition-transform duration-500" />
-                        <div className="flex flex-col sm:hidden">
-                            <span className="text-[10px] font-black text-white italic leading-none truncate">WAY KANAN</span>
-                            <span className="text-[6px] font-bold text-brand-vibrant uppercase">eFootball</span>
+                    <div className="flex items-center gap-2">
+                        <WakaLogo className="w-8 h-8 sm:w-10 sm:h-10 text-brand-vibrant" />
+                        <div className="flex flex-col">
+                            <span className="text-[12px] font-black text-white leading-none truncate uppercase tracking-widest">WAKA</span>
+                            <span className="text-[8px] font-bold text-brand-vibrant uppercase">Hub</span>
                         </div>
                     </div>
                 )}
             </div>
         </div>
 
-        {/* CENTER: BRANDING TEXT - HIDDEN ON SMALL MOBILE IF LOGO IS CUSTOM TO PREVENT OVERLAP */}
-        <div className={`absolute inset-0 flex items-center justify-center pointer-events-none z-20 ${headerLogoUrl ? 'hidden sm:flex' : 'flex'}`}>
-            <div 
-                className="flex flex-col items-center cursor-pointer group pointer-events-auto"
-                onClick={() => setView('home')}
-            >
-                <h1 className="text-sm sm:text-5xl font-black text-white italic leading-none tracking-tighter uppercase group-hover:text-brand-vibrant transition-all duration-500 drop-shadow-[0_5px_15px_rgba(0,0,0,1)] truncate w-full text-center">
-                    Way Kanan
-                </h1>
-                <div className="flex items-center gap-1 sm:gap-4 mt-0.5 sm:mt-1 w-full justify-center">
-                    <span className="text-[4px] sm:text-base font-black bg-gradient-to-r from-blue-500 via-blue-400 to-brand-special bg-clip-text text-transparent uppercase tracking-[0.1em] sm:tracking-[0.5em] leading-tight drop-shadow-[0_0_10px_rgba(37,99,235,0.5)] whitespace-nowrap">
-                        eFootball Mobile
-                    </span>
-                </div>
-            </div>
-        </div>
-
         {/* RIGHT: AUTH/PROFILE */}
-        <div className="flex items-center gap-2 sm:gap-6 shrink-0 z-30">
+        <div className="flex items-center gap-3 sm:gap-6 shrink-0 z-30">
             <div className="hidden md:block">
                 <AutoTimer 
                     cycle={resetCycle} 
@@ -95,27 +78,23 @@ export const Header: React.FC<HeaderProps> = ({
             {currentUser ? (
                 <button 
                     onClick={onShowProfile}
-                    className="flex items-center gap-2 p-0.5 sm:p-2 sm:pl-5 sm:pr-1.5 bg-white/[0.03] border border-white/10 rounded-full hover:bg-white/10 transition-all group cursor-pointer relative"
+                    className="flex items-center justify-center w-8 h-8 rounded-full bg-brand-accent/30 overflow-hidden border border-brand-accent hover:border-brand-vibrant transition-all relative"
                 >
-                    <div className="w-7 h-7 sm:w-12 sm:h-12 rounded-full overflow-hidden border border-brand-vibrant/40 group-hover:border-brand-vibrant transition-all shadow-inner relative">
-                        {currentUser.photoURL ? (
-                            <img src={currentUser.photoURL} alt="User" className="w-full h-full object-cover" />
-                        ) : (
-                            <div className="w-full h-full bg-brand-vibrant/20 flex items-center justify-center text-brand-vibrant">
-                                <UserIcon size={12} className="sm:w-5 sm:h-5" />
-                            </div>
-                        )}
-                    </div>
+                    {currentUser.photoURL ? (
+                        <img src={currentUser.photoURL} alt="User" className="w-full h-full object-cover" />
+                    ) : (
+                        <UserIcon size={14} className="text-brand-vibrant" />
+                    )}
                     {hasUnreadNotifications && (
-                        <span className="absolute top-0 right-0 w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 bg-red-500 border-2 border-brand-primary rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]"></span>
+                        <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                     )}
                 </button>
             ) : (
                 <button
                     onClick={onUserAuthRequest}
-                    className="px-2.5 py-1.5 sm:px-6 sm:py-3.5 rounded-lg sm:rounded-full text-[7px] sm:text-xs font-black uppercase tracking-[0.05em] sm:tracking-[0.2em] transition-all bg-brand-vibrant text-white shadow-lg active:scale-95 flex items-center gap-1 border border-white/10 cursor-pointer"
+                    className="px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all bg-brand-vibrant text-white active:scale-95 flex items-center gap-1"
                 >
-                    <LogIn size={10} className="sm:w-4 sm:h-4" />
+                    <LogIn size={12} />
                     <span>Login</span>
                 </button>
             )}

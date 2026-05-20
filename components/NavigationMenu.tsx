@@ -37,17 +37,14 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({
         }`}
         aria-current={isActive ? 'page' : undefined}
       >
-        <div className={`relative p-1.5 sm:p-2 rounded-xl transition-all duration-500 ${
+        <div className={`relative flex flex-col items-center justify-center p-1 sm:p-2 rounded-xl transition-all duration-300 ${
           isActive 
-          ? (colorClass || 'bg-brand-vibrant text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-110') 
+          ? (colorClass ? colorClass.split(' ')[0] : 'text-brand-vibrant') 
           : 'text-brand-light'
         }`}>
-          <Icon size={20} className="sm:w-[24px] sm:h-[24px]" />
-          {isActive && (
-              <div className="absolute -top-1 -right-1 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse shadow-[0_0_10px_#fff]"></div>
-          )}
+          <Icon size={20} className={`sm:w-[24px] sm:h-[24px] transition-transform ${isActive ? 'scale-110' : ''}`} />
         </div>
-        <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-tight text-center leading-none truncate w-full px-0.5 mt-0.5 ${isActive ? 'text-white' : 'text-brand-light'}`}>
+        <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-tight text-center leading-none truncate w-full px-0.5 mt-0.5 ${isActive ? (colorClass ? colorClass.split(' ')[0] : 'text-brand-vibrant') : 'text-brand-light'}`}>
           {label}
         </span>
       </button>
@@ -64,17 +61,14 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({
             isActive ? 'opacity-100' : 'opacity-40 hover:opacity-70'
           }`}
         >
-          <div className={`relative p-1.5 sm:p-2 rounded-xl transition-all duration-500 ${
+          <div className={`relative flex flex-col items-center justify-center p-1 sm:p-2 rounded-xl transition-all duration-300 ${
             isActive 
-            ? 'bg-blue-500 text-white shadow-[0_0_20px_rgba(59,130,246,0.4)] scale-110' 
+            ? 'text-brand-vibrant' 
             : 'text-brand-light'
           }`}>
-            <MessageCircle size={20} className="sm:w-[24px] sm:h-[24px]" />
-            {isActive && (
-                <div className="absolute -top-1 -right-1 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse shadow-[0_0_10px_#fff]"></div>
-            )}
+            <MessageCircle size={20} className={`sm:w-[24px] sm:h-[24px] transition-transform ${isActive ? 'scale-110' : ''}`} />
           </div>
-          <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-tight text-center leading-none truncate w-full px-0.5 mt-0.5 ${isActive ? 'text-white' : 'text-brand-light'}`}>
+          <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-tight text-center leading-none truncate w-full px-0.5 mt-0.5 ${isActive ? 'text-brand-vibrant' : 'text-brand-light'}`}>
             Chat
           </span>
         </button>
@@ -84,22 +78,19 @@ export const NavigationMenu: React.FC<NavigationMenuProps> = ({
   const isModeVisible = (mode: TournamentMode) => (visibleModes || ['league', 'wakacl', 'two_leagues']).includes(mode);
 
   return (
-    <div className="fixed bottom-2 sm:bottom-6 left-0 right-0 z-50 flex justify-center pb-safe pointer-events-none">
-      <div className="w-[95%] sm:w-auto max-w-5xl px-0 sm:px-3">
-        <nav className="deepin-glass sm:rounded-deepin-lg p-1.5 flex items-center justify-start sm:justify-between pointer-events-auto h-[4.5rem] sm:h-20 w-full relative overflow-x-auto no-scrollbar select-none">
-            {/* Background Glow Effect for the whole bar */}
-            <div className="absolute inset-0 bg-gradient-to-r from-brand-vibrant/5 via-transparent to-brand-special/5 pointer-events-none sticky left-0 right-0"></div>
-            
+    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-safe border-t border-brand-accent bg-brand-primary/90 backdrop-blur-xl transition-all duration-300">
+      <div className="w-full max-w-5xl px-2">
+        <nav className="flex items-center justify-around sm:justify-between h-14 sm:h-16 w-full relative overflow-x-auto no-scrollbar select-none">
             <NavItem view="home" label="Home" icon={Home} />
             
-            {isModeVisible('league') && <NavItem view="league" label="Liga" icon={LayoutGrid} />}
-            {isModeVisible('two_leagues') && <NavItem view="two_leagues" label="Wilayah" icon={Globe} colorClass="bg-purple-600 shadow-[0_0_15px_rgba(147,51,234,0.5)]" />}
-            {isModeVisible('wakacl') && <NavItem view="wakacl" label="Champ" icon={CustomTrophy} colorClass="bg-brand-special text-brand-primary shadow-[0_0_15px_rgba(253,224,71,0.5)]" />}
-            {isModeVisible('custom') && <NavItem view="custom" label={customName || "Kustom"} icon={Zap} colorClass="bg-brand-vibrant shadow-[0_0_15px_rgba(37,99,235,0.5)]" />}
+            {isModeVisible('league') && <NavItem view="league" label="Liga" icon={LayoutGrid} colorClass="text-blue-500" />}
+            {isModeVisible('two_leagues') && <NavItem view="two_leagues" label="Wilayah" icon={Globe} colorClass="text-purple-500" />}
+            {isModeVisible('wakacl') && <NavItem view="wakacl" label="Champ" icon={CustomTrophy} colorClass="text-brand-special" />}
+            {isModeVisible('custom') && <NavItem view="custom" label={customName || "Kustom"} icon={Zap} colorClass="text-brand-vibrant" />}
             
-            <NavItem view="hall_of_fame" label="Hall" icon={Crown} colorClass="bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.5)]" />
-            <NavItem view="news" label="Berita" icon={Newspaper} colorClass="bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.4)]" />
-            <NavItem view="shop" label="Shop" icon={ShoppingBag} colorClass="bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+            <NavItem view="hall_of_fame" label="Hall" icon={Crown} colorClass="text-orange-500" />
+            <NavItem view="news" label="Berita" icon={Newspaper} colorClass="text-blue-400" />
+            <NavItem view="shop" label="Shop" icon={ShoppingBag} colorClass="text-emerald-500" />
             
             <ChatItem />
         </nav>

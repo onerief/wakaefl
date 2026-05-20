@@ -291,12 +291,7 @@ function AppContent() {
   const showBanners = view !== 'admin' && view !== 'hall_of_fame' && !['privacy', 'about', 'terms'].includes(view);
 
   return (
-    <div className="min-h-screen font-sans flex flex-col relative selection:bg-brand-vibrant selection:text-white overflow-x-hidden">
-      <div className="fixed inset-0 bg-brand-primary z-[-1]">
-         <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: `linear-gradient(rgba(37, 99, 235, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(37, 99, 235, 0.2) 1px, transparent 1px)`, backgroundSize: '40px 40px' }} />
-         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-brand-vibrant/20 blur-[140px] rounded-full"></div>
-      </div>
-      
+    <div className="min-h-screen font-sans flex flex-col relative overflow-x-hidden pt-safe pb-safe bg-brand-primary">
       <Header 
         currentView={view} 
         setView={handleSetView} 
@@ -340,7 +335,7 @@ function AppContent() {
         <FloatingThemeToggle theme={theme} toggleTheme={toggleTheme} />
       )}
       
-      <main className={`container mx-auto px-4 pt-2 pb-6 md:px-8 md:pt-4 md:pb-8 flex-grow relative z-20 ${view !== 'admin' ? 'pb-40 sm:pb-48' : ''}`}>
+      <main className={`container mx-auto px-4 pt-4 pb-6 md:px-8 md:pt-6 md:pb-8 flex-grow relative z-20 ${view !== 'admin' ? 'pb-24 sm:pb-28' : ''}`}>
         <Suspense fallback={<div className="flex justify-center py-20"><Spinner size={40} /></div>}>
           {tournament.isLoading ? <DashboardSkeleton /> : (
             <>
