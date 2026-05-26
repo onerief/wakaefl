@@ -41,10 +41,11 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose, rules }
             {/* Content */}
             <div className="p-6 overflow-y-auto custom-scrollbar flex-grow bg-brand-secondary/20">
                 {rules ? (
-                    <div className="prose max-w-none">
-                        <div className="whitespace-pre-wrap text-xs sm:text-sm text-brand-light leading-relaxed font-medium">
-                            {rules}
-                        </div>
+                    <div className="w-full">
+                        <div 
+                            className="text-xs sm:text-sm text-brand-light leading-relaxed font-medium font-sans rtf-content"
+                            dangerouslySetInnerHTML={{ __html: rules }}
+                        />
                     </div>
                 ) : (
                     <div className="text-center py-12 text-brand-light/30 flex flex-col items-center">

@@ -13,8 +13,11 @@ export const RulesView: React.FC<RulesViewProps> = ({ rules }) => {
                 <BookOpen size={28} />
                 Tournament Rules
             </h2>
-            <div className="space-y-4 text-brand-light prose prose-p:my-2 prose-li:my-1 prose-strong:text-brand-text prose-headings:text-brand-vibrant">
-                <div className="whitespace-pre-wrap font-sans">{rules}</div>
+            <div className="space-y-4 text-brand-light">
+                <div 
+                    className="font-sans leading-relaxed rtf-content"
+                    dangerouslySetInnerHTML={{ __html: rules }}
+                />
             </div>
         </Card>
     );
