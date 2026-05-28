@@ -88,7 +88,7 @@ const StatRow = ({ rank, name, manager, value, logoUrl, index }: any) => {
                             {name}
                         </span>
                         {manager && (
-                            <span className="block text-[7px] sm:text-[9px] font-bold text-brand-light/70 uppercase truncate mt-0.5">
+                            <span className="block text-[8px] sm:text-[10px] font-bold text-green-500 uppercase truncate mt-0.5">
                                 {manager}
                             </span>
                         )}

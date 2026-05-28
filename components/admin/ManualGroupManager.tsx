@@ -69,7 +69,7 @@ const GroupCard: React.FC<{
                             <span className="text-[9px] font-mono text-brand-light/30 w-4">{idx + 1}</span>
                             <div>
                                 <span className="block text-xs font-bold text-brand-text truncate">{team.name}</span>
-                                {team.manager && <span className="block text-[8px] font-bold text-brand-light/70 uppercase truncate">{team.manager}</span>}
+                                {team.manager && <span className="block text-[9px] font-bold text-green-500 uppercase truncate">{team.manager}</span>}
                             </div>
                         </div>
                         <button

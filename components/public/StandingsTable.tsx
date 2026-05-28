@@ -95,7 +95,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({ standings, match
                             </div>
                           </div>
                           {standing.team.manager && (
-                            <span className="text-[6px] sm:text-[9px] font-bold text-brand-light/70 uppercase truncate text-left mt-0.5">
+                            <span className="text-[7px] sm:text-[10px] font-bold text-green-500 uppercase truncate text-left mt-0.5">
                                 {standing.team.manager}
                             </span>
                           )}

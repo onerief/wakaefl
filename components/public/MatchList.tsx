@@ -181,7 +181,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             <div className="flex flex-col items-start gap-0.5 min-w-[40px] max-w-[80px] sm:max-w-[120px]">
                                 <span className="text-[9px] sm:text-[11px] font-sports text-brand-text leading-tight line-clamp-1">{match.teamA.name}</span>
                                 {match.teamA.manager && (
-                                    <span className="text-[6px] sm:text-[8px] font-bold text-brand-light/70 uppercase line-clamp-1">{match.teamA.manager}</span>
+                                    <span className="text-[7px] sm:text-[9px] font-bold text-green-500 uppercase line-clamp-1">{match.teamA.manager}</span>
                                 )}
                                 <div className="flex items-center gap-1">
                                     <span className="text-[7px] font-black text-brand-special">{match.teamA.ovr || (teamAStanding ? Math.round((teamAStanding.wins / (teamAStanding.played || 1)) * 100) : 0)}{!match.teamA.ovr && '%'}</span>
@@ -248,7 +248,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
                             <div className="flex flex-col items-end gap-0.5 min-w-[40px] max-w-[80px] sm:max-w-[120px]">
                                 <span className="text-[9px] sm:text-[11px] font-sports text-brand-text leading-tight line-clamp-1">{match.teamB.name}</span>
                                 {match.teamB.manager && (
-                                    <span className="text-[6px] sm:text-[8px] font-bold text-brand-light/70 uppercase line-clamp-1">{match.teamB.manager}</span>
+                                    <span className="text-[7px] sm:text-[9px] font-bold text-green-500 uppercase line-clamp-1">{match.teamB.manager}</span>
                                 )}
                                 <div className="flex items-center gap-1">
                                     <span className="text-[6px] font-bold text-brand-light/40 uppercase">OVR</span>

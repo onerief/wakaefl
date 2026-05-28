@@ -81,7 +81,7 @@ const KnockoutMatchTeam: React.FC<KnockoutMatchTeamProps> = ({
                                 </span>
                             </div>
                             {team.manager && (
-                                <span className="text-[6px] sm:text-[8px] font-bold text-brand-light/70 uppercase truncate block mt-0.5">
+                                <span className="text-[7px] sm:text-[9px] font-bold text-green-500 uppercase truncate block mt-0.5">
                                     {team.manager}
                                 </span>
                             )}

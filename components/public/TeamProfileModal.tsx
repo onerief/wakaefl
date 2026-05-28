@@ -125,7 +125,7 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
                     {team.name}
                 </h2>
                 {team.manager && (
-                    <span className="text-[9px] sm:text-[11px] font-bold text-brand-light/70 uppercase block mt-0.5">
+                    <span className="text-[10px] sm:text-[12px] font-bold text-green-500 uppercase block mt-0.5">
                         {team.manager}
                     </span>
                 )}
