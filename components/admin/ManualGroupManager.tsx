@@ -67,7 +67,10 @@ const GroupCard: React.FC<{
                     <div key={team.id} className="flex justify-between items-center bg-black/20 p-2 rounded-lg border border-white/5 group hover:border-white/20 transition-all">
                         <div className="flex items-center gap-2 overflow-hidden">
                             <span className="text-[9px] font-mono text-brand-light/30 w-4">{idx + 1}</span>
-                            <span className="text-xs font-bold text-brand-text truncate">{team.name}</span>
+                            <div>
+                                <span className="block text-xs font-bold text-brand-text truncate">{team.name}</span>
+                                {team.manager && <span className="block text-[8px] font-bold text-brand-light/70 uppercase truncate">{team.manager}</span>}
+                            </div>
                         </div>
                         <button
                             onClick={() => onRemoveTeam(team.id, group.id)}

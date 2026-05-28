@@ -124,6 +124,11 @@ export const TeamProfileModal: React.FC<TeamProfileModalProps> = ({ team, matche
                 <h2 className="text-lg sm:text-xl font-black text-brand-text italic tracking-tighter uppercase drop-shadow-md leading-tight">
                     {team.name}
                 </h2>
+                {team.manager && (
+                    <span className="text-[9px] sm:text-[11px] font-bold text-brand-light/70 uppercase block mt-0.5">
+                        {team.manager}
+                    </span>
+                )}
                 {team.assignedGroup && (
                     <span className="text-[7px] font-bold text-brand-vibrant uppercase tracking-[0.2em] block mt-0.5">
                         Group {team.assignedGroup}

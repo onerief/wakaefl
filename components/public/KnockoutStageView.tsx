@@ -80,6 +80,11 @@ const KnockoutMatchTeam: React.FC<KnockoutMatchTeamProps> = ({
                                     {isHome ? 'H' : 'A'}
                                 </span>
                             </div>
+                            {team.manager && (
+                                <span className="text-[6px] sm:text-[8px] font-bold text-brand-light/70 uppercase truncate block mt-0.5">
+                                    {team.manager}
+                                </span>
+                            )}
                             {isWinner && (
                                 <span className="text-[6px] sm:text-[7px] font-black text-brand-special uppercase tracking-[0.2em] mt-0.5 sm:mt-1 block animate-pulse">Selesai</span>
                             )}

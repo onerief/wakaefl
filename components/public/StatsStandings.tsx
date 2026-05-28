@@ -9,6 +9,7 @@ interface ClubStatEntry {
         id: string;
         name: string;
         logoUrl?: string;
+        manager?: string;
     };
     goals: number;
 }
@@ -42,7 +43,7 @@ export const StatsStandings: React.FC<StatsStandingsProps> = ({ clubStats = [] }
                         </thead>
                         <tbody className="divide-y divide-brand-accent/50">
                             {clubStats.length > 0 ? clubStats.map((entry, index) => (
-                                <StatRow key={entry.team.id} rank={index + 1} name={entry.team.name} value={entry.goals} logoUrl={entry.team.logoUrl} index={index} />
+                                <StatRow key={entry.team.id} rank={index + 1} name={entry.team.name} manager={entry.team.manager} value={entry.goals} logoUrl={entry.team.logoUrl} index={index} />
                             )) : <EmptyState />}
                         </tbody>
                     </table>
@@ -58,7 +59,7 @@ export const StatsStandings: React.FC<StatsStandingsProps> = ({ clubStats = [] }
     );
 };
 
-const StatRow = ({ rank, name, value, logoUrl, index }: any) => {
+const StatRow = ({ rank, name, manager, value, logoUrl, index }: any) => {
     const isTopThree = rank <= 3;
     return (
         <tr className={`
@@ -82,9 +83,16 @@ const StatRow = ({ rank, name, value, logoUrl, index }: any) => {
             <td className="px-2 sm:px-6 py-2 sm:py-4">
                 <div className="flex items-center gap-2 sm:gap-4">
                     <TeamLogo logoUrl={logoUrl} teamName={name} className="w-6 h-6 sm:w-12 sm:h-12 shrink-0" />
-                    <span className={`text-[9px] sm:text-sm font-black uppercase tracking-tight italic line-clamp-1 ${isTopThree ? 'text-brand-text' : 'text-brand-light'}`}>
-                        {name}
-                    </span>
+                    <div>
+                        <span className={`block text-[9px] sm:text-sm font-black uppercase tracking-tight italic line-clamp-1 ${isTopThree ? 'text-brand-text' : 'text-brand-light'}`}>
+                            {name}
+                        </span>
+                        {manager && (
+                            <span className="block text-[7px] sm:text-[9px] font-bold text-brand-light/70 uppercase truncate mt-0.5">
+                                {manager}
+                            </span>
+                        )}
+                    </div>
                 </div>
             </td>
             <td className="px-2 sm:px-6 py-2 sm:py-4 text-center">
